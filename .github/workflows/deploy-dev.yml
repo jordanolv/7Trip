@@ -33,7 +33,7 @@ jobs:
 
             if [ ! -d ".git" ]; then
               echo "📁 Initial clone"
-              git clone -b dev https://github.com/jordanolv/7trip.git
+              git clone -b dev https://github.com/jordanolv/7trip.git .
             else
               echo "📦 Git repo already present"
             fi
