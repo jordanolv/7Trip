@@ -1,0 +1,52 @@
+name: 🚀 Deploy DEV to VPS
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -p ${{ secrets.VPS_SSH_PORT }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        run: |
+          ssh -i ~/.ssh/vps_key \
+              -o StrictHostKeyChecking=no \
+              -p ${{ secrets.VPS_SSH_PORT }} \
+              ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+            echo "✅ Connected to VPS"
+
+            cd ~/project/7trip/dev
+
+            if [ ! -d ".git" ]; then
+              echo "📁 Initial clone"
+              git clone -b dev https://github.com/jordan-olv/7trip.git .
+            fi
+
+            echo "📥 Pull latest code"
+            git config --global --add safe.directory ~/project/7trip/dev
+            git reset --hard
+            git clean -fd
+            git pull origin dev
+
+            echo "🔧 Update permissions"
+            chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/project/7trip/dev
+
+            echo "🛠️ Docker Compose DEV"
+            docker-compose down
+            docker-compose up --build -d
+
+            echo "✅ DEV deployment finished 🎉"
+          EOF

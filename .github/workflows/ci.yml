@@ -1,0 +1,85 @@
+name: 🚧 CI - Build & Test
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: 7trip_dev
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Backend Dependencies
+        run: |
+          cd apps/api
+          npm install
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd apps/front
+          npm install
+
+      - name: Run Linter (Backend)
+        run: |
+          cd apps/api
+          npm run lint
+
+      - name: Check Code Formatting (Backend)
+        run: |
+          cd apps/api
+          npm run format:check
+
+      - name: Wait for Postgres to be ready
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
+
+      - name: Run Backend Tests
+        env:
+          DATABASE_URL: postgresql://postgres:admin@localhost:5432/7trip_dev
+        run: |
+          cd apps/api
+          npm run test:e2e
+
+      - name: Build Backend
+        run: |
+          cd apps/api
+          npm run build
+
+      - name: Build Frontend
+        run: |
+          cd apps/front
+          npm run build
+
+      # - name: Run SonarQube Scan (Optional)
+      #   if: ${{ secrets.SONAR_TOKEN }}
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #   run: |
+      #     npx sonarqube-scanner
