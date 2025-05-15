@@ -29,7 +29,7 @@ jobs:
             echo "✅ Connected to VPS"
 
             mkdir -p ~/projects/7trip/dev
-            cd ~/project/7trip/dev
+            cd ~/projects/7trip/dev
 
             if [ ! -d ".git" ]; then
               echo "📁 Initial clone"
@@ -37,13 +37,13 @@ jobs:
             fi
 
             echo "📥 Pull latest code"
-            git config --global --add safe.directory ~/project/7trip/dev
+            git config --global --add safe.directory ~/projects/7trip/dev
             git reset --hard
             git clean -fd
             git pull origin dev
 
             echo "🔧 Update permissions"
-            chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/project/7trip/dev
+            chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/dev
 
             echo "🛠️ Docker Compose DEV"
             docker-compose down
