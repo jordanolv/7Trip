@@ -25,7 +25,7 @@ jobs:
           ssh -i ~/.ssh/vps_key \
               -o StrictHostKeyChecking=no \
               -p ${{ secrets.VPS_PORT }} \
-              ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+              ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
             echo "✅ Connected to VPS"
 
             mkdir -p ~/projects/7trip/dev
@@ -33,7 +33,9 @@ jobs:
 
             if [ ! -d ".git" ]; then
               echo "📁 Initial clone"
-              git clone -b dev https://github.com/jordan-olv/7trip.git .
+              git clone -b dev https://github.com/jordan-olv/7trip.git . || { echo "❌ Git clone failed"; exit 1; }
+            else
+              echo "📦 Git repo already present"
             fi
 
             echo "📥 Pull latest code"
@@ -46,8 +48,9 @@ jobs:
             chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/dev
 
             echo "🛠️ Docker Compose DEV"
-            docker-compose down
+            docker-compose down || true
             docker-compose up --build -d
 
             echo "✅ DEV deployment finished 🎉"
           EOF
+
