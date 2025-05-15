@@ -28,6 +28,7 @@ jobs:
               ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
             echo "✅ Connected to VPS"
 
+            mkdir -p ~/projects/7trip/dev
             cd ~/project/7trip/dev
 
             if [ ! -d ".git" ]; then
