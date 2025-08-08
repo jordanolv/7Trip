@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres-7trip-dev
+    ports:
+      - '8432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: 7trip_dev
+    restart: always
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: api-7trip-dev
+    ports:
+      - '8001:3001'
+    env_file:
+      - .env.dev
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    restart: always
+
+  front:
+    build:
+      context: ./apps/front
+      dockerfile: Dockerfile.dev
+    container_name: front-7trip-dev
+    ports:
+      - '8000:3000'
+    env_file:
+      - .env.dev
+    volumes:
+      - ./apps/front:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    restart: always

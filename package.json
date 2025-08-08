@@ -1,0 +1,14 @@
+{
+  "name": "7trip-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "docker-compose -f docker-compose.dev.yml up --build -d",
+    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "prod": "docker-compose -f docker-compose.prod.yml up --build -d",
+    "prod:down": "docker-compose -f docker-compose.prod.yml down"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/front"
+  ]
+}
