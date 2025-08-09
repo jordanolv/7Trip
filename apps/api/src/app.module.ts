@@ -12,7 +12,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot(databaseConfig as TypeOrmModuleOptions), 
+    TypeOrmModule.forRoot(databaseConfig as TypeOrmModuleOptions),
     UsersModule,
     AuthModule,
   ],

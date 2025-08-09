@@ -33,6 +33,17 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'warn',
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-return': 'warn',
+      // Prettier formatting rules - more flexible
+      'prettier/prettier': [
+        'error',
+        {
+          printWidth: 120,
+          singleQuote: true,
+          trailingComma: 'all',
+          tabWidth: 2,
+          useTabs: false,
+        },
+      ],
     },
   },
 );

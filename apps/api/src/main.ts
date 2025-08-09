@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Validation globale
   app.useGlobalPipes(
     new ValidationPipe({
@@ -13,7 +13,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  
+
   await app.listen(process.env.PORT ?? 3001);
 }
 void bootstrap();
