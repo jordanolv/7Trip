@@ -6,6 +6,7 @@ import { User, AuthProvider } from '../../../users/domain/entities/user.entity';
 import { LoginDto } from '../../infrastructure/dto/login.dto';
 import { RegisterDto } from '../../infrastructure/dto/register.dto';
 import { AuthResponseDto } from '../../infrastructure/dto/auth-response.dto';
+import { GoogleUserDto } from '../../infrastructure/dto/google-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -46,7 +47,7 @@ export class AuthService {
     return user;
   }
 
-  async validateJwt(payload: any): Promise<User> {
+  async validateJwt(payload: { sub: number; email: string; role: string }): Promise<User> {
     const user = await this.userService.findById(payload.sub);
     if (!user) {
       throw new UnauthorizedException('Invalid token');
@@ -85,5 +86,72 @@ export class AuthService {
 
   refreshToken(user: User): AuthResponseDto {
     return this.generateTokens(user);
+  }
+
+  async validateGoogleUser(googleUser: GoogleUserDto): Promise<User> {
+    let user = await this.userService.findByGoogleId(googleUser.googleId);
+
+    if (user) {
+      return user;
+    }
+
+    user = await this.userService.findByEmail(googleUser.email);
+
+    if (user) {
+      const updatedUser = await this.userService.update(user.id, {
+        googleId: googleUser.googleId,
+        provider: AuthProvider.GOOGLE,
+        profilePicture: googleUser.profilePicture,
+      });
+      return updatedUser;
+    }
+
+    const newUser = await this.userService.create({
+      email: googleUser.email,
+      firstName: googleUser.firstName,
+      lastName: googleUser.lastName,
+      googleId: googleUser.googleId,
+      provider: AuthProvider.GOOGLE,
+      profilePicture: googleUser.profilePicture,
+    });
+
+    return newUser;
+  }
+
+  googleLogin(user: User): AuthResponseDto {
+    return this.generateTokens(user);
+  }
+
+  async setPassword(userId: number, password: string): Promise<User> {
+    const user = await this.userService.findById(userId);
+
+    if (user.provider !== AuthProvider.GOOGLE) {
+      throw new UnauthorizedException('Only Google users can set a password');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    return await this.userService.update(userId, {
+      password: hashedPassword,
+      provider: AuthProvider.LOCAL, // Allow both login methods
+    });
+  }
+
+  async linkGoogle(userId: number, googleUser: GoogleUserDto): Promise<User> {
+    const user = await this.userService.findById(userId);
+
+    if (user.provider !== AuthProvider.LOCAL) {
+      throw new UnauthorizedException('Only local users can link Google');
+    }
+
+    const existingGoogleUser = await this.userService.findByGoogleId(googleUser.googleId);
+    if (existingGoogleUser && existingGoogleUser.id !== userId) {
+      throw new UnauthorizedException('This Google account is already linked to another user');
+    }
+
+    return await this.userService.update(userId, {
+      googleId: googleUser.googleId,
+      profilePicture: googleUser.profilePicture,
+    });
   }
 }

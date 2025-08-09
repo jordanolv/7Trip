@@ -42,6 +42,10 @@ export class UserService {
     return this.userRepository.findByEmail(email);
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return this.userRepository.findByGoogleId(googleId);
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.userRepository.findByEmail(createUserDto.email);
     if (existingUser) {
