@@ -1,0 +1,1 @@
+export { useAuthGuard } from '~/features/auth/composables/useAuthGuard'

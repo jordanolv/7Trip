@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
 import { UserRepositoryInterface, PaginationResult } from '../../domain/repositories/user.repository.interface';
 
 interface PaginationOptions {
@@ -53,9 +52,7 @@ export class UserService {
     }
 
     const userData = { ...createUserDto };
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
-    }
+    // Password hashing is handled by AuthService, not here
 
     return this.userRepository.create(userData);
   }
@@ -71,9 +68,7 @@ export class UserService {
     }
 
     const userData = { ...updateUserDto };
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
-    }
+    // Password hashing is handled by AuthService, not here
 
     const updatedUser = await this.userRepository.update(id, userData);
     if (!updatedUser) {

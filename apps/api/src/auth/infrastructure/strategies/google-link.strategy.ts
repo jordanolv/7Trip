@@ -25,9 +25,10 @@ export class GoogleLinkStrategy extends PassportStrategy(Strategy, 'google-link'
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
       callbackURL:
-        configService.get<string>('GOOGLE_LINK_CALLBACK_URL') || 'http://localhost:3001/auth/link-google/callback',
+        configService.get<string>('GOOGLE_LINK_CALLBACK_URL') || 'http://localhost:8001/auth/link-google/callback',
       scope: ['email', 'profile'],
       passReqToCallback: true,
+      state: true, // Enable state parameter
     });
   }
 
@@ -39,9 +40,13 @@ export class GoogleLinkStrategy extends PassportStrategy(Strategy, 'google-link'
     done: VerifyCallback,
   ): Promise<void> {
     try {
+      console.log('Google Link Strategy - req.query:', req.query);
+      console.log('Google Link Strategy - state:', req.query.state);
+
       const userId = req.query.state ? parseInt(req.query.state, 10) : null;
 
       if (!userId) {
+        console.error('Missing state parameter:', req.query);
         throw new UnauthorizedException('Missing user context for linking');
       }
 

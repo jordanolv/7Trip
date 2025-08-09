@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   Get,
   Res,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from '../../application/services/auth.service';
 import { LoginDto } from '../../infrastructure/dto/login.dto';
@@ -17,7 +18,6 @@ import { RegisterDto } from '../../infrastructure/dto/register.dto';
 import { SetPasswordDto } from '../../infrastructure/dto/set-password.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GoogleAuthGuard } from '../guards/google-auth.guard';
-import { GoogleLinkAuthGuard } from '../guards/google-link-auth.guard';
 import { User } from '../../../users/domain/entities/user.entity';
 
 interface RequestWithUser {
@@ -90,33 +90,75 @@ export class AuthController {
   }
 
   @Get('link-google')
-  @UseGuards(JwtAuthGuard)
-  linkGoogle(@Request() req: RequestWithUser, @Res() res) {
-    const googleAuthUrl = `http://localhost:3001/auth/link-google/start?state=${req.user.id}`;
-    res.redirect(googleAuthUrl);
-  }
-
-  @Get('link-google/start')
-  @UseGuards(GoogleLinkAuthGuard)
-  linkGoogleStart() {
-    // Guard redirects to Google with state parameter
-  }
-
-  @Get('link-google/callback')
-  @UseGuards(GoogleLinkAuthGuard)
-  linkGoogleCallback(@Request() req, @Res() res) {
-    if (!req.user) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/profile?link=error`);
+  linkGoogle(@Query('token') token: string, @Res() res) {
+    if (!token) {
+      return res.status(400).json({ message: 'Token required' });
     }
 
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/profile?link=success`);
+      // Verify the JWT token
+      const payload = this.authService.verifyToken(token);
+      const googleAuthUrl = `http://localhost:8001/auth/link-google/start?state=${payload.sub}`;
+      res.redirect(googleAuthUrl);
+    } catch (error) {
+      console.error('Error verifying token:', error);
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+  }
+
+  @Get('link-google/start')
+  linkGoogleStart(@Query('state') state: string, @Res() res) {
+    if (!state) {
+      return res.status(400).json({ message: 'State parameter required' });
+    }
+
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const callbackUrl = process.env.GOOGLE_LINK_CALLBACK_URL || 'http://localhost:8001/auth/link-google/callback';
+
+    const googleAuthUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${googleClientId}&` +
+      `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
+      `response_type=code&` +
+      `scope=email profile&` +
+      `state=${state}`;
+
+    console.log('Redirecting to Google with state:', state);
+    res.redirect(googleAuthUrl);
+  }
+
+  @Get('link-google/callback')
+  async linkGoogleCallback(@Query('code') code: string, @Query('state') state: string, @Res() res) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8000';
+
+    if (!code || !state) {
+      console.error('Missing code or state parameter');
+      return res.redirect(`${frontendUrl}/auth/link-callback?error=true`);
+    }
+
+    try {
+      const userId = parseInt(state, 10);
+      if (!userId) {
+        console.error('Invalid state parameter:', state);
+        return res.redirect(`${frontendUrl}/auth/link-callback?error=true`);
+      }
+
+      // Exchange code for tokens
+      const googleProfile = await this.authService.exchangeCodeForProfile(code);
+
+      // Link the Google account
+      await this.authService.linkGoogle(userId, googleProfile);
+
+      res.redirect(`${frontendUrl}/auth/google-link?link=success`);
     } catch (error) {
       console.error('Error linking Google account:', error);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/profile?link=error`);
+
+      // Check if it's an email mismatch error
+      if (error.message === 'Google email must match your account email') {
+        return res.redirect(`${frontendUrl}/auth/google-link?link=email_mismatch`);
+      }
+
+      return res.redirect(`${frontendUrl}/auth/google-link?link=error`);
     }
   }
 }
