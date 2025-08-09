@@ -52,7 +52,6 @@ export class UserService {
     }
 
     const userData = { ...createUserDto };
-    // Password hashing is handled by AuthService, not here
 
     return this.userRepository.create(userData);
   }
@@ -68,7 +67,6 @@ export class UserService {
     }
 
     const userData = { ...updateUserDto };
-    // Password hashing is handled by AuthService, not here
 
     const updatedUser = await this.userRepository.update(id, userData);
     if (!updatedUser) {
