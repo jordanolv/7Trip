@@ -34,16 +34,38 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
+    console.log('validateUser called with email:', email);
+
     const user = await this.userService.findByEmail(email);
-    if (!user || user.provider !== AuthProvider.LOCAL || !user.password) {
+    console.log('User found:', user ? 'YES' : 'NO');
+
+    if (user) {
+      console.log('User details:', {
+        id: user.id,
+        email: user.email,
+        provider: user.provider,
+        hasPassword: !!user.password,
+      });
+    }
+
+    // Allow login if user has a password, regardless of provider (LOCAL or GOOGLE with password)
+    if (!user || !user.password) {
+      console.log('Login failed: no user or no password');
       return null;
     }
+
+    console.log('Comparing password:', password);
+    console.log('Hash in DB:', user.password.substring(0, 20) + '...');
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isPasswordValid);
+
     if (!isPasswordValid) {
+      console.log('Login failed: invalid password');
       return null;
     }
 
+    console.log('Login successful');
     return user;
   }
 
@@ -123,6 +145,8 @@ export class AuthService {
   }
 
   async setPassword(userId: number, password: string): Promise<User> {
+    console.log('setPassword called for userId:', userId, 'password:', password);
+
     const user = await this.userService.findById(userId);
 
     if (user.provider !== AuthProvider.GOOGLE) {
@@ -130,11 +154,15 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Generated hash:', hashedPassword.substring(0, 20) + '...');
 
-    return await this.userService.update(userId, {
+    const updatedUser = await this.userService.update(userId, {
       password: hashedPassword,
-      provider: AuthProvider.LOCAL, // Allow both login methods
+      // Keep original provider (GOOGLE) - user can now use both methods
     });
+
+    console.log('Password updated successfully');
+    return updatedUser;
   }
 
   async linkGoogle(userId: number, googleUser: GoogleUserDto): Promise<User> {
@@ -142,6 +170,10 @@ export class AuthService {
 
     if (user.provider !== AuthProvider.LOCAL) {
       throw new UnauthorizedException('Only local users can link Google');
+    }
+
+    if (user.email !== googleUser.email) {
+      throw new UnauthorizedException('Google email must match your account email');
     }
 
     const existingGoogleUser = await this.userService.findByGoogleId(googleUser.googleId);
@@ -153,5 +185,52 @@ export class AuthService {
       googleId: googleUser.googleId,
       profilePicture: googleUser.profilePicture,
     });
+  }
+
+  verifyToken(token: string) {
+    return this.jwtService.verify(token);
+  }
+
+  async exchangeCodeForProfile(code: string): Promise<GoogleUserDto> {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: process.env.GOOGLE_LINK_CALLBACK_URL || 'http://localhost:8001/auth/link-google/callback',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange code for tokens');
+    }
+
+    const tokens = await tokenResponse.json();
+
+    // Get user profile from Google
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    });
+
+    if (!profileResponse.ok) {
+      throw new Error('Failed to get user profile from Google');
+    }
+
+    const profile = await profileResponse.json();
+
+    return {
+      googleId: profile.id,
+      email: profile.email,
+      firstName: profile.given_name,
+      lastName: profile.family_name,
+      profilePicture: profile.picture,
+    };
   }
 }

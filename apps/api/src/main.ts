@@ -5,6 +5,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // CORS configuration
+  app.enableCors({
+    origin: [
+      'http://localhost:8000', // Frontend dev server
+      'http://localhost:3000', // Alternative frontend port
+      'http://dev.7trip.co',   // Custom domain
+    ],
+    credentials: true,
+  });
+
   // Validation globale
   app.useGlobalPipes(
     new ValidationPipe({

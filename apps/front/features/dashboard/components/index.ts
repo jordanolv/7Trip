@@ -1,0 +1,7 @@
+export { default as DashboardNavigation } from './DashboardNavigation.vue'
+export { default as UserProfile } from './UserProfile.vue'
+export { default as WelcomeCard } from './WelcomeCard.vue'
+export { default as AccountInfo } from './AccountInfo.vue'
+export { default as AccountActions } from './AccountActions.vue'
+export { default as PasswordManager } from './PasswordManager.vue'
+export { default as GoogleLinker } from './GoogleLinker.vue'
