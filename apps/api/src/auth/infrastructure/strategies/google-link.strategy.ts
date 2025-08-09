@@ -5,6 +5,16 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../../application/services/auth.service';
 import { GoogleUserDto } from '../dto/google-user.dto';
 
+interface GoogleProfile {
+  id: string;
+  name: {
+    givenName: string;
+    familyName: string;
+  };
+  emails: Array<{ value: string }>;
+  photos: Array<{ value: string }>;
+}
+
 @Injectable()
 export class GoogleLinkStrategy extends PassportStrategy(Strategy, 'google-link') {
   constructor(
@@ -22,15 +32,14 @@ export class GoogleLinkStrategy extends PassportStrategy(Strategy, 'google-link'
   }
 
   async validate(
-    req: any,
+    req: { query: { state?: string } },
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: GoogleProfile,
     done: VerifyCallback,
-  ): Promise<any> {
+  ): Promise<void> {
     try {
-      // Get user ID from query params (passed when initiating the link)
-      const userId = req.query.state ? parseInt(req.query.state) : null;
+      const userId = req.query.state ? parseInt(req.query.state, 10) : null;
 
       if (!userId) {
         throw new UnauthorizedException('Missing user context for linking');
@@ -49,7 +58,7 @@ export class GoogleLinkStrategy extends PassportStrategy(Strategy, 'google-link'
       const linkedUser = await this.authService.linkGoogle(userId, googleUser);
       done(null, linkedUser);
     } catch (error) {
-      done(error, null);
+      done(error as Error, false);
     }
   }
 }

@@ -11,7 +11,6 @@ import {
   Get,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { AuthService } from '../../application/services/auth.service';
 import { LoginDto } from '../../infrastructure/dto/login.dto';
 import { RegisterDto } from '../../infrastructure/dto/register.dto';
@@ -19,6 +18,11 @@ import { SetPasswordDto } from '../../infrastructure/dto/set-password.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GoogleAuthGuard } from '../guards/google-auth.guard';
 import { GoogleLinkAuthGuard } from '../guards/google-link-auth.guard';
+import { User } from '../../../users/domain/entities/user.entity';
+
+interface RequestWithUser {
+  user: User;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +45,7 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  refresh(@Request() req) {
+  refresh(@Request() req: RequestWithUser) {
     return this.authService.refreshToken(req.user);
   }
 
@@ -60,7 +64,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  googleAuthCallback(@Request() req, @Res() res: Response) {
+  googleAuthCallback(@Request() req, @Res() res) {
     if (!req.user) {
       return res.redirect(`
         ${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/error`);
@@ -75,20 +79,19 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
-  setPassword(@Request() req, @Body() setPasswordDto: SetPasswordDto) {
+  setPassword(@Request() req: RequestWithUser, @Body() setPasswordDto: SetPasswordDto) {
     return this.authService.setPassword(req.user.id, setPasswordDto.password);
   }
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  getProfile(@Request() req) {
+  getProfile(@Request() req: RequestWithUser): User {
     return req.user;
   }
 
   @Get('link-google')
   @UseGuards(JwtAuthGuard)
-  linkGoogle(@Request() req, @Res() res: Response) {
-    // Redirect to Google with user ID in state parameter
+  linkGoogle(@Request() req: RequestWithUser, @Res() res) {
     const googleAuthUrl = `http://localhost:3001/auth/link-google/start?state=${req.user.id}`;
     res.redirect(googleAuthUrl);
   }
@@ -101,7 +104,7 @@ export class AuthController {
 
   @Get('link-google/callback')
   @UseGuards(GoogleLinkAuthGuard)
-  linkGoogleCallback(@Request() req, @Res() res: Response) {
+  linkGoogleCallback(@Request() req, @Res() res) {
     if (!req.user) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/profile?link=error`);
