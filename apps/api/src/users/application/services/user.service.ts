@@ -1,8 +1,18 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { UserRepositoryInterface } from '../../domain/repositories/user.repository.interface';
+import { Injectable, Inject } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import { 
+  UserRepositoryInterface, 
+  PaginationOptions, 
+  PaginationResult 
+} from '../../domain/repositories/user.repository.interface';
 import { User } from '../../domain/entities/user.entity';
 import { CreateUserDto } from '../../infrastructure/dto/create-user.dto';
 import { UpdateUserDto } from '../../infrastructure/dto/update-user.dto';
+import { PaginationDto } from '../../infrastructure/dto/pagination.dto';
+import { 
+  UserEmailAlreadyExistsException, 
+  UserNotFoundException 
+} from '../../../common/exceptions/user.exceptions';
 
 @Injectable()
 export class UserService {
@@ -11,14 +21,19 @@ export class UserService {
     private readonly userRepository: UserRepositoryInterface,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.findAll();
+  async findAll(paginationDto?: PaginationDto): Promise<PaginationResult<User>> {
+    const options: PaginationOptions | undefined = paginationDto ? {
+      page: paginationDto.page || 1,
+      limit: paginationDto.limit || 10,
+    } : undefined;
+
+    return this.userRepository.findAll(options);
   }
 
   async findById(id: number): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new UserNotFoundException(id);
     }
     return user;
   }
@@ -28,30 +43,37 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    // Vérifier si l'email existe déjà
     const existingUser = await this.userRepository.findByEmail(createUserDto.email);
     if (existingUser) {
-      throw new Error('Email already exists');
+      throw new UserEmailAlreadyExistsException(createUserDto.email);
     }
 
-    return this.userRepository.create(createUserDto);
+    const userData = { ...createUserDto };
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
+
+    return this.userRepository.create(userData);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    // Vérifier que l'utilisateur existe
     await this.findById(id);
 
-    // Si on change l'email, vérifier qu'il n'existe pas déjà
     if (updateUserDto.email) {
       const existingUser = await this.userRepository.findByEmail(updateUserDto.email);
       if (existingUser && existingUser.id !== id) {
-        throw new Error('Email already exists');
+        throw new UserEmailAlreadyExistsException(updateUserDto.email);
       }
     }
 
-    const updatedUser = await this.userRepository.update(id, updateUserDto);
+    const userData = { ...updateUserDto };
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
+
+    const updatedUser = await this.userRepository.update(id, userData);
     if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new UserNotFoundException(id);
     }
     return updatedUser;
   }

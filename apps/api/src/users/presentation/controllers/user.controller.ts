@@ -11,10 +11,12 @@ import {
   ValidationPipe,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { UserService } from '../../application/services/user.service';
 import { CreateUserDto } from '../../infrastructure/dto/create-user.dto';
 import { UpdateUserDto } from '../../infrastructure/dto/update-user.dto';
+import { PaginationDto } from '../../infrastructure/dto/pagination.dto';
 
 @Controller('users')
 export class UserController {
@@ -28,8 +30,8 @@ export class UserController {
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.userService.findAll(paginationDto);
   }
 
   @Get(':id')
