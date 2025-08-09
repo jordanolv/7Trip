@@ -1,18 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { 
-  UserRepositoryInterface, 
-  PaginationOptions, 
-  PaginationResult 
-} from '../../domain/repositories/user.repository.interface';
+import { UserRepositoryInterface, PaginationResult } from '../../domain/repositories/user.repository.interface';
+
+interface PaginationOptions {
+  page: number;
+  limit: number;
+}
 import { User } from '../../domain/entities/user.entity';
 import { CreateUserDto } from '../../infrastructure/dto/create-user.dto';
 import { UpdateUserDto } from '../../infrastructure/dto/update-user.dto';
 import { PaginationDto } from '../../infrastructure/dto/pagination.dto';
-import { 
-  UserEmailAlreadyExistsException, 
-  UserNotFoundException 
-} from '../../../common/exceptions/user.exceptions';
+import { UserEmailAlreadyExistsException, UserNotFoundException } from '../../../common/exceptions/user.exceptions';
 
 @Injectable()
 export class UserService {
@@ -22,10 +20,12 @@ export class UserService {
   ) {}
 
   async findAll(paginationDto?: PaginationDto): Promise<PaginationResult<User>> {
-    const options: PaginationOptions | undefined = paginationDto ? {
-      page: paginationDto.page || 1,
-      limit: paginationDto.limit || 10,
-    } : undefined;
+    const options: PaginationOptions | undefined = paginationDto
+      ? {
+          page: paginationDto.page || 1,
+          limit: paginationDto.limit || 10,
+        }
+      : undefined;
 
     return this.userRepository.findAll(options);
   }
