@@ -34,38 +34,17 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
-    console.log('validateUser called with email:', email);
-
     const user = await this.userService.findByEmail(email);
-    console.log('User found:', user ? 'YES' : 'NO');
 
-    if (user) {
-      console.log('User details:', {
-        id: user.id,
-        email: user.email,
-        provider: user.provider,
-        hasPassword: !!user.password,
-      });
-    }
-
-    // Allow login if user has a password, regardless of provider (LOCAL or GOOGLE with password)
     if (!user || !user.password) {
-      console.log('Login failed: no user or no password');
       return null;
     }
-
-    console.log('Comparing password:', password);
-    console.log('Hash in DB:', user.password.substring(0, 20) + '...');
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
-      console.log('Login failed: invalid password');
       return null;
     }
-
-    console.log('Login successful');
     return user;
   }
 
@@ -158,7 +137,6 @@ export class AuthService {
 
     const updatedUser = await this.userService.update(userId, {
       password: hashedPassword,
-      // Keep original provider (GOOGLE) - user can now use both methods
     });
 
     console.log('Password updated successfully');
@@ -212,7 +190,6 @@ export class AuthService {
 
     const tokens = await tokenResponse.json();
 
-    // Get user profile from Google
     const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
