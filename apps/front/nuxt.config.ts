@@ -22,12 +22,12 @@ export default defineNuxtConfig({
       extensions: ['vue']
     }
   ],
+  pages: true,
   vite: {
     plugins: [
       tailwindcss(),
     ],
     server: {
-      host: true,
       allowedHosts: ['dev.7trip.co'],
     }
   }

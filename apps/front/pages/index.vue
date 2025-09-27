@@ -8,13 +8,13 @@
             <h1 class="text-2xl font-bold text-white">7Trip.co</h1>
           </div>
           <div v-if="!isAuthenticated" class="flex items-center space-x-4">
-            <NuxtLink 
+            <NuxtLink
               to="/login"
               class="text-white hover:text-white/80 px-3 py-2 text-sm font-medium"
             >
               Se connecter
             </NuxtLink>
-            <NuxtLink 
+            <NuxtLink
               to="/register"
               class="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
             >
@@ -22,23 +22,24 @@
             </NuxtLink>
           </div>
           <div v-else class="flex items-center space-x-4">
-            <span class="text-white/90">Bonjour {{ user?.firstName }} !</span>
-            <NuxtLink 
-              to="/dashboard"
-              class="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            <NuxtLink
+              to="/trips/create"
+              class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
             >
-              Tableau de bord
+              + Créer un voyage
             </NuxtLink>
+
+            <UserMenu :user="user" @logout="handleLogout" />
           </div>
         </div>
       </div>
     </nav>
 
     <!-- Hero Section -->
-    <div class="relative">
+    <div v-if="!isAuthenticated" class="relative">
       <!-- Background overlay -->
       <div class="absolute inset-0 bg-black/20"></div>
-      
+
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div class="text-center">
           <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
@@ -47,28 +48,19 @@
               7Trip.co
             </span>
           </h1>
-          
+
           <p class="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
             Votre plateforme de voyage ultime. Découvrez, planifiez et vivez des aventures inoubliables.
           </p>
-          
+
           <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <NuxtLink 
-              v-if="!isAuthenticated"
+            <NuxtLink
               to="/register"
               class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               Commencer maintenant
             </NuxtLink>
-            <NuxtLink 
-              v-else
-              to="/dashboard"
-              class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              Accéder au tableau de bord
-            </NuxtLink>
-            <NuxtLink 
-              v-if="!isAuthenticated"
+            <NuxtLink
               to="/login"
               class="w-full sm:w-auto bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 border border-white/20"
             >
@@ -79,8 +71,53 @@
       </div>
     </div>
 
-    <!-- Features Section -->
-    <div class="relative py-16">
+    <!-- Social Feed Section for Authenticated Users -->
+    <div v-if="isAuthenticated" class="relative py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+          <h1 class="text-3xl font-bold text-white mb-4">
+            Bienvenue {{ user?.firstName }} ! ✈️
+          </h1>
+          <p class="text-white/80 text-lg">
+            Découvrez les voyages partagés par la communauté
+          </p>
+        </div>
+
+        <!-- Public Trips Feed -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Trip Card Example -->
+          <div v-for="trip in publicTrips" :key="trip.id" class="bg-white/10 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/20 hover:bg-white/15 transition-all cursor-pointer">
+            <div class="h-48 bg-gradient-to-br from-blue-400 to-purple-500 relative">
+              <img v-if="trip.coverImage" :src="trip.coverImage" :alt="trip.title" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-black/20"></div>
+              <div class="absolute top-4 left-4">
+                <span class="bg-white/20 backdrop-blur-sm text-white px-2 py-1 rounded-full text-sm">
+                  {{ trip.status }}
+                </span>
+              </div>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-semibold text-white mb-2">{{ trip.title }}</h3>
+              <p class="text-white/70 mb-3 line-clamp-2">{{ trip.description }}</p>
+              <div class="flex items-center justify-between text-sm text-white/60">
+                <span>{{ formatDateRange(trip.startDate, trip.endDate) }}</span>
+                <span>par {{ trip.creator?.firstName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div v-if="publicTrips.length === 0" class="col-span-full text-center py-12">
+            <p class="text-white/60 text-lg">Aucun voyage public pour le moment</p>
+            <p class="text-white/40">Soyez le premier à partager votre aventure !</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Features Section (only for non-authenticated) -->
+    <div v-if="!isAuthenticated" class="relative py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
           <h2 class="text-3xl font-bold text-white mb-4">
@@ -139,4 +176,49 @@ const authStore = useAuthStore()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const user = computed(() => authStore.user)
+
+// Public trips
+interface Trip {
+  id: number
+  title: string
+  description: string
+  startDate: string
+  endDate: string
+  status: string
+  coverImage?: string
+  creator?: {
+    firstName: string
+  }
+}
+
+const publicTrips = ref<Trip[]>([])
+
+// Methods
+const formatDateRange = (startDate: string, endDate: string) => {
+  const start = new Date(startDate).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short'
+  })
+  const end = new Date(endDate).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short'
+  })
+  return `${start} - ${end}`
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
+}
+
+// Load public trips on mount
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    try {
+      // TODO: Fetch public trips from API
+      console.log('Loading public trips...')
+    } catch (error) {
+      console.error('Error loading trips:', error)
+    }
+  }
+})
 </script>

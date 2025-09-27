@@ -32,6 +32,6 @@ onMounted(async () => {
     return
   }
   
-  router.push(`/dashboard?link=${linkStatus}`)
+  router.push(`/profil?link=${linkStatus}`)
 })
 </script>

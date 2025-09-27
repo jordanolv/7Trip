@@ -8,39 +8,11 @@
         <!-- Logo/Title -->
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold text-white mb-2">7Trip.co</h1>
-          <p class="text-white/70">Créez votre compte</p>
+          <p class="text-white/70">Connectez-vous à votre compte</p>
         </div>
 
-        <!-- Register Form -->
-        <form @submit.prevent="handleRegister" class="space-y-6">
-          <!-- First Name -->
-          <div>
-            <label class="block text-white/90 text-sm font-medium mb-2">
-              Prénom
-            </label>
-            <input
-              v-model="form.firstName"
-              type="text"
-              required
-              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              placeholder="Votre prénom"
-            />
-          </div>
-
-          <!-- Last Name -->
-          <div>
-            <label class="block text-white/90 text-sm font-medium mb-2">
-              Nom
-            </label>
-            <input
-              v-model="form.lastName"
-              type="text"
-              required
-              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              placeholder="Votre nom"
-            />
-          </div>
-
+        <!-- Login Form -->
+        <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Email -->
           <div>
             <label class="block text-white/90 text-sm font-medium mb-2">
@@ -64,11 +36,9 @@
               v-model="form.password"
               type="password"
               required
-              minlength="6"
               class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               placeholder="••••••••"
             />
-            <p class="text-white/60 text-xs mt-1">Minimum 6 caractères</p>
           </div>
 
           <!-- Error message -->
@@ -76,7 +46,7 @@
             {{ error }}
           </div>
 
-          <!-- Register Button -->
+          <!-- Login Button -->
           <button
             type="submit"
             :disabled="isLoading"
@@ -87,9 +57,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              Inscription...
+              Connexion...
             </span>
-            <span v-else>S'inscrire</span>
+            <span v-else>Se connecter</span>
           </button>
         </form>
 
@@ -100,7 +70,7 @@
           <div class="flex-1 border-t border-white/20"></div>
         </div>
 
-        <!-- Google Register -->
+        <!-- Google Login -->
         <a
           :href="`${$config.public.apiBase}/auth/google`"
           class="w-full flex items-center justify-center py-3 px-4 bg-white hover:bg-gray-50 text-gray-900 font-medium rounded-lg transition-colors duration-200 border border-gray-300"
@@ -111,15 +81,15 @@
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          S'inscrire avec Google
+          Continuer avec Google
         </a>
 
         <!-- Links -->
         <div class="mt-6 text-center">
           <p class="text-white/70 text-sm">
-            Déjà un compte ?
-            <NuxtLink to="/login" class="text-blue-400 hover:text-blue-300 font-medium ml-1">
-              Se connecter
+            Pas encore de compte ?
+            <NuxtLink to="/register" class="text-blue-400 hover:text-blue-300 font-medium ml-1">
+              S'inscrire
             </NuxtLink>
           </p>
         </div>
@@ -138,29 +108,27 @@ const router = useRouter()
 
 const form = reactive({
   email: '',
-  firstName: '',
-  lastName: '',
   password: ''
 })
 
 const error = ref('')
 const isLoading = computed(() => authStore.isLoading)
 
-const handleRegister = async () => {
+const handleLogin = async () => {
   error.value = ''
   
   try {
-    await authStore.register(form)
-    router.push('/dashboard')
+    await authStore.login(form)
+    router.push('/')
   } catch (err: any) {
-    console.error('Register error:', err)
-    error.value = err.data?.message || 'Erreur lors de l\'inscription'
+    console.error('Login error:', err)
+    error.value = err.data?.message || 'Erreur de connexion'
   }
 }
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    router.push('/dashboard')
+    router.push('/')
   }
 })
 </script>
