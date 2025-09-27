@@ -1,87 +1,106 @@
 <template>
-  <div class="min-h-screen bg-neutral-50">
+  <div class="min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-white/95 backdrop-blur-md border-b border-neutral-200">
+    <nav class="absolute top-0 left-0 right-0 z-50 bg-transparent">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <NuxtLink to="/" class="flex items-center space-x-2">
-            <div class="w-8 h-8 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-              <span class="text-white font-bold text-lg">7</span>
+        <div class="flex items-center justify-between h-20">
+          <NuxtLink to="/" class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+              <span class="text-xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">7</span>
             </div>
-            <span class="text-xl font-bold text-neutral-900">Trip.co</span>
+            <span class="text-xl font-bold text-white">Trip.co</span>
           </NuxtLink>
 
-          <Button variant="ghost" to="/register" size="sm">
-            Pas de compte ? S'inscrire
-          </Button>
+          <NuxtLink
+            to="/register"
+            class="bg-white text-gray-900 px-6 py-2 rounded-full font-medium hover:bg-gray-100 transition-colors"
+          >
+            S'inscrire
+          </NuxtLink>
         </div>
       </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="flex min-h-[calc(100vh-64px)]">
+    <div class="flex min-h-screen">
       <!-- Left Side - Form -->
-      <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-        <div class="max-w-md w-full space-y-8">
+      <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 relative">
+        <!-- Background overlay for left side -->
+        <div class="absolute inset-0 bg-white/90 backdrop-blur-sm lg:bg-white"></div>
+
+        <div class="relative max-w-md w-full space-y-8">
           <div class="text-center">
-            <h1 class="heading-lg text-neutral-900 mb-2">Bon retour !</h1>
-            <p class="body-md text-neutral-600">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Bon retour !</h1>
+            <p class="text-lg text-gray-600">
               Connectez-vous pour accéder à vos voyages
             </p>
           </div>
 
-          <Card variant="elevated" padding="lg">
+          <div class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100">
             <form @submit.prevent="handleLogin" class="space-y-6">
-              <Input
-                v-model="form.email"
-                type="email"
-                label="Adresse email"
-                placeholder="votre@email.com"
-                required
-                size="lg"
-              />
-
-              <Input
-                v-model="form.password"
-                type="password"
-                label="Mot de passe"
-                placeholder="••••••••"
-                required
-                size="lg"
-              />
-
-              <div v-if="error" class="p-4 rounded-lg bg-error-50 border border-error-200">
-                <p class="text-error-600 text-sm">{{ error }}</p>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Adresse email
+                </label>
+                <input
+                  v-model="form.email"
+                  type="email"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  placeholder="votre@email.com"
+                />
               </div>
 
-              <Button
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Mot de passe
+                </label>
+                <input
+                  v-model="form.password"
+                  type="password"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div v-if="error" class="p-4 rounded-xl bg-red-50 border border-red-200">
+                <p class="text-red-600 text-sm font-medium">{{ error }}</p>
+              </div>
+
+              <button
                 type="submit"
-                variant="primary"
-                size="lg"
-                :loading="isLoading"
-                full-width
+                :disabled="isLoading"
+                class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                Se connecter
-              </Button>
+                <span v-if="isLoading" class="inline-flex items-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Connexion...
+                </span>
+                <span v-else>Se connecter</span>
+              </button>
             </form>
 
             <!-- Divider -->
-            <div class="mt-6">
+            <div class="mt-8">
               <div class="relative">
                 <div class="absolute inset-0 flex items-center">
-                  <div class="w-full border-t border-neutral-200"></div>
+                  <div class="w-full border-t border-gray-300"></div>
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="px-2 bg-white text-neutral-500">ou</span>
+                  <span class="px-4 bg-white text-gray-500 font-medium">ou</span>
                 </div>
               </div>
             </div>
 
             <!-- Google Login -->
-            <div class="mt-6">
+            <div class="mt-8">
               <a
                 :href="`${$config.public.apiBase}/auth/google`"
-                class="w-full inline-flex justify-center items-center px-4 py-3 border border-neutral-300 rounded-lg bg-white text-neutral-700 font-medium hover:bg-neutral-50 transition-colors shadow-sm"
+                class="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md"
               >
                 <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -92,13 +111,13 @@
                 Continuer avec Google
               </a>
             </div>
-          </Card>
+          </div>
 
           <!-- Footer Link -->
           <div class="text-center">
-            <p class="text-neutral-600">
+            <p class="text-gray-600">
               Pas encore de compte ?
-              <NuxtLink to="/register" class="text-primary-600 hover:text-primary-700 font-medium">
+              <NuxtLink to="/register" class="text-orange-500 hover:text-orange-600 font-semibold transition-colors">
                 Créer un compte gratuitement
               </NuxtLink>
             </p>
@@ -108,24 +127,52 @@
 
       <!-- Right Side - Hero Image -->
       <div class="hidden lg:flex lg:flex-1 lg:relative">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500">
-          <!-- Travel themed background -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        <div class="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+            alt="Happy travelers"
+            class="w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-l from-black/50 to-black/20"></div>
+        </div>
 
-          <!-- Floating elements -->
-          <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-          <div class="absolute bottom-1/3 right-1/4 w-48 h-48 bg-secondary-400/20 rounded-full blur-2xl"></div>
+        <!-- Content overlay -->
+        <div class="relative h-full flex items-center justify-center p-12">
+          <div class="text-center text-white max-w-lg">
+            <h2 class="text-4xl font-bold mb-6">
+              Vos aventures vous attendent
+            </h2>
+            <p class="text-xl opacity-90 mb-8">
+              Accédez à tous vos voyages, découvrez de nouvelles destinations
+              et partagez vos expériences avec la communauté.
+            </p>
 
-          <!-- Content overlay -->
-          <div class="relative h-full flex items-center justify-center p-12">
-            <div class="text-center text-white">
-              <h2 class="text-3xl font-bold mb-4">
-                Vos aventures vous attendent
-              </h2>
-              <p class="text-lg opacity-90 max-w-md">
-                Accédez à tous vos voyages, découvrez de nouvelles destinations
-                et partagez vos expériences avec la communauté.
-              </p>
+            <!-- Features -->
+            <div class="space-y-4">
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span class="text-lg">Planification simplifiée</span>
+              </div>
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span class="text-lg">Communauté inspirante</span>
+              </div>
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span class="text-lg">Souvenirs durables</span>
+              </div>
             </div>
           </div>
         </div>

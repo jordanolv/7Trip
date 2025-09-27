@@ -1,140 +1,173 @@
 <template>
-  <div class="min-h-screen bg-neutral-50">
+  <div class="min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-white/95 backdrop-blur-md border-b border-neutral-200">
+    <nav class="absolute top-0 left-0 right-0 z-50 bg-transparent">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <NuxtLink to="/" class="flex items-center space-x-2">
-            <div class="w-8 h-8 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-              <span class="text-white font-bold text-lg">7</span>
+        <div class="flex items-center justify-between h-20">
+          <NuxtLink to="/" class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+              <span class="text-xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">7</span>
             </div>
-            <span class="text-xl font-bold text-neutral-900">Trip.co</span>
+            <span class="text-xl font-bold text-white">Trip.co</span>
           </NuxtLink>
 
-          <Button variant="ghost" to="/login" size="sm">
-            Déjà un compte ? Se connecter
-          </Button>
+          <NuxtLink
+            to="/login"
+            class="text-white hover:text-orange-300 transition-colors font-medium"
+          >
+            Se connecter
+          </NuxtLink>
         </div>
       </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="flex min-h-[calc(100vh-64px)]">
+    <div class="flex min-h-screen">
       <!-- Left Side - Form -->
-      <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-        <div class="max-w-md w-full space-y-8">
+      <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 relative">
+        <!-- Background overlay for left side -->
+        <div class="absolute inset-0 bg-white/90 backdrop-blur-sm lg:bg-white"></div>
+
+        <div class="relative max-w-md w-full space-y-8">
           <div class="text-center">
-            <h1 class="heading-lg text-neutral-900 mb-2">Créer un compte</h1>
-            <p class="body-md text-neutral-600">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Créer un compte</h1>
+            <p class="text-lg text-gray-600">
               Rejoignez la communauté des voyageurs passionnés
             </p>
           </div>
 
-          <Card variant="elevated" padding="lg">
+          <div class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100">
             <form @submit.prevent="handleRegister" class="space-y-6">
               <div class="grid grid-cols-2 gap-4">
-                <Input
-                  v-model="form.firstName"
-                  type="text"
-                  label="Prénom"
-                  placeholder="John"
-                  required
-                  size="lg"
-                />
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    Prénom
+                  </label>
+                  <input
+                    v-model="form.firstName"
+                    type="text"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    placeholder="John"
+                  />
+                </div>
 
-                <Input
-                  v-model="form.lastName"
-                  type="text"
-                  label="Nom"
-                  placeholder="Doe"
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    Nom
+                  </label>
+                  <input
+                    v-model="form.lastName"
+                    type="text"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Adresse email
+                </label>
+                <input
+                  v-model="form.email"
+                  type="email"
                   required
-                  size="lg"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  placeholder="votre@email.com"
                 />
               </div>
 
-              <Input
-                v-model="form.email"
-                type="email"
-                label="Adresse email"
-                placeholder="votre@email.com"
-                required
-                size="lg"
-              />
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Mot de passe
+                </label>
+                <input
+                  v-model="form.password"
+                  type="password"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                />
+                <p class="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
+              </div>
 
-              <Input
-                v-model="form.password"
-                type="password"
-                label="Mot de passe"
-                placeholder="••••••••"
-                hint="Minimum 8 caractères"
-                required
-                size="lg"
-              />
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirmer le mot de passe
+                </label>
+                <input
+                  v-model="form.confirmPassword"
+                  type="password"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  :class="{ 'border-red-300 focus:ring-red-500': passwordMismatch }"
+                  placeholder="••••••••"
+                />
+                <p v-if="passwordMismatch" class="text-xs text-red-500 mt-1">
+                  Les mots de passe ne correspondent pas
+                </p>
+              </div>
 
-              <Input
-                v-model="form.confirmPassword"
-                type="password"
-                label="Confirmer le mot de passe"
-                placeholder="••••••••"
-                :error="passwordMismatch ? 'Les mots de passe ne correspondent pas' : ''"
-                required
-                size="lg"
-              />
-
-              <div v-if="error" class="p-4 rounded-lg bg-error-50 border border-error-200">
-                <p class="text-error-600 text-sm">{{ error }}</p>
+              <div v-if="error" class="p-4 rounded-xl bg-red-50 border border-red-200">
+                <p class="text-red-600 text-sm font-medium">{{ error }}</p>
               </div>
 
               <!-- Terms -->
-              <div class="flex items-start">
+              <div class="flex items-start space-x-3">
                 <input
                   id="terms"
                   v-model="form.acceptTerms"
                   type="checkbox"
                   required
-                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded mt-1"
+                  class="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
                 />
-                <label for="terms" class="ml-3 text-sm text-neutral-600">
+                <label for="terms" class="text-sm text-gray-600 leading-relaxed">
                   J'accepte les
-                  <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">
+                  <a href="#" class="text-orange-500 hover:text-orange-600 font-semibold">
                     conditions d'utilisation
                   </a>
                   et la
-                  <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">
+                  <a href="#" class="text-orange-500 hover:text-orange-600 font-semibold">
                     politique de confidentialité
                   </a>
                 </label>
               </div>
 
-              <Button
+              <button
                 type="submit"
-                variant="primary"
-                size="lg"
-                :loading="isLoading"
-                :disabled="!isFormValid"
-                full-width
+                :disabled="isLoading || !isFormValid"
+                class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                Créer mon compte
-              </Button>
+                <span v-if="isLoading" class="inline-flex items-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Création...
+                </span>
+                <span v-else>Créer mon compte</span>
+              </button>
             </form>
 
             <!-- Divider -->
-            <div class="mt-6">
+            <div class="mt-8">
               <div class="relative">
                 <div class="absolute inset-0 flex items-center">
-                  <div class="w-full border-t border-neutral-200"></div>
+                  <div class="w-full border-t border-gray-300"></div>
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="px-2 bg-white text-neutral-500">ou</span>
+                  <span class="px-4 bg-white text-gray-500 font-medium">ou</span>
                 </div>
               </div>
             </div>
 
             <!-- Google Registration -->
-            <div class="mt-6">
+            <div class="mt-8">
               <a
                 :href="`${$config.public.apiBase}/auth/google`"
-                class="w-full inline-flex justify-center items-center px-4 py-3 border border-neutral-300 rounded-lg bg-white text-neutral-700 font-medium hover:bg-neutral-50 transition-colors shadow-sm"
+                class="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md"
               >
                 <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -145,13 +178,13 @@
                 S'inscrire avec Google
               </a>
             </div>
-          </Card>
+          </div>
 
           <!-- Footer Link -->
           <div class="text-center">
-            <p class="text-neutral-600">
+            <p class="text-gray-600">
               Déjà un compte ?
-              <NuxtLink to="/login" class="text-primary-600 hover:text-primary-700 font-medium">
+              <NuxtLink to="/login" class="text-orange-500 hover:text-orange-600 font-semibold transition-colors">
                 Se connecter
               </NuxtLink>
             </p>
@@ -161,35 +194,63 @@
 
       <!-- Right Side - Hero Image -->
       <div class="hidden lg:flex lg:flex-1 lg:relative">
-        <div class="absolute inset-0 bg-gradient-to-br from-secondary-500 via-secondary-600 to-primary-500">
-          <!-- Travel themed background -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        <div class="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+            alt="Adventure awaits"
+            class="w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-l from-black/50 to-black/20"></div>
+        </div>
 
-          <!-- Floating elements -->
-          <div class="absolute top-1/3 right-1/4 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
-          <div class="absolute bottom-1/4 left-1/3 w-56 h-56 bg-primary-400/20 rounded-full blur-2xl"></div>
+        <!-- Content overlay -->
+        <div class="relative h-full flex items-center justify-center p-12">
+          <div class="text-center text-white max-w-lg">
+            <h2 class="text-4xl font-bold mb-6">
+              Commencez votre aventure
+            </h2>
+            <p class="text-xl opacity-90 mb-8">
+              Rejoignez des milliers de voyageurs qui planifient déjà
+              leurs prochaines escapades avec 7Trip.co.
+            </p>
 
-          <!-- Content overlay -->
-          <div class="relative h-full flex items-center justify-center p-12">
-            <div class="text-center text-white">
-              <h2 class="text-3xl font-bold mb-4">
-                Commencez votre aventure
-              </h2>
-              <p class="text-lg opacity-90 max-w-md">
-                Rejoignez des milliers de voyageurs qui planifient déjà
-                leurs prochaines escapades avec 7Trip.co.
-              </p>
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-8 mb-8">
+              <div class="text-center">
+                <div class="text-3xl font-bold text-orange-400">2.5K+</div>
+                <div class="text-lg opacity-90">Membres actifs</div>
+              </div>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-orange-400">150+</div>
+                <div class="text-lg opacity-90">Destinations</div>
+              </div>
+            </div>
 
-              <!-- Stats -->
-              <div class="grid grid-cols-2 gap-6 mt-8 max-w-xs mx-auto">
-                <div class="text-center">
-                  <div class="text-2xl font-bold">2.5K+</div>
-                  <div class="text-sm opacity-80">Membres actifs</div>
+            <!-- Benefits -->
+            <div class="space-y-4">
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold">150+</div>
-                  <div class="text-sm opacity-80">Destinations</div>
+                <span class="text-lg">Inscription gratuite</span>
+              </div>
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
+                <span class="text-lg">Outils de planification</span>
+              </div>
+              <div class="flex items-center space-x-3 text-left">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span class="text-lg">Communauté active</span>
               </div>
             </div>
           </div>
