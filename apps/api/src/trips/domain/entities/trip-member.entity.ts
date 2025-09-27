@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
-import { User } from '../../../users/domain/entities/user.entity'
-import { Trip } from './trip.entity'
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../../users/domain/entities/user.entity';
+import { Trip } from './trip.entity';
 
 export enum TripMemberRole {
   OWNER = 'owner',
@@ -17,39 +17,39 @@ export enum TripMemberStatus {
 @Entity('trip_members')
 export class TripMember {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
   @Column()
-  tripId: number
+  tripId: number;
 
   @Column()
-  userId: number
+  userId: number;
 
   @Column({
     type: 'enum',
     enum: TripMemberRole,
     default: TripMemberRole.VIEWER,
   })
-  role: TripMemberRole
+  role: TripMemberRole;
 
   @Column({
     type: 'enum',
     enum: TripMemberStatus,
     default: TripMemberStatus.PENDING,
   })
-  status: TripMemberStatus
+  status: TripMemberStatus;
 
   @CreateDateColumn()
-  invitedAt: Date
+  invitedAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  joinedAt: Date
+  joinedAt: Date;
 
   @ManyToOne(() => Trip, trip => trip.members, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tripId' })
-  trip: Trip
+  trip: Trip;
 
   @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'userId' })
-  user: User
+  user: User;
 }
