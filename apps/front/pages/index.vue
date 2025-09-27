@@ -175,7 +175,14 @@
 const authStore = useAuthStore()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
-const user = computed(() => authStore.user)
+const user = computed(() => {
+  const authUser = authStore.user
+  if (!authUser) return null
+  return {
+    ...authUser,
+    fullName: `${authUser.firstName} ${authUser.lastName || ''}`.trim()
+  }
+})
 
 // Public trips
 interface Trip {
