@@ -1,1 +1,84 @@
 @import "tailwindcss";
+
+/* Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  color: #27272a;
+  background-color: #fafafa;
+}
+
+/* Responsive Typography */
+.heading-xl {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heading-lg {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heading-md {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heading-sm {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.body-lg {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.body-md {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .heading-xl {
+    font-size: 3rem;
+  }
+
+  .heading-lg {
+    font-size: 2.25rem;
+  }
+
+  .heading-md {
+    font-size: 1.875rem;
+  }
+
+  .heading-sm {
+    font-size: 1.5rem;
+  }
+
+  .body-lg {
+    font-size: 1.25rem;
+  }
+
+  .body-md {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-xl {
+    font-size: 3.75rem;
+  }
+
+  .heading-lg {
+    font-size: 3rem;
+  }
+}
