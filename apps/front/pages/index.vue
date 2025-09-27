@@ -342,7 +342,7 @@ const publicTrips = ref<Trip[]>([])
 
 // Methods
 const getStatusLabel = (status: string) => {
-  const labels = {
+  const labels: Record<string, string> = {
     draft: 'Brouillon',
     planned: 'Planifié',
     ongoing: 'En cours',
