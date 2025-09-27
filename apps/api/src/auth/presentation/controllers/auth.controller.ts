@@ -98,7 +98,8 @@ export class AuthController {
     try {
       // Verify the JWT token
       const payload = this.authService.verifyToken(token);
-      const googleAuthUrl = `http://localhost:8001/auth/link-google/start?state=${payload.sub}`;
+      const baseUrl = process.env.NUXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const googleAuthUrl = `${baseUrl}/auth/link-google/start?state=${payload.sub}`;
       res.redirect(googleAuthUrl);
     } catch (error) {
       console.error('Error verifying token:', error);

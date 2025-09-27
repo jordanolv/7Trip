@@ -10,7 +10,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:8000', // Frontend dev server
       'http://localhost:3000', // Alternative frontend port
-      'http://dev.7trip.co',   // Custom domain
+      'https://dev.7trip.co',   // Custom domain HTTPS
+      'http://dev.7trip.co',    // Custom domain HTTP fallback
     ],
     credentials: true,
   });
