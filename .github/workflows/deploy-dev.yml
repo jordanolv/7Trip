@@ -40,7 +40,7 @@ jobs:
             git config pull.rebase false
             git reset --hard
             git clean -fd
-            git pull origin dev
+            git pull origin dev --allow-unrelated-histories || git fetch origin dev && git reset --hard origin/dev
 
             echo "🔧 Update permissions"
             chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/dev
