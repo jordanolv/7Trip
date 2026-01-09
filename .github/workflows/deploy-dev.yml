@@ -42,12 +42,9 @@ jobs:
             git clean -fd
             git pull origin dev --allow-unrelated-histories || git fetch origin dev && git reset --hard origin/dev
 
-            echo "🔧 Update permissions"
-            sudo chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/dev || true
-
             echo "🛠️ Docker Compose DEV"
-            docker compose -f docker-compose.dev.yml down || true
-            docker compose -f docker-compose.dev.yml up --build -d
+            sudo docker compose -f docker-compose.dev.yml down || true
+            sudo docker compose -f docker-compose.dev.yml up --build -d
 
             echo "✅ DEV deployment finished 🎉"
           EOF
