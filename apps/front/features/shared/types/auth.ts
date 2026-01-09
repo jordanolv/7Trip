@@ -8,6 +8,8 @@ export interface User {
   provider: 'local' | 'google'
   googleId?: string
   isActive: boolean
+  isEmailVerified: boolean
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
 }
