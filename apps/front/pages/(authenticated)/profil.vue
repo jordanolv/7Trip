@@ -408,7 +408,7 @@ const handlePasswordSubmit = async () => {
     const endpoint = user.value.hasPassword ? '/auth/change-password' : '/auth/set-password'
 
     const body: any = {
-      newPassword: passwordForm.newPassword
+      password: passwordForm.newPassword
     }
 
     if (user.value.hasPassword) {

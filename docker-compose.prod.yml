@@ -5,7 +5,7 @@ services:
     image: postgres:15
     container_name: postgres-7trip-prod
     ports:
-      - '8532:5432'
+      - '5452:5432'
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
@@ -15,10 +15,10 @@ services:
   api:
     build:
       context: ./apps/api
-      dockerfile: Dockerfile.prod
+      dockerfile: docker/Dockerfile.prod
     container_name: api-7trip-prod
     ports:
-      - '8101:3001'
+      - '4401:3001'
     env_file:
       - .env.prod
     depends_on:
@@ -28,10 +28,10 @@ services:
   front:
     build:
       context: ./apps/front
-      dockerfile: Dockerfile.prod
+      dockerfile: docker/Dockerfile.prod
     container_name: front-7trip-prod
     ports:
-      - '8100:3000'
+      - '4400:3000'
     env_file:
       - .env.prod
     depends_on:
