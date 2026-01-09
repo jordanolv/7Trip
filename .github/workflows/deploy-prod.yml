@@ -45,11 +45,11 @@ jobs:
             git pull origin main
 
             echo "🔧 Update permissions"
-            chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/prod
+            sudo chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} ~/projects/7trip/prod || true
 
             echo "🛠️ Docker Compose PROD"
-            docker-compose -f docker-compose.prod.yml down || true
-            docker-compose -f docker-compose.prod.yml up --build -d
+            docker compose -f docker-compose.prod.yml down || true
+            docker compose -f docker-compose.prod.yml up --build -d
 
             echo "✅ PROD deployment finished 🎉"
           EOF
