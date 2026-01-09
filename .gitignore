@@ -10,3 +10,5 @@ node_modules
 .env.test
 .env.production
 dist
+apps/.DS_Store
+.DS_Store

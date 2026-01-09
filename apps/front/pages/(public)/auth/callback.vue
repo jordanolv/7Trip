@@ -50,19 +50,23 @@ onMounted(async () => {
   const { access_token, refresh_token } = route.query
 
   if (!access_token || !refresh_token) {
-    error.value = 'Tokens manquants'
+    error.value = 'Tokens manquants dans l\'URL de retour'
     isLoading.value = false
     return
   }
 
   try {
-    authStore.setTokens(access_token as string, refresh_token as string)
-    
-    await authStore.fetchProfile()
-    
-    if (process.client) {
+    if (import.meta.client) {
       localStorage.setItem('accessToken', access_token as string)
       localStorage.setItem('refreshToken', refresh_token as string)
+    }
+
+    authStore.setTokens(access_token as string, refresh_token as string)
+
+    const profile = await authStore.fetchProfile()
+
+    if (!profile) {
+      throw new Error('Failed to fetch user profile')
     }
 
     setTimeout(() => {
@@ -70,9 +74,13 @@ onMounted(async () => {
     }, 1500)
 
   } catch (err: any) {
-    console.error('OAuth callback error:', err)
-    error.value = 'Erreur lors de l\'authentification'
+    error.value = err.message || 'Erreur lors de l\'authentification'
     isLoading.value = false
+
+    if (import.meta.client) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+    }
   }
 })
 </script>

@@ -79,6 +79,8 @@ export class AuthService {
         provider: user.provider,
         googleId: user.googleId,
         isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        hasPassword: user.hasPassword,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },

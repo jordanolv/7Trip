@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 
 export enum UserRole {
   USER = 'user',
@@ -52,6 +52,9 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -61,7 +64,13 @@ export class User {
   @DeleteDateColumn()
   deletedAt: Date;
 
+  @Expose()
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;
+  }
+
+  @Expose()
+  get hasPassword(): boolean {
+    return !!this.password;
   }
 }

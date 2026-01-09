@@ -1,17 +1,9 @@
 import { defineStore } from 'pinia'
-import { jwtDecode } from 'jwt-decode'
-import type { User, LoginCredentials, RegisterData, AuthResponse } from '~/features/shared/types/auth'
-
-interface JwtPayload {
-  sub: number
-  email: string
-  role: string
-  exp: number
-}
+import type { User, LoginCredentials, RegisterData } from '~/features/shared/types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const config = useRuntimeConfig()
-  
+
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
   const refreshToken = ref<string | null>(null)
@@ -23,12 +15,6 @@ export const useAuthStore = defineStore('auth', () => {
   const setTokens = (access: string, refresh: string) => {
     accessToken.value = access
     refreshToken.value = refresh
-    
-    try {
-      const decoded = jwtDecode<JwtPayload>(access)
-    } catch (error) {
-      console.error('Invalid token:', error)
-    }
   }
 
   const login = async (credentials: LoginCredentials) => {
@@ -47,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
       setTokens(data.accessToken, data.refreshToken)
       user.value = data.user
       
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('refreshToken', data.refreshToken)
       }
@@ -76,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       setTokens(data.accessToken, data.refreshToken)
       user.value = data.user
       
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('refreshToken', data.refreshToken)
       }
@@ -90,7 +76,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const fetchProfile = async () => {
-    if (!accessToken.value) return null
+    if (!accessToken.value) {
+      return null
+    }
 
     try {
       const profile = await $fetch<User>('/auth/profile', {
@@ -103,12 +91,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = profile
       return profile
     } catch (error: any) {
-      console.error('Failed to fetch profile:', error)
-      
       if (error.status === 401) {
         logout()
       }
-      
+
       return null
     }
   }
@@ -118,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null
     refreshToken.value = null
     
-    if (process.client) {
+    if (import.meta.client) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       window.location.href = '/login'
@@ -126,7 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const initAuth = async () => {
-    if (process.client && !isInitialized.value) {
+    if (import.meta.client && !isInitialized.value) {
       const savedAccessToken = localStorage.getItem('accessToken')
       const savedRefreshToken = localStorage.getItem('refreshToken')
       
