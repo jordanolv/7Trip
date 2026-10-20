@@ -17,7 +17,7 @@ Monorepo pnpm + Turborepo :
 
 | Dossier | Contenu |
 |---|---|
-| `apps/mobile` | App iOS / Android — Expo SDK 58, Expo Router |
+| `apps/mobile` | App iOS / Android — Expo SDK 57, Expo Router |
 | `apps/api` | API REST — NestJS 12, PostgreSQL, Prisma 7 |
 | `apps/web` | Web invité — Nuxt (à venir, étape 3) |
 | `packages/shared` | Logique partagée (calculs financiers…) |

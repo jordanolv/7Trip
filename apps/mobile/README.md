@@ -1,6 +1,6 @@
 # @7trip/mobile
 
-App iOS / Android de 7Trip — Expo SDK 58, Expo Router. Voir [docs/architecture.md](../../docs/architecture.md)
+App iOS / Android de 7Trip — Expo SDK 57, Expo Router. Voir [docs/architecture.md](../../docs/architecture.md)
 et les [maquettes](../../docs/maquettes/README.md).
 
 ```bash
