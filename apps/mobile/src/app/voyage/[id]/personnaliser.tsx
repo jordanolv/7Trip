@@ -63,7 +63,9 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
         <View style={styles.preview}>
           <TripCover color={color} style={styles.previewCover} />
           <View style={styles.previewBody}>
-            <TripIconTile color={color} icon={icon} size={56} bordered />
+            <View style={styles.previewTile}>
+              <TripIconTile color={color} icon={icon} size={56} bordered />
+            </View>
             <View style={styles.previewText}>
               <AppText variant="bodyStrong" numberOfLines={1}>
                 {trip.title}
@@ -169,8 +171,10 @@ const styles = StyleSheet.create({
   later: { minHeight: 44, justifyContent: 'center' },
   preview: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden' },
   previewCover: { height: 100 },
-  previewBody: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.md, marginTop: -28 },
-  previewText: { flex: 1, paddingBottom: 2 },
+  // Only the icon tile overlaps the cover; the text stays entirely on the white part.
+  previewBody: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  previewTile: { marginTop: -28 },
+  previewText: { flex: 1, paddingTop: spacing.sm + 2 },
   group: { gap: spacing.sm + 2 },
   covers: { flexDirection: 'row', gap: spacing.sm + 2 },
   coverOption: {
