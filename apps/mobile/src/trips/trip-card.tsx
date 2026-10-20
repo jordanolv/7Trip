@@ -1,4 +1,4 @@
-import { tripPhase, type TripSummary } from '@7trip/shared';
+import { formatDestinations, tripPhase, type TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -12,9 +12,8 @@ import { TripCover, TripIcon } from './trip-visuals';
 export function TripCard({ trip, today }: { trip: TripSummary; today: string }) {
   const phase = tripPhase(trip, today);
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
-  const subtitle = [dates ?? trip.destination ?? 'Destination et dates à décider', participantsLabel(trip.participantCount)]
-    .filter(Boolean)
-    .join(' · ');
+  const where = [formatDestinations(trip.destinations), dates].filter(Boolean).join(' · ');
+  const subtitle = `${where || 'Destination et dates à décider'} · ${participantsLabel(trip.participantCount)}`;
   const badge = tripBadge(trip, today);
 
   return (

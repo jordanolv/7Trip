@@ -1,9 +1,18 @@
-import { createTripRequestSchema, daysBetween, tripPhase } from './trips.js';
+import { createTripRequestSchema, daysBetween, formatDestinations, tripPhase } from './trips.js';
 
 describe('createTripRequestSchema', () => {
   it('accepts a title alone (CDC §4: destination and dates are optional)', () => {
     const parsed = createTripRequestSchema.parse({ title: '  Vacances d’été entre potes ' });
-    expect(parsed).toMatchObject({ title: 'Vacances d’été entre potes', kind: 'GROUP' });
+    expect(parsed).toMatchObject({ title: 'Vacances d’été entre potes', kind: 'GROUP', destinations: [] });
+  });
+
+  it('accepts several ordered destinations and rejects blank ones', () => {
+    expect(createTripRequestSchema.parse({ title: 'Pologne', destinations: [' Cracovie ', 'Varsovie'] }).destinations).toEqual([
+      'Cracovie',
+      'Varsovie',
+    ]);
+    expect(createTripRequestSchema.safeParse({ title: 'Pologne', destinations: ['Cracovie', '  '] }).success).toBe(false);
+    expect(createTripRequestSchema.safeParse({ title: 'Tour du monde', destinations: Array(11).fill('Ici') }).success).toBe(false);
   });
 
   it('rejects an end date before the start date', () => {
@@ -44,5 +53,14 @@ describe('daysBetween', () => {
   it('counts calendar days, whatever the time of day', () => {
     expect(daysBetween('2026-10-20', '2026-11-14')).toBe(25);
     expect(daysBetween('2026-10-17', '2026-10-20')).toBe(3);
+  });
+});
+
+describe('formatDestinations', () => {
+  it('joins up to three stops and summarises longer itineraries', () => {
+    expect(formatDestinations([])).toBeNull();
+    expect(formatDestinations(['Séville'])).toBe('Séville');
+    expect(formatDestinations(['Cracovie', 'Varsovie', 'Gdańsk'])).toBe('Cracovie → Varsovie → Gdańsk');
+    expect(formatDestinations(['Málaga', 'Grenade', 'Séville', 'Cadix'])).toBe('Málaga → Grenade + 2 étapes');
   });
 });

@@ -80,7 +80,6 @@ enum InvitePolicy {
 model Trip {
   id           String       @id @default(uuid(7)) @db.Uuid
   title        String
-  destination  String?
   startDate    DateTime?    @db.Date
   endDate      DateTime?    @db.Date
   kind         TripKind     @default(GROUP)
@@ -94,8 +93,21 @@ model Trip {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  createdBy    User          @relation(fields: [createdById], references: [id])
+  createdBy    User              @relation(fields: [createdById], references: [id])
   participants Participant[]
+  destinations TripDestination[]
+}
+
+/// Ordered stops of a trip ("Cracovie → Varsovie"). Empty while the destination is undecided.
+model TripDestination {
+  id       String @id @default(uuid(7)) @db.Uuid
+  tripId   String @db.Uuid
+  name     String
+  position Int
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, position])
 }
 
 enum ParticipantRole {

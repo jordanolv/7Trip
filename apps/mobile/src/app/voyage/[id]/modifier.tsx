@@ -7,7 +7,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { useAction } from '@/lib/use-action';
-import { TripForm, type TripFormValues } from '@/trips/trip-form';
+import { TripForm, cleanDestinations, type TripFormValues } from '@/trips/trip-form';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { useTrip, useUpdateTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
@@ -21,7 +21,7 @@ function ModifierVoyage({ trip }: { trip: TripDetail }) {
   const update = useUpdateTrip(trip.id);
   const [values, setValues] = useState<TripFormValues>({
     title: trip.title,
-    destination: trip.destination ?? '',
+    destinations: trip.destinations,
     startDate: trip.startDate,
     endDate: trip.endDate,
     kind: trip.kind,
@@ -29,7 +29,7 @@ function ModifierVoyage({ trip }: { trip: TripDetail }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const save = useAction(async () => {
-    const parsed = updateTripRequestSchema.safeParse({ ...values, destination: values.destination || null });
+    const parsed = updateTripRequestSchema.safeParse({ ...values, destinations: cleanDestinations(values.destinations) });
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] ??= issue.message;

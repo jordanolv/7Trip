@@ -9,13 +9,13 @@ import {
 } from '@7trip/shared';
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
-import type { Participant, Trip } from '../generated/prisma/client.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, type TripKind } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface TripInput {
   title?: string;
-  destination?: string | null;
+  destinations?: string[];
   startDate?: string | null;
   endDate?: string | null;
   kind?: 'SOLO' | 'GROUP';
@@ -23,11 +23,15 @@ export interface TripInput {
   icon?: TripIconKey;
 }
 
-type TripWithParticipants = Trip & { participants: Participant[] };
+const TRIP_INCLUDE = {
+  participants: { where: { status: ParticipantStatus.ACTIVE } },
+  destinations: { orderBy: { position: 'asc' } },
+} satisfies Prisma.TripInclude;
+
+type TripWithRelations = Prisma.TripGetPayload<{ include: typeof TRIP_INCLUDE }>;
 
 interface TripColumns {
   title?: string;
-  destination?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
   kind?: TripKind;
@@ -37,6 +41,7 @@ interface TripColumns {
 
 const toDate = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const toIso = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
+const toStops = (names: string[]) => names.map((name, position) => ({ name, position }));
 const notFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Voyage introuvable');
 
 @Injectable()
@@ -64,8 +69,9 @@ export class TripsService {
         participants: {
           create: { userId, displayName: user.displayName, role: ParticipantRole.ORGANIZER },
         },
+        destinations: { create: toStops(input.destinations ?? []) },
       },
-      include: { participants: true },
+      include: TRIP_INCLUDE,
     });
     return this.toDetail(trip, userId);
   }
@@ -73,7 +79,7 @@ export class TripsService {
   async listForUser(userId: string): Promise<TripSummary[]> {
     const trips = await this.prisma.trip.findMany({
       where: { participants: { some: { userId, status: ParticipantStatus.ACTIVE } } },
-      include: { participants: { where: { status: ParticipantStatus.ACTIVE } } },
+      include: TRIP_INCLUDE,
       orderBy: [{ startDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
     });
     return trips.map((trip) => this.toSummary(trip, userId));
@@ -97,24 +103,30 @@ export class TripsService {
 
     const updated = await this.prisma.trip.update({
       where: { id: tripId },
-      data: this.toData(input),
-      include: { participants: { where: { status: ParticipantStatus.ACTIVE } } },
+      data: {
+        ...this.toData(input),
+        // The list is replaced as a whole, in the same statement as the other fields.
+        ...(input.destinations !== undefined && {
+          destinations: { deleteMany: {}, create: toStops(input.destinations) },
+        }),
+      },
+      include: TRIP_INCLUDE,
     });
     return this.toDetail(updated, userId);
   }
 
   /** Loads a trip the user belongs to. Non-members get a 404: a trip's existence is not revealed. */
-  private async findForMember(userId: string, tripId: string): Promise<TripWithParticipants> {
+  private async findForMember(userId: string, tripId: string): Promise<TripWithRelations> {
     if (!z.uuid().safeParse(tripId).success) throw notFound();
     const trip = await this.prisma.trip.findFirst({
       where: { id: tripId, participants: { some: { userId, status: ParticipantStatus.ACTIVE } } },
-      include: { participants: { where: { status: ParticipantStatus.ACTIVE } } },
+      include: TRIP_INCLUDE,
     });
     if (!trip) throw notFound();
     return trip;
   }
 
-  private requireOrganizer(trip: TripWithParticipants, userId: string): void {
+  private requireOrganizer(trip: TripWithRelations, userId: string): void {
     const me = trip.participants.find((p) => p.userId === userId);
     if (me?.role !== ParticipantRole.ORGANIZER) {
       throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, 'Seuls les organisateurs peuvent faire cette modification');
@@ -125,7 +137,6 @@ export class TripsService {
   private toData(input: TripInput): TripColumns {
     return {
       ...(input.title !== undefined && { title: input.title }),
-      ...(input.destination !== undefined && { destination: input.destination || null }),
       ...(input.startDate !== undefined && { startDate: input.startDate ? toDate(input.startDate) : null }),
       ...(input.endDate !== undefined && { endDate: input.endDate ? toDate(input.endDate) : null }),
       ...(input.kind !== undefined && { kind: input.kind }),
@@ -134,12 +145,12 @@ export class TripsService {
     };
   }
 
-  private toSummary(trip: TripWithParticipants, userId: string): TripSummary {
+  private toSummary(trip: TripWithRelations, userId: string): TripSummary {
     const me = trip.participants.find((p) => p.userId === userId);
     return {
       id: trip.id,
       title: trip.title,
-      destination: trip.destination,
+      destinations: trip.destinations.map((d) => d.name),
       startDate: toIso(trip.startDate),
       endDate: toIso(trip.endDate),
       kind: trip.kind,
@@ -150,7 +161,7 @@ export class TripsService {
     };
   }
 
-  private toDetail(trip: TripWithParticipants, userId: string): TripDetail {
+  private toDetail(trip: TripWithRelations, userId: string): TripDetail {
     return {
       ...this.toSummary(trip, userId),
       createdAt: trip.createdAt.toISOString(),

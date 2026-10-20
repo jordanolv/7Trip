@@ -6,9 +6,11 @@ import { AppText } from '@/components/ui/app-text';
 import { DateField } from '@/components/ui/date-field';
 import { Segmented } from '@/components/ui/segmented';
 
+import { DestinationsEditor } from './destinations-editor';
+
 export interface TripFormValues {
   title: string;
-  destination: string;
+  destinations: string[];
   startDate: string | null;
   endDate: string | null;
   kind: TripKind;
@@ -62,19 +64,11 @@ export function TripForm({
           FACULTATIF
         </AppText>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <AppText variant="bodyStrong" nativeID="trip-destination-label">
-              Destination
-            </AppText>
-            <TextInput
-              accessibilityLabelledBy="trip-destination-label"
-              accessibilityLabel="Destination"
-              value={values.destination}
-              onChangeText={(text) => set('destination', text)}
-              placeholder="Pas encore décidée"
-              placeholderTextColor={colors.accent}
-              maxLength={80}
-              style={styles.inlineInput}
+          <View style={styles.rowPadding}>
+            <DestinationsEditor
+              value={values.destinations}
+              onChange={(destinations) => set('destinations', destinations)}
+              error={errors.destinations}
             />
           </View>
           <View style={styles.separator} />
@@ -145,13 +139,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   rowPadding: { paddingHorizontal: spacing.lg },
-  inlineInput: {
-    flex: 1,
-    textAlign: 'right',
-    fontFamily: fontFamily.bold,
-    fontSize: 15,
-    color: colors.ink,
-    minHeight: 48,
-  },
   separator: { height: 1, backgroundColor: colors.separator, marginLeft: spacing.lg },
 });
+
+/** Drops empty stops left by "Ajouter une étape" before sending the form. */
+export function cleanDestinations(destinations: string[]): string[] {
+  return destinations.map((name) => name.trim()).filter(Boolean);
+}

@@ -25,7 +25,7 @@ describe('Trips (e2e)', () => {
 
     expect(trip).toMatchObject({
       title: 'Vacances d’été entre potes',
-      destination: null,
+      destinations: [],
       startDate: null,
       endDate: null,
       kind: 'GROUP',
@@ -42,7 +42,7 @@ describe('Trips (e2e)', () => {
     const created = await api()
       .post('/v1/trips')
       .set(jordan.auth)
-      .send({ title: 'Week-end Annecy', destination: 'Annecy', startDate: '2026-11-14', endDate: '2026-11-16', color: 'lagoon', icon: 'mountain' })
+      .send({ title: 'Week-end Annecy', destinations: ['Annecy'], startDate: '2026-11-14', endDate: '2026-11-16', color: 'lagoon', icon: 'mountain' })
       .expect(201);
     expect(created.body).toMatchObject({ startDate: '2026-11-14', endDate: '2026-11-16', color: 'lagoon', icon: 'mountain' });
 
@@ -75,16 +75,43 @@ describe('Trips (e2e)', () => {
     expect(res.body.fields.endDate).toBe('La date de fin doit être après la date de début');
   });
 
-  it('lets the organizer update the trip, including clearing fields', async () => {
-    const created = await api().post('/v1/trips').set(jordan.auth).send({ title: 'Road trip', destination: 'Espagne' }).expect(201);
+  it('keeps several destinations in order, and lets the organizer reorder or clear them', async () => {
+    const created = await api()
+      .post('/v1/trips')
+      .set(jordan.auth)
+      .send({ title: 'Pologne', destinations: ['Cracovie', 'Varsovie', 'Gdańsk'] })
+      .expect(201);
+    const id = (created.body as TripDetail).id;
+    expect(created.body.destinations).toEqual(['Cracovie', 'Varsovie', 'Gdańsk']);
+
+    const reordered = await api()
+      .patch(`/v1/trips/${id}`)
+      .set(jordan.auth)
+      .send({ destinations: ['Gdańsk', 'Varsovie', 'Cracovie', 'Wrocław'] })
+      .expect(200);
+    expect(reordered.body.destinations).toEqual(['Gdańsk', 'Varsovie', 'Cracovie', 'Wrocław']);
+
+    // Fields not sent are left untouched.
+    const renamed = await api().patch(`/v1/trips/${id}`).set(jordan.auth).send({ title: 'Pologne 2026' }).expect(200);
+    expect(renamed.body.destinations).toHaveLength(4);
+
+    const cleared = await api().patch(`/v1/trips/${id}`).set(jordan.auth).send({ destinations: [] }).expect(200);
+    expect(cleared.body.destinations).toEqual([]);
+
+    const blank = await api().patch(`/v1/trips/${id}`).set(jordan.auth).send({ destinations: ['Cracovie', ' '] }).expect(400);
+    expect(blank.body.code).toBe('VALIDATION_FAILED');
+  });
+
+  it('lets the organizer update the trip', async () => {
+    const created = await api().post('/v1/trips').set(jordan.auth).send({ title: 'Road trip' }).expect(201);
     const id = (created.body as TripDetail).id;
 
     const updated = await api()
       .patch(`/v1/trips/${id}`)
       .set(jordan.auth)
-      .send({ title: 'Road trip Andalousie', destination: null, startDate: '2026-10-17', endDate: '2026-10-24', color: 'orange', icon: 'sun' })
+      .send({ title: 'Road trip Andalousie', destinations: ['Séville'], startDate: '2026-10-17', endDate: '2026-10-24', color: 'orange', icon: 'sun' })
       .expect(200);
-    expect(updated.body).toMatchObject({ title: 'Road trip Andalousie', destination: null, startDate: '2026-10-17', icon: 'sun' });
+    expect(updated.body).toMatchObject({ title: 'Road trip Andalousie', destinations: ['Séville'], startDate: '2026-10-17', icon: 'sun' });
 
     // An end date before the stored start date is rejected too.
     await api().patch(`/v1/trips/${id}`).set(jordan.auth).send({ endDate: '2026-10-01' }).expect(400);

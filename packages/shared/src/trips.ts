@@ -31,7 +31,11 @@ export type ParticipantRole = (typeof PARTICIPANT_ROLES)[number];
 export const isoDateSchema = z.iso.date('Date invalide');
 
 const titleSchema = z.string().trim().min(1, 'Donne un nom à ton voyage').max(60, '60 caractères maximum');
-const destinationSchema = z.string().trim().max(80, '80 caractères maximum');
+const destinationSchema = z.string().trim().min(1, 'Indique un lieu').max(80, '80 caractères maximum');
+
+export const MAX_DESTINATIONS = 10;
+/** Ordered stops, e.g. ["Cracovie", "Varsovie"]. Empty while the destination is undecided. */
+const destinationsSchema = z.array(destinationSchema).max(MAX_DESTINATIONS, `${MAX_DESTINATIONS} étapes maximum`);
 
 const datesRefinement = <T extends { startDate?: string | null; endDate?: string | null }>(trip: T) =>
   !trip.startDate || !trip.endDate || trip.endDate >= trip.startDate;
@@ -40,7 +44,7 @@ const datesMessage = { message: 'La date de fin doit être après la date de dé
 export const createTripRequestSchema = z
   .object({
     title: titleSchema,
-    destination: destinationSchema.nullish(),
+    destinations: destinationsSchema.default([]),
     startDate: isoDateSchema.nullish(),
     endDate: isoDateSchema.nullish(),
     kind: z.enum(TRIP_KINDS).default('GROUP'),
@@ -53,7 +57,7 @@ export type CreateTripRequest = z.input<typeof createTripRequestSchema>;
 export const updateTripRequestSchema = z
   .object({
     title: titleSchema.optional(),
-    destination: destinationSchema.nullish(),
+    destinations: destinationsSchema.optional(),
     startDate: isoDateSchema.nullish(),
     endDate: isoDateSchema.nullish(),
     kind: z.enum(TRIP_KINDS).optional(),
@@ -74,7 +78,7 @@ export interface TripParticipant {
 export interface TripSummary {
   id: string;
   title: string;
-  destination: string | null;
+  destinations: string[];
   startDate: string | null;
   endDate: string | null;
   kind: TripKind;
@@ -114,4 +118,11 @@ export function daysBetween(a: string, b: string): number {
 export function localIsoDate(date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** "Cracovie", "Cracovie → Varsovie", "Cracovie → Varsovie → Gdańsk", "Cracovie → Varsovie + 2 étapes". */
+export function formatDestinations(destinations: readonly string[]): string | null {
+  if (destinations.length === 0) return null;
+  if (destinations.length <= 3) return destinations.join(' → ');
+  return `${destinations.slice(0, 2).join(' → ')} + ${destinations.length - 2} étapes`;
 }

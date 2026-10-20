@@ -36,6 +36,7 @@ const icons = {
     </>
   ),
   logout: <Path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4" />,
+  arrowUp: <Path d="M12 19V5M5 12l7-7 7 7" />,
   home: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   calendar: (
     <>

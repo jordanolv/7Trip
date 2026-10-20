@@ -1,4 +1,4 @@
-import { daysBetween, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
+import { daysBetween, formatDestinations, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -53,7 +53,7 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
               {trip.title}
             </AppText>
             <AppText variant="caption" style={styles.heroSubtitle}>
-              {[dates ?? 'Dates à décider', trip.destination, participantsLabel(trip.participantCount)].filter(Boolean).join(' · ')}
+              {[dates ?? 'Dates à décider', formatDestinations(trip.destinations), participantsLabel(trip.participantCount)].filter(Boolean).join(' · ')}
             </AppText>
           </View>
         </View>
@@ -133,7 +133,7 @@ function setupSteps(trip: TripDetail, isOrganizer: boolean): Step[] {
   if (!isOrganizer) return [];
   const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
   const steps: Step[] = [];
-  if (!trip.destination) steps.push({ label: 'Ajouter une destination', hint: 'Ou laisse le groupe voter plus tard', icon: 'pin', onPress: edit });
+  if (trip.destinations.length === 0) steps.push({ label: 'Ajouter une destination', hint: 'Ou laisse le groupe voter plus tard', icon: 'pin', onPress: edit });
   if (!trip.startDate) steps.push({ label: 'Choisir les dates', hint: 'Facultatif, modifiable à tout moment', icon: 'calendar', onPress: edit });
   if (trip.kind === 'GROUP' && trip.participantCount === 1) {
     steps.push({

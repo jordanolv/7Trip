@@ -1,4 +1,4 @@
-import { TRIP_COLORS, TRIP_ICONS, localIsoDate, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
+import { TRIP_COLORS, TRIP_ICONS, formatDestinations, localIsoDate, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
 import { colors, radii, spacing, tripColors } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -71,7 +71,7 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
                 {trip.title}
               </AppText>
               <AppText variant="caption" tone="secondary" numberOfLines={1}>
-                {[dates, trip.destination].filter(Boolean).join(' · ') || 'Destination et dates à décider'}
+                {[dates, formatDestinations(trip.destinations)].filter(Boolean).join(' · ') || 'Destination et dates à décider'}
               </AppText>
             </View>
           </View>

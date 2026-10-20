@@ -10,14 +10,14 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useAction } from '@/lib/use-action';
-import { TripForm, type TripFormValues } from '@/trips/trip-form';
+import { TripForm, cleanDestinations, type TripFormValues } from '@/trips/trip-form';
 import { useCreateTrip } from '@/trips/trips-api';
 
 export default function NouveauVoyageScreen() {
   const createTrip = useCreateTrip();
   const [values, setValues] = useState<TripFormValues>({
     title: '',
-    destination: '',
+    destinations: [],
     startDate: null,
     endDate: null,
     kind: 'GROUP',
@@ -25,7 +25,7 @@ export default function NouveauVoyageScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = useAction(async () => {
-    const parsed = createTripRequestSchema.safeParse({ ...values, destination: values.destination || null });
+    const parsed = createTripRequestSchema.safeParse({ ...values, destinations: cleanDestinations(values.destinations) });
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] ??= issue.message;
