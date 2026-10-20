@@ -164,8 +164,8 @@ Règles transverses :
 - **Répartition égale** : la somme est divisée en centimes. Les centimes restants sont attribués
   un par un, dans un ordre déterministe (ordre d'arrivée des participants). La somme des parts
   égale toujours le montant.
-- **Solde d'un participant** = Σ avancé − Σ parts réelles + Σ remboursements reçus
-  − Σ remboursements versés.
+- **Solde d'un participant** = Σ avancé − Σ parts réelles + Σ remboursements versés
+  − Σ remboursements reçus (rembourser quelqu'un rapproche son propre solde de zéro).
 - **Suggestions de remboursement** : algorithme glouton (plus gros débiteur → plus gros créancier),
   au plus *n − 1* virements. Recalculées à la demande, jamais stockées.
 - **Budget personnel** : Σ des parts du participant par catégorie, hors avances. C'est l'exemple

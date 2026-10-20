@@ -13,5 +13,30 @@ voyages, en solo ou en groupe.
 
 ## Stack
 
-Monorepo pnpm + Turborepo : `apps/mobile` (Expo), `apps/api` (NestJS + PostgreSQL),
-`apps/web` (web invité, Nuxt), `packages/shared`.
+Monorepo pnpm + Turborepo :
+
+| Dossier | Contenu |
+|---|---|
+| `apps/mobile` | App iOS / Android — Expo SDK 58, Expo Router |
+| `apps/api` | API REST — NestJS 12, PostgreSQL, Prisma 7 |
+| `apps/web` | Web invité — Nuxt (à venir, étape 3) |
+| `packages/shared` | Logique partagée (calculs financiers…) |
+| `packages/ui-tokens` | Jetons de design issus des maquettes |
+
+## Démarrer
+
+Prérequis : Node 22, Docker, pnpm via corepack (`corepack enable pnpm`).
+
+```bash
+pnpm install
+pnpm db:up                                   # Postgres en Docker
+cp apps/api/.env.example apps/api/.env
+pnpm db:migrate
+pnpm dev                                     # API + app Expo + watch des packages
+```
+
+| Commande | Rôle |
+|---|---|
+| `pnpm lint` / `pnpm typecheck` / `pnpm test` | vérifications (lancées aussi par la CI) |
+| `pnpm test:e2e` | tests e2e de l'API (base requise) |
+| `pnpm build` | build de l'API et des packages |

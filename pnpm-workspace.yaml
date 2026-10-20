@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  unrs-resolver: false
+
+# React Native / Metro resolve dependencies more reliably with a flat node_modules.
+nodeLinker: hoisted

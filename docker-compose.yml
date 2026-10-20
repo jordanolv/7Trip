@@ -1,0 +1,20 @@
+# Local development services. The API and the apps run on the host (`pnpm dev`).
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: seventrip
+      POSTGRES_PASSWORD: seventrip
+      POSTGRES_DB: seventrip
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seventrip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:
