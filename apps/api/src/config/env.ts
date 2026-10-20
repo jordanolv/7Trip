@@ -1,10 +1,31 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().positive().default(3100),
-  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().positive().default(3100),
+    DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+    ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(15 * 60),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
+    /** `log` prints emails to the console instead of sending them (development). */
+    MAIL_TRANSPORT: z.enum(['log', 'smtp']).default('log'),
+    SMTP_URL: z.string().optional(),
+    MAIL_FROM: z.string().default('7Trip <no-reply@7trip.co>'),
+
+    /** Requests allowed per minute and per IP on sensitive auth routes. */
+    AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),
+  })
+  .refine((env) => env.MAIL_TRANSPORT !== 'smtp' || !!env.SMTP_URL, {
+    message: 'SMTP_URL is required when MAIL_TRANSPORT=smtp',
+    path: ['SMTP_URL'],
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.MAIL_TRANSPORT === 'smtp', {
+    message: 'Emails must really be sent in production (MAIL_TRANSPORT=smtp)',
+    path: ['MAIL_TRANSPORT'],
+  });
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -16,3 +37,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   }
   return result.data;
 }
+
+/** Injection token for the validated environment. */
+export const ENV = Symbol('ENV');

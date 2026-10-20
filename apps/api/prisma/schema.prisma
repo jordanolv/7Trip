@@ -15,9 +15,51 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid(7)) @db.Uuid
-  email       String   @unique
-  displayName String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(uuid(7)) @db.Uuid
+  /// Always stored normalised (trimmed, lower case).
+  email           String    @unique
+  displayName     String
+  /// Argon2id hash. Null for accounts that only use Apple / Google sign-in.
+  passwordHash    String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+  emailCodes    EmailCode[]
+}
+
+/// Opaque refresh tokens, stored hashed. Each one is single use (rotation on refresh).
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum EmailCodePurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+/// Six-digit codes sent by email. Short lived, limited attempts, stored hashed.
+model EmailCode {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  userId     String           @db.Uuid
+  purpose    EmailCodePurpose
+  codeHash   String
+  attempts   Int              @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
 }

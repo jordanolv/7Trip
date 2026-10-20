@@ -12,10 +12,14 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { AuthProvider, useAuth } from '@/auth/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootNavigator() {
+  const { status } = useAuth();
   const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
@@ -24,7 +28,8 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
     PlusJakartaSans_800ExtraBold_Italic,
   });
-  const ready = fontsLoaded || fontError !== null;
+  // Keep the splash screen until fonts are ready and we know whether a session exists.
+  const ready = (fontsLoaded || fontError !== null) && status !== 'loading';
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -33,9 +38,21 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
-    </>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="profil/nom" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

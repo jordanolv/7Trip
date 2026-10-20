@@ -1,23 +1,17 @@
-import 'dotenv/config';
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types.js';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/configure-app.js';
+import type { App } from 'supertest/types.js';
+import { createTestApp } from './create-test-app.js';
 
-// Requires a reachable database (DATABASE_URL), e.g. `pnpm db:up` from the repo root.
 describe('API (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    app = await createTestApp();
+  });
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
+  afterAll(async () => {
+    await app.close();
   });
 
   it('GET /v1/health reports the database as up', () => {
@@ -25,9 +19,5 @@ describe('API (e2e)', () => {
       .get('/v1/health')
       .expect(200)
       .expect({ status: 'ok', database: 'up' });
-  });
-
-  afterAll(async () => {
-    await app.close();
   });
 });
