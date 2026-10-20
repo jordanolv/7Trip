@@ -7,7 +7,7 @@ cp .env.example .env        # une fois
 pnpm db:up                  # depuis la racine : Postgres en Docker
 pnpm --filter @7trip/api db:migrate
 pnpm --filter @7trip/api dev
-curl localhost:3000/v1/health
+curl localhost:3100/v1/health
 ```
 
 | Script | Rôle |
