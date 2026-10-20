@@ -108,6 +108,9 @@ export const ApiErrorCode = {
   InvalidCode: 'INVALID_CODE',
   InvalidRefreshToken: 'INVALID_REFRESH_TOKEN',
   Unauthorized: 'UNAUTHORIZED',
+  EmailNotVerified: 'EMAIL_NOT_VERIFIED',
+  Forbidden: 'FORBIDDEN',
+  NotFound: 'NOT_FOUND',
   TooManyRequests: 'TOO_MANY_REQUESTS',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];

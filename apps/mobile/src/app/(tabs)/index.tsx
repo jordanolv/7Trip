@@ -1,6 +1,8 @@
-import { colors, radii, spacing } from '@7trip/ui-tokens';
+import { localIsoDate, tripPhase, type TripPhase } from '@7trip/shared';
+import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 
@@ -10,16 +12,45 @@ import { TopoLines } from '@/components/topo-lines';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { TripCard } from '@/trips/trip-card';
+import { useMyTrips } from '@/trips/trips-api';
+
+type Filter = 'all' | TripPhase;
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'Tous' },
+  { key: 'ongoing', label: 'En cours' },
+  { key: 'upcoming', label: 'À venir' },
+  { key: 'past', label: 'Terminés' },
+];
 
 export default function VoyagesScreen() {
   const { status, user } = useAuth();
   const insets = useSafeAreaInsets();
   const signedIn = status === 'signedIn' && user;
+  const trips = useMyTrips();
+
+  const startTrip = () => {
+    if (user?.emailVerified) {
+      router.push('/voyage/nouveau');
+      return;
+    }
+    Alert.alert('Confirme ton email', 'Confirme d’abord ton adresse email pour créer un voyage.', [
+      { text: 'Plus tard', style: 'cancel' },
+      { text: 'Saisir le code', onPress: () => router.push('/auth/verifier') },
+    ]);
+  };
 
   return (
     <View style={styles.screen}>
       <TopoLines />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+        refreshControl={
+          signedIn ? (
+            <RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.accent} />
+          ) : undefined
+        }
+      >
         <View style={styles.topBar}>
           <AppText variant="logo">7Trip</AppText>
           {signedIn ? (
@@ -44,12 +75,7 @@ export default function VoyagesScreen() {
             <AppText tone="secondary">Des idées aujourd’hui, des souvenirs demain</AppText>
           </View>
           {signedIn ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Nouveau voyage"
-              onPress={() => Alert.alert('Bientôt', 'La création de voyage arrive avec la prochaine étape.')}
-              style={styles.addButton}
-            >
+            <Pressable accessibilityRole="button" accessibilityLabel="Nouveau voyage" onPress={startTrip} style={styles.addButton}>
               <Icon name="plus" color={colors.surface} strokeWidth={2.4} size={24} />
             </Pressable>
           ) : (
@@ -65,62 +91,124 @@ export default function VoyagesScreen() {
           )}
         </View>
 
-        {signedIn ? (
-          <>
-            {!user.emailVerified ? (
-              <Pressable accessibilityRole="button" onPress={() => router.push('/auth/verifier')} style={styles.verifyBanner}>
-                <Icon name="mail" color={colors.warningInk} />
-                <View style={styles.flex}>
-                  <AppText variant="bodyStrong" style={{ color: colors.warningInk }}>
-                    Confirme ton adresse email
-                  </AppText>
-                  <AppText variant="caption" style={{ color: colors.warningInk }}>
-                    Saisis le code reçu à {user.email}
-                  </AppText>
-                </View>
-                <Icon name="chevronRight" color={colors.warningInk} size={18} />
-              </Pressable>
-            ) : null}
-            <View style={styles.card}>
-              <RouteIllustration />
-              <View style={styles.cardBody}>
-                <AppText variant="heading">Aucun voyage pour l’instant</AppText>
-                <AppText tone="secondary">
-                  Crée ton premier voyage avec juste un titre : la destination et les dates peuvent se décider plus
-                  tard, même par sondage.
-                </AppText>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.tooltip}>
-              <AppText variant="caption" tone="inverse">
-                Un compte est nécessaire pour créer un voyage.
-              </AppText>
-            </View>
-            <View style={styles.card}>
-              <RouteIllustration />
-              <View style={styles.cardBody}>
-                <AppText variant="heading">Ton prochain voyage commence ici</AppText>
-                <AppText tone="secondary">
-                  Idées, sondages, planning, dépenses et documents : tout ton voyage au même endroit.
-                </AppText>
-                <Button title="Créer un compte" onPress={() => router.push('/auth')} />
-                <Button title="J’ai déjà un compte" variant="soft" onPress={() => router.push('/auth')} />
-              </View>
-            </View>
-            <View style={styles.inviteNote}>
-              <Icon name="link" color={colors.inkSecondary} size={20} />
-              <AppText variant="caption" tone="secondary" style={styles.flex}>
-                Invité par un ami ? Ouvre simplement son lien : tu pourras rejoindre le voyage et voter sans créer de
-                compte.
-              </AppText>
-            </View>
-          </>
-        )}
+        {signedIn ? <SignedInContent emailVerified={user.emailVerified} email={user.email} trips={trips} /> : <VisitorContent />}
       </ScrollView>
     </View>
+  );
+}
+
+function SignedInContent({
+  emailVerified,
+  email,
+  trips,
+}: {
+  emailVerified: boolean;
+  email: string;
+  trips: ReturnType<typeof useMyTrips>;
+}) {
+  const [filter, setFilter] = useState<Filter>('all');
+  const today = localIsoDate();
+  const visible = useMemo(
+    () => (trips.data ?? []).filter((trip) => filter === 'all' || tripPhase(trip, today) === filter),
+    [trips.data, filter, today],
+  );
+
+  return (
+    <>
+      {!emailVerified ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/auth/verifier')} style={styles.verifyBanner}>
+          <Icon name="mail" color={colors.warningInk} />
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong" style={{ color: colors.warningInk }}>
+              Confirme ton adresse email
+            </AppText>
+            <AppText variant="caption" style={{ color: colors.warningInk }}>
+              Saisis le code reçu à {email}
+            </AppText>
+          </View>
+          <Icon name="chevronRight" color={colors.warningInk} size={18} />
+        </Pressable>
+      ) : null}
+
+      {trips.isPending ? (
+        <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.xxl }} />
+      ) : trips.isError ? (
+        <View style={styles.card}>
+          <View style={styles.cardBody}>
+            <AppText variant="heading">Impossible de charger tes voyages</AppText>
+            <AppText tone="secondary">{trips.error.message}</AppText>
+            <Button title="Réessayer" variant="soft" onPress={() => void trips.refetch()} />
+          </View>
+        </View>
+      ) : trips.data.length === 0 ? (
+        <View style={styles.card}>
+          <RouteIllustration />
+          <View style={styles.cardBody}>
+            <AppText variant="heading">Aucun voyage pour l’instant</AppText>
+            <AppText tone="secondary">
+              Crée ton premier voyage avec juste un titre : la destination et les dates peuvent se décider plus tard, même
+              par sondage.
+            </AppText>
+          </View>
+        </View>
+      ) : (
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+            {FILTERS.map(({ key, label }) => {
+              const active = filter === key;
+              return (
+                <Pressable
+                  key={key}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setFilter(key)}
+                  style={[styles.filter, active && styles.filterActive]}
+                >
+                  <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.list}>
+            {visible.map((trip) => (
+              <TripCard key={trip.id} trip={trip} today={today} />
+            ))}
+            {visible.length === 0 ? (
+              <AppText tone="secondary" style={styles.emptyFilter}>
+                Aucun voyage dans cette catégorie.
+              </AppText>
+            ) : null}
+          </View>
+        </>
+      )}
+    </>
+  );
+}
+
+function VisitorContent() {
+  return (
+    <>
+      <View style={styles.tooltip}>
+        <AppText variant="caption" tone="inverse">
+          Un compte est nécessaire pour créer un voyage.
+        </AppText>
+      </View>
+      <View style={styles.card}>
+        <RouteIllustration />
+        <View style={styles.cardBody}>
+          <AppText variant="heading">Ton prochain voyage commence ici</AppText>
+          <AppText tone="secondary">Idées, sondages, planning, dépenses et documents : tout ton voyage au même endroit.</AppText>
+          <Button title="Créer un compte" onPress={() => router.push('/auth')} />
+          <Button title="J’ai déjà un compte" variant="soft" onPress={() => router.push('/auth')} />
+        </View>
+      </View>
+      <View style={styles.inviteNote}>
+        <Icon name="link" color={colors.inkSecondary} size={20} />
+        <AppText variant="caption" tone="secondary" style={styles.flex}>
+          Invité par un ami ? Ouvre simplement son lien : tu pourras rejoindre le voyage et voter sans créer de compte.
+        </AppText>
+      </View>
+    </>
   );
 }
 
@@ -202,6 +290,19 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: colors.warningTint,
   },
+  filters: { gap: spacing.sm },
+  filter: {
+    minHeight: 40,
+    paddingHorizontal: 15,
+    borderRadius: radii.chip,
+    backgroundColor: colors.chip,
+    justifyContent: 'center',
+  },
+  filterActive: { backgroundColor: colors.ink },
+  filterText: { fontFamily: fontFamily.medium, fontSize: 14, color: colors.inkTertiary },
+  filterTextActive: { fontFamily: fontFamily.semibold, color: colors.surface },
+  list: { gap: spacing.md },
+  emptyFilter: { textAlign: 'center', marginTop: spacing.lg },
   card: { backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
   illustration: { height: 170, backgroundColor: '#DCEADF' },
   cardBody: { padding: spacing.xl, gap: spacing.md },

@@ -27,6 +27,8 @@ model User {
 
   refreshTokens RefreshToken[]
   emailCodes    EmailCode[]
+  participants  Participant[]
+  createdTrips  Trip[]
 }
 
 /// Opaque refresh tokens, stored hashed. Each one is single use (rotation on refresh).
@@ -62,4 +64,64 @@ model EmailCode {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
+}
+
+enum TripKind {
+  SOLO
+  GROUP
+}
+
+enum InvitePolicy {
+  ALL
+  ORGANIZERS
+}
+
+/// A trip. Only a title is required: destination and dates can be decided later (CDC §4).
+model Trip {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  title        String
+  destination  String?
+  startDate    DateTime?    @db.Date
+  endDate      DateTime?    @db.Date
+  kind         TripKind     @default(GROUP)
+  /// Key of the identity colour (see TRIP_COLORS in @7trip/shared).
+  color        String
+  /// Key of the identity icon (see TRIP_ICONS in @7trip/shared).
+  icon         String
+  invitePolicy InvitePolicy @default(ALL)
+  baseCurrency String       @default("EUR")
+  createdById  String       @db.Uuid
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  createdBy    User          @relation(fields: [createdById], references: [id])
+  participants Participant[]
+}
+
+enum ParticipantRole {
+  ORGANIZER
+  PARTICIPANT
+}
+
+enum ParticipantStatus {
+  ACTIVE
+  LEFT
+}
+
+/// Membership of a trip. Everything inside a trip points to a participant, not a user, so that
+/// guests (userId null) and people who left keep consistent data (docs/architecture.md §4).
+model Participant {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  tripId      String            @db.Uuid
+  userId      String?           @db.Uuid
+  displayName String
+  role        ParticipantRole   @default(PARTICIPANT)
+  status      ParticipantStatus @default(ACTIVE)
+  joinedAt    DateTime          @default(now())
+
+  trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([tripId, userId])
+  @@index([userId])
 }
