@@ -7,6 +7,8 @@ import { Icon, type IconName } from '@/components/ui/icon';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
+const BAR_PADDING_TOP = 14;
+
 function tabIcon(name: IconName) {
   return function TabIcon({ color }: { color: ColorValue }) {
     return <Icon name={name} color={color} size={24} />;
@@ -16,7 +18,9 @@ function tabIcon(name: IconName) {
 /** Tab bar from the mockups: each tab is a full-height pill, tinted when active. */
 function TabBar({ state, descriptors, navigation, insets }: TabBarProps) {
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+    // The home indicator only needs part of the bottom inset: give back the rest so the pills sit
+    // visually centred in the bar, while staying clear of the indicator.
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom - BAR_PADDING_TOP, BAR_PADDING_TOP) }]}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key]!;
         const focused = state.index === index;
@@ -63,7 +67,7 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     gap: spacing.sm,
-    paddingTop: spacing.sm,
+    paddingTop: BAR_PADDING_TOP,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
