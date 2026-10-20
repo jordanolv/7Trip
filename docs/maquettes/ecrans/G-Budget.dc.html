@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Mon budget</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+    <a href="G-Dashboard.dc.html" aria-label="Retour au tableau de bord" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <div style="flex: 1">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Finances</h1>
+      <div style="font-size: 13px; color: #5E6675">Road trip Andalousie</div>
+    </div>
+  </div>
+
+  <div style="padding: 14px 16px 0">
+    <div style="display: flex; background: #EDE7DC; border-radius: 14px; padding: 4px">
+      <a href="G-Finances.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Dépenses</a>
+      <a href="G-Soldes.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Soldes</a>
+      <span style="flex: 1; height: 38px; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 1px 3px rgba(27,36,51,0.12)">Mon budget</span>
+    </div>
+  </div>
+
+  <div style="padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="background: #FFFFFF; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 13px; font-weight: 600; color: #5E6675">Dépensé pour moi</span>
+        <span style="font-size: 13px; font-weight: 700; color: {{accent}}">Modifier le budget</span>
+      </div>
+      <div><span style="font-size: 34px; font-weight: 800; letter-spacing: -0.02em">310 €</span><span style="font-size: 16px; color: #5E6675; font-weight: 600"> sur 500 €</span></div>
+      <div role="img" aria-label="62 % du budget utilisé" style="height: 10px; border-radius: 5px; background: #EDE7DC; overflow: hidden"><div style="width: 62%; height: 10px; border-radius: 5px; background: {{accent}}"></div></div>
+      <div style="font-size: 13px; color: #3A4352">Il te reste <b>190 €</b> pour 4 jours.</div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 15px; font-weight: 800">Par catégorie</div>
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600">{{c.name}}</span><span style="color: #3A4352"><b style="color: #1B2433">{{c.spent}}</b> / {{c.cap}}</span></div>
+          <div style="height: 6px; border-radius: 3px; background: #EDE7DC; overflow: hidden"><div style="height: 6px; border-radius: 3px; background: {{accent}}; width: {{c.pct}}"></div></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; background: #FBEBD0; border-radius: 16px; padding: 12px 14px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A4A0C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      <div style="font-size: 13px; color: #6B3F08; line-height: 1.45">Seule ta part compte. Tu as avancé 96 € pour le déjeuner Eslava à 6 : <b>16 €</b> vont dans ton budget, le reste te sera remboursé.</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <a href="G-Soldes.dc.html" style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px"><div style="font-size: 12px; font-weight: 600; color: #5E6675">À rembourser</div><div style="font-size: 19px; font-weight: 800; margin-top: 2px">42,50 €</div></a>
+      <a href="G-Soldes.dc.html" style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px"><div style="font-size: 12px; font-weight: 600; color: #5E6675">À recevoir</div><div style="font-size: 19px; font-weight: 800; margin-top: 2px">18,00 €</div></a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cats = [['Repas', 128, 180], ['Activités', 82, 120], ['Transport', 64, 100], ['Souvenirs', 36, 100]];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      cats: cats.map(([name, spent, cap]) => ({ name, spent: spent + ' €', cap: cap + ' €', pct: Math.round((spent / cap) * 100) + '%' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Boîte à idées</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+    <a href="G-Dashboard.dc.html" aria-label="Retour au tableau de bord" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <div style="flex: 1">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Idées</h1>
+      <div style="font-size: 13px; color: #5E6675">Road trip Andalousie</div>
+    </div>
+    <button aria-label="Proposer une idée" style="width: 48px; height: 48px; border-radius: 16px; border: none; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(47,122,93,0.25)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+
+  <div style="padding: 16px 16px 0; display: flex; gap: 8px">
+    <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+      <button onClick="{{f.pick}}" style="height: 36px; padding: 0 13px; border-radius: 999px; border: none; font-family: inherit; font-size: 13px; font-weight: 600; background: {{f.bg}}; color: {{f.fg}}">{{f.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="padding: 14px 16px 0; display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+      <div style="display: flex; gap: 12px; align-items: center; background: #FFFFFF; border-radius: 18px; padding: 10px; box-shadow: 0 2px 10px rgba(27,36,51,0.05)">
+        <a href="{{it.href}}" style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 0">
+          <sc-if value="{{it.photo}}" hint-placeholder-val="{{ true }}">
+            <img src="{{it.photo}}" alt="{{it.title}}" style="width: 60px; height: 60px; border-radius: 14px; object-fit: cover; flex: 0 0 auto">
+          </sc-if>
+          <sc-if value="{{it.noPhoto}}" hint-placeholder-val="{{ false }}">
+            <div style="width: 60px; height: 60px; border-radius: 14px; background: {{it.tint}}; display: flex; align-items: center; justify-content: center; flex: 0 0 auto">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{it.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.icon}}"/></svg>
+            </div>
+          </sc-if>
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.title}}</div>
+            <div style="font-size: 12px; color: #5E6675; margin-top: 2px">{{it.meta}}</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 6px">
+              <span style="font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 8px; background: {{it.statusBg}}; color: {{it.statusFg}}">{{it.status}}</span>
+              <span style="font-size: 11px; color: #5E6675">par {{it.author}}</span>
+            </div>
+          </div>
+        </a>
+        <sc-if value="{{it.canPlan}}" hint-placeholder-val="{{ true }}">
+          <a href="G-IdeePlanifier.dc.html" aria-label="Ajouter {{it.title}} au planning" style="width: 44px; height: 44px; border-radius: 14px; background: #E3EFE8; display: flex; align-items: center; justify-content: center; flex: 0 0 auto">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22553F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>
+          </a>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 88px; background: #FFFFFF; border-top: 1px solid #EDE7DC; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 10px 24px; box-sizing: border-box; gap: 4px">
+    <a href="G-Dashboard.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="G-Planning.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Planning</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: #E3EFE8; border-radius: 16px; color: {{accent}}; font-size: 11px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>Idées</a>
+    <a href="G-Finances.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>Finances</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Plus</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all' };
+  }
+  renderVals() {
+    const S = {
+      proposee: { status: 'Proposée', statusBg: '#F2EDE4', statusFg: '#3A4352' },
+      retenue: { status: 'Retenue', statusBg: '#E3EFE8', statusFg: '#22553F' },
+      planifiee: { status: 'Planifiée · lun. 20', statusBg: '#E4E6F7', statusFg: '#2F3680' }
+    };
+    const all = [
+      { key: 'proposee', title: 'Coucher de soleil Plaza de España', meta: 'Balade · Gratuit', author: 'Camille', photo: '/_blob/d19e4a959b6e2b62fc5ca3fc9e6ff602', href: 'G-IdeeDetail.dc.html' },
+      { key: 'planifiee', title: 'Visite de l’Alcázar', meta: 'Activité · 13,50 € / pers.', author: 'Camille', photo: '/_blob/6916225cd90a8b515c46c193f96de9a6', href: 'G-Evenement.dc.html' },
+      { key: 'retenue', title: 'Kayak dans la baie de Cadix', meta: 'Activité · ~25 € / pers.', author: 'Thomas', tint: '#C8E0EA', ink: '#1F5F7A', icon: 'M3 17l2 4h14l2-4zM12 3v14M12 3l7 10h-7', href: '#' },
+      { key: 'proposee', title: 'Bar El Rinconcillo', meta: 'Restaurant · lien Google Maps', author: 'Léa', tint: '#FBE6D8', ink: '#8A3D12', icon: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 3-3 6s1 4 3 4v8', href: '#' },
+      { key: 'proposee', title: 'Plage de Bolonia', meta: 'Plage · Gratuit · 1 h 30 de route', author: 'Jordan', tint: '#F1E2B8', ink: '#7A5A08', icon: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2', href: '#' }
+    ];
+    const f = this.state.filter;
+    const filters = [['all', 'Toutes · 5'], ['proposee', 'Proposées'], ['retenue', 'Retenues'], ['planifiee', 'Planifiées']];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      filters: filters.map(([k, label]) => ({
+        label,
+        bg: k === f ? '#1B2433' : '#EDE7DC',
+        fg: k === f ? '#FFFFFF' : '#3A4352',
+        pick: () => this.setState({ filter: k })
+      })),
+      items: all.filter((it) => f === 'all' || it.key === f).map((it) => ({
+        ...it, ...S[it.key],
+        photo: it.photo || '',
+        noPhoto: !it.photo,
+        canPlan: it.key !== 'planifiee'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

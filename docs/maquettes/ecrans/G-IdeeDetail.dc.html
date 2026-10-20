@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Fiche idée</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="height: 240px; position: relative; overflow: hidden">
+    <img src="/_blob/d19e4a959b6e2b62fc5ca3fc9e6ff602" alt="Plaza de España à Séville" style="position: absolute; inset: 0; width: 390px; height: 240px; object-fit: cover">
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,20,30,0.40) 0%, rgba(14,20,30,0) 40%)"></div>
+    <a href="G-Idees.dc.html" aria-label="Retour aux idées" style="position: absolute; top: 50px; left: 14px; width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <button style="position: absolute; top: 50px; right: 14px; height: 44px; padding: 0 16px; border-radius: 22px; background: #FFFFFF; border: none; font-family: inherit; font-size: 14px; font-weight: 700; color: #1B2433">Modifier</button>
+  </div>
+
+  <div style="margin-top: -24px; position: relative; background: #F7F3EC; border-radius: 24px 24px 0 0; padding: 20px 18px 0; display: flex; flex-direction: column; gap: 14px">
+    <div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2">Coucher de soleil à la Plaza de España</h1>
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
+        <div style="width: 24px; height: 24px; border-radius: 12px; background: #D9E8DF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">CA</div>
+        <span style="font-size: 13px; color: #5E6675">Proposée par Camille · il y a 2 j</span>
+      </div>
+    </div>
+
+    <div style="display: flex; background: #EDE7DC; border-radius: 14px; padding: 4px">
+      <sc-for list="{{states}}" as="s" hint-placeholder-count="3">
+        <button onClick="{{s.pick}}" style="flex: 1; height: 38px; border: none; border-radius: 11px; font-family: inherit; font-size: 14px; font-weight: 600; background: {{s.bg}}; color: {{s.fg}}; {{s.shadow}}">{{s.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="font-size: 15px; line-height: 1.55; color: #2C3443">La place est magique vers 18 h quand la lumière tape sur les azulejos. On peut louer une barque sur le canal (≈ 6 € les 35 min).</div>
+
+    <div style="background: #FFFFFF; border-radius: 20px; display: flex; flex-direction: column">
+      <div style="display: flex; gap: 12px; align-items: center; padding: 12px 14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        <div style="flex: 1; font-size: 15px; font-weight: 600">Balade</div>
+        <span style="font-size: 14px; font-weight: 600; color: #22553F">Gratuit</span>
+      </div>
+      <div style="height: 1px; background: #EEE8DD; margin-left: 46px"></div>
+      <div style="display: flex; gap: 12px; align-items: center; padding: 12px 14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <div style="flex: 1; font-size: 15px; font-weight: 600">Plaza de España, Séville</div>
+      </div>
+      <div style="height: 1px; background: #EEE8DD; margin-left: 46px"></div>
+      <a href="#" style="display: flex; gap: 12px; align-items: center; padding: 12px 14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        <div style="flex: 1; font-size: 15px; font-weight: 600; color: {{accent}}">Voir sur Google Maps</div>
+      </a>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 20px 34px; background: #F7F3EC; border-top: 1px solid #EDE7DC; display: flex; gap: 10px">
+    <button style="flex: 0 0 auto; height: 54px; padding: 0 16px; border-radius: 16px; border: 1.5px solid #D9D2C4; background: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 700; color: #1B2433; display: flex; align-items: center; gap: 8px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 20V11M12 20V5M18 20v-6"/></svg>Sondage</button>
+    <a href="G-IdeePlanifier.dc.html" style="flex: 1; height: 54px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 700">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Ajouter au planning</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { status: 0 };
+  }
+  renderVals() {
+    const labels = ['Proposée', 'Retenue'];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      states: labels.map((label, i) => ({
+        label,
+        bg: i === this.state.status ? '#FFFFFF' : 'transparent',
+        fg: i === this.state.status ? '#1B2433' : '#5E6675',
+        shadow: i === this.state.status ? 'box-shadow: 0 1px 3px rgba(27,36,51,0.12)' : '',
+        pick: () => this.setState({ status: i })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

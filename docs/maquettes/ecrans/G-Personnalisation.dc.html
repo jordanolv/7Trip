@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Personnaliser le voyage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 20px 0; display: flex; align-items: center; justify-content: space-between">
+    <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #22553F; background: #E3EFE8; border-radius: 999px; padding: 6px 12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Voyage créé</span>
+    <a href="G-Voyages.dc.html" style="height: 44px; display: flex; align-items: center; font-size: 15px; font-weight: 600; color: #5E6675">Plus tard</a>
+  </div>
+
+  <div style="padding: 10px 20px 0; display: flex; flex-direction: column; gap: 18px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Donne-lui son style</h1>
+
+    <div style="background: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 10px rgba(27,36,51,0.06)">
+      <div style="height: 104px; position: relative; overflow: hidden; background: {{tint}}">
+        <svg width="350" height="104" viewBox="0 0 350 104" aria-hidden="true" style="position: absolute; inset: 0" fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="1.5"><ellipse cx="90" cy="90" rx="120" ry="50"/><ellipse cx="90" cy="90" rx="80" ry="30"/><ellipse cx="290" cy="20" rx="90" ry="40"/><ellipse cx="290" cy="20" rx="55" ry="22"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 0 16px 14px; margin-top: -26px; position: relative">
+        <div style="width: 56px; height: 56px; border-radius: 16px; background: {{color}}; border: 3px solid #FFFFFF; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: 0 0 auto">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{iconD}}"/></svg>
+        </div>
+        <div style="padding-top: 26px"><div style="font-size: 16px; font-weight: 700">Vacances d’été entre potes</div><div style="font-size: 13px; color: #5E6675">Destination et dates à décider</div></div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 15px; font-weight: 700">Couverture</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+        <button style="height: 72px; border-radius: 14px; border: 2px solid #1B2433; background: {{tint}}; font-family: inherit; font-size: 12px; font-weight: 700; color: #1B2433; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px">Motif 7Trip</button>
+        <button style="height: 72px; border-radius: 14px; border: 1.5px dashed #C9C2B4; background: #FFFFFF; font-family: inherit; font-size: 12px; font-weight: 600; color: #1B2433; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 9"/></svg>Ma photo</button>
+        <button disabled style="height: 72px; border-radius: 14px; border: none; background: #EFEAE1; font-family: inherit; font-size: 11px; font-weight: 600; color: #6E6A62; padding: 6px; line-height: 1.3">Suggestions dès que la destination est choisie</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 15px; font-weight: 700">Couleur</div>
+      <div style="display: flex; gap: 14px; padding-left: 4px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="6">
+          <button aria-label="{{c.name}}" onClick="{{c.pick}}" style="width: 40px; height: 40px; border-radius: 20px; border: none; background: {{c.hex}}; {{c.ring}}"></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 15px; font-weight: 700">Icône</div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{icons}}" as="ic" hint-placeholder-count="12">
+          <button aria-label="{{ic.name}}" onClick="{{ic.pick}}" style="height: 48px; border-radius: 14px; border: none; background: {{ic.bg}}; display: flex; align-items: center; justify-content: center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ic.stroke}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ic.d}}"/></svg>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 20px 34px; background: #F7F3EC; border-top: 1px solid #EDE7DC">
+    <a href="G-Voyages.dc.html" style="height: 54px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700">Terminer</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { color: 0, icon: 0 };
+  }
+  renderVals() {
+    const palette = [
+      { name: 'Orange', hex: '#E0703C', tint: '#F6D3BF' },
+      { name: 'Vert sapin', hex: '#2F7A5D', tint: '#CFE3D7' },
+      { name: 'Bleu lagon', hex: '#1F6F8B', tint: '#C8E0EA' },
+      { name: 'Framboise', hex: '#C2417A', tint: '#F1CFDE' },
+      { name: 'Lavande', hex: '#5B4B8A', tint: '#DCD6EC' },
+      { name: 'Moutarde', hex: '#B8860B', tint: '#F1E2B8' }
+    ];
+    const glyphs = [
+      { name: 'Soleil', d: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' },
+      { name: 'Montagne', d: 'M3 20l6-10 4 6 3-4 5 8z' },
+      { name: 'Avion', d: 'M22 2L11 13M22 2l-7 20-4-9-9-4z' },
+      { name: 'Palmier', d: 'M12 22V12M12 12C10 8 6 7 3 8M12 12c2-4 6-5 9-4M12 12c-1-4 0-7 3-9M12 12c1-4 0-7-3-9M7 22h10' },
+      { name: 'Tente', d: 'M3 20L12 4l9 16zM9 20l3-5 3 5' },
+      { name: 'Ville', d: 'M3 21V9h6v12M9 21V3h8v18M17 21v-8h4v8M3 21h18' },
+      { name: 'Bateau', d: 'M3 17l2 4h14l2-4zM12 3v14M12 3l7 10h-7' },
+      { name: 'Appareil photo', d: 'M4 8h3l2-3h6l2 3h3v12H4zM12 11a3.5 3.5 0 1 0 0 7 3.5 3.5 0 1 0 0-7z' },
+      { name: 'Voiture', d: 'M5 16l1.5-5h11l1.5 5M4 16h16v3H4zM7 19v2M17 19v2' },
+      { name: 'Vélo', d: 'M6 18a3 3 0 1 0 0-6 3 3 0 1 0 0 6zM18 18a3 3 0 1 0 0-6 3 3 0 1 0 0 6zM6 15l4-7h5l3 7M10 8l2 7' },
+      { name: 'Valise', d: 'M4 7h16v13H4zM9 7V4h6v3M9 11v5M15 11v5' },
+      { name: 'Fourchette', d: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 3-3 6s1 4 3 4v8' }
+    ];
+    const cur = palette[this.state.color];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      color: cur.hex,
+      tint: cur.tint,
+      iconD: glyphs[this.state.icon].d,
+      colors: palette.map((c, i) => ({
+        ...c,
+        ring: i === this.state.color ? 'box-shadow: 0 0 0 3px #F7F3EC, 0 0 0 5px #1B2433' : '',
+        pick: () => this.setState({ color: i })
+      })),
+      icons: glyphs.map((g, i) => ({
+        ...g,
+        bg: i === this.state.icon ? cur.hex : '#FFFFFF',
+        stroke: i === this.state.icon ? '#FFFFFF' : '#1B2433',
+        pick: () => this.setState({ icon: i })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

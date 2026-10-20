@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Voter (invité)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="height: 56px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #EDE7DC; background: #FFFFFF">
+    <div style="font-size: 22px; font-weight: 800; font-style: italic; letter-spacing: -0.03em">7Trip</div>
+    <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #3A4352"><span style="width: 26px; height: 26px; border-radius: 13px; background: #FBEBD0; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">MA</span>Max · invité</span>
+  </div>
+
+  <div style="padding: 18px 18px 0; display: flex; flex-direction: column; gap: 14px">
+    <div>
+      <div style="font-size: 13px; color: #5E6675">Vacances d’été entre potes · sondage de Jordan</div>
+      <h1 style="margin: 6px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Où part-on cet été ?</h1>
+      <div style="font-size: 13px; color: #5E6675; margin-top: 4px">Plusieurs choix possibles · clôture dim. 26 oct.</div>
+    </div>
+
+    <sc-if value="{{voting}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+          <button onClick="{{o.toggle}}" aria-pressed="{{o.on}}" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 18px; background: #FFFFFF; font-family: inherit; text-align: left; color: #1B2433; border: {{o.border}}">
+            <img src="{{o.photo}}" alt="" style="width: 60px; height: 60px; border-radius: 13px; object-fit: cover; flex: 0 0 auto">
+            <span style="flex: 1; font-size: 16px; font-weight: 700">{{o.name}}</span>
+            <span style="width: 26px; height: 26px; border-radius: 8px; flex: 0 0 auto; background: {{o.boxBg}}; border: {{o.boxBorder}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span>
+          </button>
+        </sc-for>
+        <button onClick="{{submit}}" style="height: 54px; border-radius: 16px; border: none; background: {{accent}}; color: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 700; margin-top: 4px">Envoyer mon vote</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{voted}}" hint-placeholder-val="{{ false }}">
+      <div style="background: #FFFFFF; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+        <div style="width: 44px; height: 44px; border-radius: 22px; background: #E3EFE8; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22553F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
+        <div style="font-size: 18px; font-weight: 800">Merci Max, ton vote est pris en compte</div>
+        <div style="font-size: 14px; color: #3A4352; line-height: 1.5">Tu peux le modifier jusqu’à dimanche en revenant sur ce lien.</div>
+        <button onClick="{{edit}}" style="height: 44px; padding: 0 14px; border-radius: 12px; border: 1.5px solid #D9D2C4; background: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 700; color: #1B2433">Modifier mon vote</button>
+      </div>
+      <div style="background: #1B2433; color: #FFFFFF; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 15px; font-weight: 700">Suis tout le voyage dans l’app</div>
+        <div style="font-size: 13px; color: #C9CED6; line-height: 1.45">Planning, dépenses, documents… Crée un compte quand tu veux : ton vote sera conservé.</div>
+        <a href="#" style="align-self: flex-start; height: 40px; padding: 0 14px; border-radius: 12px; background: #FFFFFF; color: #1B2433; display: flex; align-items: center; font-size: 14px; font-weight: 700">Télécharger 7Trip</a>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: { split: true }, voted: false };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#2F7A5D';
+    const base = [
+      { id: 'split', name: 'Split, Croatie', photo: '/_blob/f85d5fa5217dad85831aa2a31006ecbd' },
+      { id: 'naxos', name: 'Naxos, Grèce', photo: '/_blob/35ec89a0f6456a03248bff66cb10b867' },
+      { id: 'cefalu', name: 'Cefalù, Sicile', photo: '/_blob/b5ff94f0058b068bee2b11547674a794' }
+    ];
+    return {
+      accent,
+      voting: !this.state.voted,
+      voted: this.state.voted,
+      submit: () => this.setState({ voted: true }),
+      edit: () => this.setState({ voted: false }),
+      options: base.map((o) => {
+        const on = !!this.state.picked[o.id];
+        return {
+          ...o, on,
+          border: on ? '2px solid ' + accent : '2px solid transparent',
+          boxBg: on ? accent : '#FFFFFF',
+          boxBorder: on ? 'none' : '2px solid #C9C2B4',
+          toggle: () => this.setState({ picked: { ...this.state.picked, [o.id]: !on } })
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

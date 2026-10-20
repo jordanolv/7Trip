@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Soldes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+    <a href="G-Dashboard.dc.html" aria-label="Retour au tableau de bord" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <div style="flex: 1">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Finances</h1>
+      <div style="font-size: 13px; color: #5E6675">Road trip Andalousie</div>
+    </div>
+  </div>
+
+  <div style="padding: 14px 16px 0">
+    <div style="display: flex; background: #EDE7DC; border-radius: 14px; padding: 4px">
+      <a href="G-Finances.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Dépenses</a>
+      <span style="flex: 1; height: 38px; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 1px 3px rgba(27,36,51,0.12)">Soldes</span>
+      <a href="G-Budget.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Mon budget</a>
+    </div>
+  </div>
+
+  <div style="padding: 16px 16px 0; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 16px; font-weight: 800">Pour être quittes</div>
+    <sc-for list="{{transfers}}" as="t" hint-placeholder-count="3">
+      <div style="display: flex; align-items: center; gap: 10px; background: #FFFFFF; border-radius: 18px; padding: 12px 14px; opacity: {{t.opacity}}">
+        <div style="width: 34px; height: 34px; border-radius: 17px; background: {{t.fromBg}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: 0 0 auto">{{t.fromIni}}</div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <div style="width: 34px; height: 34px; border-radius: 17px; background: {{t.toBg}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: 0 0 auto">{{t.toIni}}</div>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 700">{{t.label}}</div><div style="font-size: 16px; font-weight: 800">{{t.amount}}</div></div>
+        <sc-if value="{{t.canSettle}}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{t.settle}}" style="height: 38px; padding: 0 12px; border-radius: 10px; border: none; background: #E3EFE8; color: #1B4A36; font-family: inherit; font-size: 13px; font-weight: 700">C’est réglé</button>
+        </sc-if>
+        <sc-if value="{{t.settled}}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 13px; font-weight: 700; color: #1B4A36; display: flex; align-items: center; gap: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Réglé</span>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <div style="font-size: 16px; font-weight: 800; margin-top: 6px">Détail par personne</div>
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 4px 14px 8px">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px">
+        <thead>
+          <tr style="color: #5E6675; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em">
+            <th scope="col" style="text-align: left; padding: 10px 0 6px; font-weight: 700">Qui</th>
+            <th scope="col" style="text-align: right; padding: 10px 0 6px; font-weight: 700">A avancé</th>
+            <th scope="col" style="text-align: right; padding: 10px 0 6px; font-weight: 700">Coût réel</th>
+            <th scope="col" style="text-align: right; padding: 10px 0 6px; font-weight: 700">Solde</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+            <tr style="border-top: 1px solid #EEE8DD">
+              <th scope="row" style="text-align: left; padding: 8px 0; font-weight: 700">{{r.name}}</th>
+              <td style="text-align: right; padding: 8px 0; color: #3A4352">{{r.paid}}</td>
+              <td style="text-align: right; padding: 8px 0; color: #3A4352">{{r.cost}}</td>
+              <td style="text-align: right; padding: 8px 0; font-weight: 800">{{r.balance}}</td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size: 12px; color: #5E6675; line-height: 1.45; padding: 0 4px">Solde = ce que tu as avancé − ce que tu as réellement consommé. Positif : on te doit de l’argent.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { settled: {} };
+  }
+  renderVals() {
+    const list = [
+      { id: 'a', fromIni: 'TOI', fromBg: '#E4E6F7', toIni: 'LÉ', toBg: '#F3D2BC', label: 'Tu dois à Léa', amount: '42,50 €', mine: true },
+      { id: 'b', fromIni: 'IN', fromBg: '#F1E2B8', toIni: 'TOI', toBg: '#E4E6F7', label: 'Inès te doit', amount: '18,00 €', mine: true },
+      { id: 'c', fromIni: 'HU', fromBg: '#DCD6EC', toIni: 'TH', toBg: '#C9DCEF', label: 'Hugo doit à Thomas', amount: '31,20 €', mine: false }
+    ];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      transfers: list.map((t) => {
+        const done = !!this.state.settled[t.id];
+        return {
+          ...t,
+          settled: done,
+          canSettle: !done && t.mine,
+          opacity: done ? '0.6' : '1',
+          settle: () => this.setState({ settled: { ...this.state.settled, [t.id]: true } })
+        };
+      }),
+      rows: [
+        { name: 'Toi', paid: '285,50 €', cost: '310,00 €', balance: '− 24,50 €' },
+        { name: 'Léa', paid: '352,00 €', cost: '309,50 €', balance: '+ 42,50 €' },
+        { name: 'Thomas', paid: '260,00 €', cost: '228,80 €', balance: '+ 31,20 €' },
+        { name: 'Camille', paid: '210,00 €', cost: '210,00 €', balance: '0,00 €' },
+        { name: 'Hugo', paid: '90,00 €', cost: '121,20 €', balance: '− 31,20 €' },
+        { name: 'Inès', paid: '86,50 €', cost: '104,50 €', balance: '− 18,00 €' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
