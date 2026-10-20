@@ -1,8 +1,11 @@
-import { colors, fontFamily } from '@7trip/ui-tokens';
+import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import { Tabs } from 'expo-router';
-import type { ColorValue } from 'react-native';
+import type { ComponentProps } from 'react';
+import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/icon';
+
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 function tabIcon(name: IconName) {
   return function TabIcon({ color }: { color: ColorValue }) {
@@ -10,24 +13,44 @@ function tabIcon(name: IconName) {
   };
 }
 
+/** Tab bar from the mockups: each tab is a full-height pill, tinted when active. */
+function TabBar({ state, descriptors, navigation, insets }: TabBarProps) {
+  return (
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key]!;
+        const focused = state.index === index;
+        const color = focused ? colors.accent : colors.inkSecondary;
+        const label = options.title ?? route.name;
+
+        const onPress = () => {
+          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+        };
+
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={label}
+            onPress={onPress}
+            style={[styles.item, focused && styles.itemActive]}
+          >
+            {options.tabBarIcon?.({ focused, color, size: 24 })}
+            <Text style={[styles.label, { color }, focused && styles.labelActive]}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.inkSecondary,
-        tabBarActiveBackgroundColor: colors.accentTint,
-        tabBarLabelStyle: { fontFamily: fontFamily.bold, fontSize: 12 },
-        tabBarItemStyle: { borderRadius: 16, marginHorizontal: 6, marginVertical: 6 },
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.chip,
-          paddingHorizontal: 10,
-          height: 88,
-        },
-        sceneStyle: { backgroundColor: colors.background },
-      }}
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
       <Tabs.Screen name="index" options={{ title: 'Voyages', tabBarIcon: tabIcon('suitcase') }} />
       <Tabs.Screen name="portfolio" options={{ title: 'Portfolio', tabBarIcon: tabIcon('map') }} />
@@ -35,3 +58,26 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.chip,
+  },
+  item: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  itemActive: { backgroundColor: colors.accentTint },
+  label: { fontFamily: fontFamily.medium, fontSize: 12 },
+  labelActive: { fontFamily: fontFamily.bold },
+});
