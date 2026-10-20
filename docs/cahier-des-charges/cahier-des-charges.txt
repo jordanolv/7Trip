@@ -1,0 +1,261 @@
+
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+7Trip
+Cahier des charges fonctionnel
+Version de travail 1.0  •  20 octobre 2026
+Périmètre : expérience produit, règles fonctionnelles et feuille de route. Aucune 
+architecture technique imposée.
+1. Vision et principes
+7Trip est une application mobile de préparation, d’organisation et de suivi des voyages, en 
+solo ou en groupe. Elle centralise les idées, décisions, planning, dépenses et documents, 
+puis permet de valoriser les voyages passés dans un portfolio personnel. Proposition de 
+valeur : « Tout ton voyage, au même endroit. »
+Priorité à l’organisation pratique ; 7Trip n’est ni une agence de réservation ni un 
+réseau social généraliste.
+Expérience mobile simple : fonctions avancées accessibles progressivement, sans 
+surcharge des formulaires.
+Un voyage peut être créé avant de connaître sa destination ou ses dates.
+La collaboration doit fonctionner avec ou sans compte pour les invités.
+La monétisation reste ouverte ; ne pas verrouiller dès maintenant une liste de 
+fonctions premium.
+2. Utilisateurs et rôles
+2.1 Comptes et accès
+Un utilisateur connecté peut créer un voyage et participer à plusieurs voyages.
+Authentification V1 : Apple, Google, email/mot de passe ; vérification email, 
+récupération de mot de passe et prévention des comptes doublons.
+Un invité peut rejoindre un voyage via un lien valide, choisir un nom/pseudonyme et 
+collaborer sans créer de compte. Sa session doit être persistante et sécurisée.
+Lorsqu’un invité crée un compte, ses votes, dépenses et participations doivent être 
+conservés et rattachés à son compte.
+2.2 Permissions
+Deux rôles : Organisateur et Participant ; plusieurs organisateurs possibles avec les 
+mêmes droits.
+Organisateur : gérer paramètres, participants, promotions de rôle, invitations, identité 
+du voyage et opérations sensibles.
+Participant : proposer des idées, voter, ajouter ou modifier des éléments autorisés du 
+planning, ajouter des dépenses et quitter le voyage.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+Il doit toujours rester au moins un organisateur ; toute suppression ou action 
+destructive sensible exige confirmation.
+Réglage par voyage : « Tous les participants peuvent inviter » ou « Organisateurs 
+uniquement » ; valeur initiale proposée : tous les participants.
+Les liens d’invitation doivent être révocables et renouvelables ; une ancienne 
+invitation ne doit pas contourner les permissions actuelles.
+3. Navigation et écrans
+3.1 Entrée dans l’application
+Au premier lancement, afficher directement « Mes voyages », sans onboarding imposé 
+ni connexion forcée.
+Pour un visiteur non connecté, « Créer un voyage » apparaît désactivé avec 
+l’explication qu’un compte est nécessaire et une action de connexion/inscription.
+Navigation générale : Voyages | Portfolio | Profil.
+« Mes voyages » distingue voyages à venir, en cours et terminés ; création d’un voyage 
+et accès à ses voyages.
+3.2 Navigation dans un voyage
+Un clic sur un voyage ouvre toujours son tableau de bord, et non le dernier onglet 
+consulté.
+Barre inférieure fixe : Accueil | Planning | Idées | Finances | Plus.
+« Plus » regroupe notamment sondages, documents, participants et paramètres.
+Tableau de bord contextuel : sondages à traiter, rappels, dépenses à régulariser, 
+planning du jour pendant le séjour. Ne pas afficher de blocs vides ou inutiles.
+4. Création et gestion des voyages
+Création possible avec un titre seul ; destination, dates et autres champs facultatifs.
+Exemple : « Vacances d’été entre potes » ; les décisions pourront être prises ensuite par 
+sondage.
+Voyages solo ou collectifs ; étapes du cycle de vie déduites des informations et des 
+dates, sans workflow rigide.
+Personnalisation : couverture (photo personnelle, suggestion selon destination, 
+défaut), couleur d’accent et emoji/icône.
+Les organisateurs peuvent modifier l’identité du voyage ; conserver des composants et 
+une ergonomie uniformes.
+Possibilité future de masquer des modules inutilisés sans complexifier la création.
+5. Boîte à idées
+Liste simple avec filtres, et non tableau Kanban.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+Une idée possède un titre obligatoire ; catégorie, lieu, lien, description, photo et coût 
+estimé facultatifs.
+États indicatifs : proposée, retenue, planifiée ; aucune transition obligatoire.
+Une idée peut être ajoutée au planning par action explicite, avec glisser-déposer si 
+pertinent et alternative tactile accessible.
+Une idée planifiée conserve son identité et ses métadonnées ; la retirer du planning ne 
+la supprime pas.
+Le vote via sondage est facultatif : une idée peut être planifiée directement.
+V1.5 : préremplissage des informations d’une idée à partir d’un lien d’activité ou de 
+Google Maps, avec validation manuelle des données récupérées.
+6. Sondages
+Sondages génériques : destination, dates, logement, restaurant, activité, oui/non/peut-
+être, etc.
+Création : question, au moins deux options, choix unique par défaut ou choix multiple 
+choisi explicitement, échéance facultative.
+Les participants peuvent modifier leur vote tant que le sondage est ouvert ; clôture 
+manuelle par un organisateur possible.
+Afficher résultats et participation de manière lisible ; éviter de déclencher 
+automatiquement une décision.
+Lorsque pertinent, proposer une action de suivi confirmée par un organisateur : 
+définir une destination, retenir une idée, ajouter au planning.
+Chaque sondage possède un lien partageable via le partage natif du téléphone 
+(WhatsApp, Messages, Telegram, etc.), avec message prérempli.
+Lien profond : ouvrir le sondage dans l’app installée, sinon dans la version web ; les 
+droits du voyage restent applicables.
+7. Planning centralisé
+Vue chronologique par date, avec filtres de catégorie ; activités, repas, transports, 
+hébergements et réservations dans une même chronologie.
+Événements avec date seule, horaires facultatifs, plage de dates ou heures de 
+début/fin.
+Autoriser plusieurs événements simultanés ; participants associés à chaque 
+événement facultatifs.
+Si une même personne figure sur deux événements simultanés, signaler le 
+chevauchement sans le bloquer.
+Les fiches d’événements peuvent porter lieu, description, lien, réservations, 
+documents et participants.
+V1.5 : vue carte alternative du planning, filtrable par jour ; ouvrir l’itinéraire dans une 
+application de navigation externe.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+Pas de réservation directement dans 7Trip ; conserver les références et liens de 
+réservation.
+V2 : découverte d’activités à proximité et redirection vers des services tiers, sans 
+paiement ni réservation intégrés.
+8. Finances et budget
+8.1 Dépenses
+Un module Finances unifié, comprenant dépenses, soldes/remboursements et budget 
+personnel facultatif.
+Ajout rapide : montant, libellé, payeur, puis choix « Personnelle » ou « Partagée ».
+Dépense partagée : participants du voyage sélectionnés par défaut ; possibilité 
+d’exclure des personnes ou de personnaliser les parts.
+Champs avancés facultatifs : catégorie, devise, répartition détaillée, association à un 
+élément du planning.
+Chaque dépense indique qui a avancé l’argent et qui supporte réellement le coût ; 
+permettre correction selon les droits définis.
+8.2 Soldes et remboursements
+Calculer les soldes entre participants sur la base des parts réelles, indépendamment du 
+payeur.
+Présenter simplement qui doit rembourser qui et permettre de marquer un 
+remboursement comme effectué.
+Distinguer argent avancé, coût personnel et créances/dettes : ces montants ne sont pas 
+interchangeables.
+Prendre en charge les devises multiples ; règles exactes de conversion et de taux à 
+figer avant implémentation.
+8.3 Budget personnel
+Budget prévisionnel individuel facultatif, éventuellement réparti en catégories.
+Suivre la quote-part personnelle de chaque dépense, et non le montant intégral avancé 
+pour le groupe.
+Exemple : restaurant à 120 € partagé à quatre ; 30 € comptent dans le budget de 
+chacun si partage égal.
+Afficher séparément les remboursements encore dus ou à recevoir.
+9. Documents et réservations
+Accès depuis « Plus » ; liste chronologique par défaut, filtres Transport, Hébergement, 
+Activité, Autre et recherche si utile.
+Un document peut être lié à un événement du planning : accès depuis la fiche et 
+depuis Documents, sans duplication.
+Les documents sans date restent accessibles dans une section dédiée.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+Chaque document dispose d’une visibilité « Privé » ou « Partagé » ; privé par défaut.
+Les documents privés ne doivent pas être accessibles à d’autres participants, même via 
+un lien direct non autorisé.
+Conserver billets, PDF, confirmations et liens utiles ; le détail des formats et limites 
+sera décidé techniquement.
+Accès hors ligne aux documents explicitement téléchargés ou enregistrés pour cet 
+usage.
+10. Notifications, partage et hors ligne
+10.1 Notifications
+Notifications utiles : invitation, sondage en attente, changement important du 
+planning, rappel pertinent et règlement nécessaire.
+Limiter les notifications secondaires ; éviter une alerte à chaque vote ou dépense.
+Préférences configurables par voyage, avec réglages simples.
+10.2 Partage et web léger
+Liens d’invitation sécurisés pour rejoindre un voyage.
+Partage natif des sondages dès la V1 ; architecture fonctionnelle réutilisable pour 
+activités et portfolios.
+Web léger pour rejoindre/voter en invité et, à terme, consulter un portfolio partagé.
+Ne pas exiger le téléchargement de l’application pour les parcours invités essentiels.
+10.3 Mode hors ligne V1
+Lecture hors ligne des voyages et informations déjà consultés : planning, adresses et 
+documents enregistrés localement.
+Indiquer clairement quand les données sont anciennes ou non synchronisées.
+L’édition et la synchronisation hors ligne ne sont pas promises en V1.
+11. Portfolio de voyages
+Chaque voyage terminé contribue progressivement au portfolio personnel de ses 
+participants, sans journal manuel obligatoire.
+Données factuelles partagées : destination, dates, étapes réellement visitées, 
+éventuellement photos autorisées.
+Ne pas présenter comme « visité » un lieu simplement envisagé ou planifié.
+Portfolio privé par défaut ; partage sélectif par lien, puis profils publics facultatifs en 
+V2.
+Ne jamais publier automatiquement finances, documents privés ou informations 
+sensibles des participants.
+Fonctionnalité introduite progressivement : souvenirs initiaux en V1.5, portfolio 
+complet en V2.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+12. Confidentialité, sécurité et qualité
+Contrôle d’accès systématique selon compte, session invitée, rôle et visibilité des 
+ressources.
+Protection des liens d’invitation, des documents privés et des données financières ; pas 
+d’exposition publique implicite.
+Suppression de compte et gestion des données personnelles conformes aux obligations 
+applicables, notamment RGPD.
+États de chargement, erreurs, conflits de modification, formulaires invalides et 
+absence de connexion traités proprement.
+Accessibilité mobile : actions tactiles confortables, alternatives au glisser-déposer, 
+libellés clairs, contrastes suffisants.
+Calculs financiers vérifiables et reproductibles ; cas d’arrondis et de conversion 
+documentés.
+Application destinée à une sortie publique sur les stores, avec phase de tests avant 
+publication.
+13. Feuille de route
+VersionPérimètre
+V1Comptes et invités ; voyages ; 
+participants/invitations ; 
+personnalisation ; tableau de bord ; idées ; 
+sondages et partage ; planning 
+chronologique ; finances ; documents 
+essentiels et confidentialité ; lecture hors 
+ligne limitée.
+V1.5Vue carte ; organisation documentaire 
+enrichie ; budgets individuels plus avancés 
+; notifications enrichies ; premiers 
+souvenirs automatiques ; création d’idée 
+assistée depuis un lien.
+V2Portfolio complet et partage public 
+optionnel ; découverte d’activités à 
+proximité avec redirection ; pistes de 
+monétisation et fonctionnalités 
+additionnelles selon retours.
+Note : cette feuille de route exprime les priorités produit, pas une garantie de date. Les 
+dépendances techniques peuvent nécessiter de déplacer des sous-fonctions entre versions, 
+après validation.
+
+7Trip • Cahier des charges fonctionnel • Document de travail
+14. Points à arbitrer avant développement détaillé
+Finances : devise de référence par voyage, source et mémorisation des taux, arrondis, 
+répartition inégale et gestion des modifications de participants.
+Permissions fines : qui peut éditer/supprimer une dépense, une idée ou un événement 
+créé par autrui ; comportement après départ d’un participant.
+Sondages : confidentialité des votes, visibilité des résultats avant clôture, modalités 
+d’égalité et de clôture.
+Documents : types et tailles acceptés, stockage hors ligne et comportement après 
+révocation d’accès.
+Invitations : expiration, usage multiple, admission automatique ou validation 
+manuelle selon configuration.
+Portfolio : critères exacts de visite effective et autorisations sur les photos de groupe.
+Notifications : événements précis et réglages par défaut.
+Définition du périmètre minimal de la version web invitée.
+15. Critères de validation transversaux
+Un nouvel utilisateur peut découvrir l’app sans compte, puis se connecter pour créer 
+son premier voyage.
+Un voyage sans date ni destination peut être créé et partagé ; un invité peut voter sans 
+inscription.
+Un sondage à choix multiple fonctionne et son lien partagé respecte les droits d’accès.
+Une idée peut être planifiée, déplanifiée puis replanifiée sans perte de ses données.
+Deux activités peuvent se chevaucher sans blocage, avec avertissement en cas de 
+participant commun.
+Les finances distinguent coût personnel, avance et remboursement, y compris lorsque 
+le payeur n’est pas bénéficiaire.
+Un document privé reste invisible aux autres participants ; un document hors ligne 
+préalablement enregistré reste lisible sans réseau.
+Le tableau de bord présente les actions utiles au bon moment sans forcer des 
+fonctionnalités non utilisées.

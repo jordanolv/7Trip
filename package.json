@@ -1,0 +1,23 @@
+{
+  "name": "7trip",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @7trip/api db:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.9",
+    "typescript": "~6.0.3"
+  }
+}

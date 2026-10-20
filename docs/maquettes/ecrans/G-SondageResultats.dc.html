@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Résultats du sondage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 14px 0; display: flex; align-items: center; justify-content: space-between">
+    <a href="G-SondageVote.dc.html" aria-label="Retour" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <span style="font-size: 12px; font-weight: 700; color: #3A4352; background: #EDE7DC; border-radius: 999px; padding: 5px 10px">Clos par Jordan · 6 votants sur 7</span>
+    <div style="width: 44px"></div>
+  </div>
+
+  <div style="padding: 8px 18px 0; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Où part-on cet été ?</h1>
+
+    <div style="background: #FFFFFF; border-radius: 22px; overflow: hidden; box-shadow: 0 2px 10px rgba(27,36,51,0.06)">
+      <div style="height: 130px; position: relative">
+        <img src="/_blob/f85d5fa5217dad85831aa2a31006ecbd" alt="Split, Croatie" style="width: 354px; height: 130px; object-fit: cover; display: block">
+        <span style="position: absolute; top: 10px; left: 10px; font-size: 12px; font-weight: 700; background: #FFFFFF; border-radius: 999px; padding: 5px 10px">En tête</span>
+      </div>
+      <div style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 18px; font-weight: 800">Split, Croatie</span><span style="font-size: 14px; font-weight: 700">5 votes</span></div>
+        <div style="height: 8px; border-radius: 4px; background: #EDE7DC; overflow: hidden"><div style="width: 83%; height: 8px; border-radius: 4px; background: {{accent}}"></div></div>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <img src="/_blob/35ec89a0f6456a03248bff66cb10b867" alt="" style="width: 40px; height: 40px; border-radius: 10px; object-fit: cover">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 700">Naxos, Grèce</span><span style="font-size: 13px; font-weight: 700; color: #5E6675">3 votes</span></div>
+          <div style="height: 6px; border-radius: 3px; background: #EDE7DC; overflow: hidden"><div style="width: 50%; height: 6px; border-radius: 3px; background: #9C958A"></div></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <img src="/_blob/b5ff94f0058b068bee2b11547674a794" alt="" style="width: 40px; height: 40px; border-radius: 10px; object-fit: cover">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 700">Cefalù, Sicile</span><span style="font-size: 13px; font-weight: 700; color: #5E6675">1 vote</span></div>
+          <div style="height: 6px; border-radius: 3px; background: #EDE7DC; overflow: hidden"><div style="width: 17%; height: 6px; border-radius: 3px; background: #9C958A"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{pending}}" hint-placeholder-val="{{ true }}">
+      <div style="background: #1B2433; color: #FFFFFF; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div>
+          <div style="font-size: 16px; font-weight: 800">Et maintenant ?</div>
+          <div style="font-size: 13px; color: #C9CED6; margin-top: 4px; line-height: 1.45">Rien n’est appliqué automatiquement : c’est toi, en tant qu’organisateur, qui décides.</div>
+        </div>
+        <button onClick="{{confirm}}" style="height: 48px; border-radius: 14px; border: none; background: #FFFFFF; color: #1B2433; font-family: inherit; font-size: 15px; font-weight: 700">Définir Split comme destination</button>
+        <button style="height: 44px; border-radius: 14px; border: 1.5px solid #3A4352; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600">Plus tard</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div style="background: #E3EFE8; border-radius: 22px; padding: 16px; display: flex; gap: 12px; align-items: center">
+        <div style="width: 40px; height: 40px; border-radius: 20px; background: {{accent}}; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
+        <div style="flex: 1"><div style="font-size: 15px; font-weight: 700; color: #1B4A36">Destination : Split</div><div style="font-size: 13px; color: #22553F">Le groupe est prévenu. Prochaine étape : les dates ?</div></div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: false };
+  }
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      pending: !this.state.done,
+      done: this.state.done,
+      confirm: () => this.setState({ done: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Connexion</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="height: 300px; position: relative; overflow: hidden">
+    <img src="/_blob/6413e6b85c76c5ea039d2a204385d7e0" alt="Lac d’Annecy vu du ciel" style="position: absolute; inset: 0; width: 390px; height: 300px; object-fit: cover">
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,20,30,0.40) 0%, rgba(14,20,30,0) 40%)"></div>
+    <a href="G-Visiteur.dc.html" aria-label="Fermer" style="position: absolute; top: 50px; left: 14px; width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
+    <div style="position: absolute; top: 56px; left: 0; right: 0; text-align: center; font-size: 28px; font-weight: 800; font-style: italic; letter-spacing: -0.03em; color: #FFFFFF">7Trip</div>
+  </div>
+
+  <div style="position: absolute; top: 260px; left: 0; right: 0; bottom: 0; background: #F7F3EC; border-radius: 28px 28px 0 0; padding: 26px 22px 0; display: flex; flex-direction: column; gap: 14px">
+    <div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Bienvenue à bord</h1>
+      <div style="font-size: 15px; color: #5E6675; margin-top: 6px">Connecte-toi ou crée ton compte en quelques secondes.</div>
+    </div>
+
+    <button style="height: 52px; border-radius: 16px; border: none; background: #111111; color: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 600">Continuer avec Apple</button>
+    <button style="height: 52px; border-radius: 16px; border: 1.5px solid #D9D2C4; background: #FFFFFF; color: #1B2433; font-family: inherit; font-size: 16px; font-weight: 600">Continuer avec Google</button>
+
+    <div style="display: flex; align-items: center; gap: 12px; color: #5E6675; font-size: 13px"><div style="flex: 1; height: 1px; background: #E3DCCF"></div>ou par email<div style="flex: 1; height: 1px; background: #E3DCCF"></div></div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="email" style="font-size: 13px; font-weight: 600">Adresse email</label>
+      <input id="email" type="email" value="jordan@exemple.fr" style="height: 52px; border-radius: 16px; border: 1.5px solid {{accent}}; background: #FFFFFF; padding: 0 16px; font-family: inherit; font-size: 16px; color: #1B2433; box-sizing: border-box; outline: none">
+    </div>
+    <a href="G-Voyages.dc.html" style="height: 52px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700">Continuer</a>
+
+    <div style="font-size: 12px; color: #5E6675; text-align: center; line-height: 1.5; margin-top: 2px">Si tu n’as pas encore de compte, on le crée à l’étape suivante.<br>En continuant, tu acceptes les <a href="#" style="text-decoration: underline; color: #1B2433">conditions</a> et la <a href="#" style="text-decoration: underline; color: #1B2433">politique de confidentialité</a>.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#2F7A5D' };
+  }
+}
+</script>
+</body>
+</html>

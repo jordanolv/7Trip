@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Mes voyages (visiteur)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <svg width="390" height="300" viewBox="0 0 390 300" aria-hidden="true" style="position: absolute; top: 0; left: 0" fill="none" stroke="#ECE4D6" stroke-width="1.5">
+    <path d="M-20 60 C60 30 150 90 230 60 S360 20 420 50"/><path d="M-20 100 C70 70 160 130 240 100 S370 60 420 90"/><path d="M-20 140 C80 112 170 170 250 140 S380 100 420 130"/>
+  </svg>
+
+  <div style="position: relative; padding: 52px 20px 0; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="font-size: 30px; font-weight: 800; font-style: italic; letter-spacing: -0.03em">7Trip</div>
+      <a href="G-Connexion.dc.html" style="height: 44px; padding: 0 16px; border-radius: 22px; background: #FFFFFF; border: 1px solid #E3DCCF; display: flex; align-items: center; font-size: 14px; font-weight: 700">Se connecter</a>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+      <div>
+        <h1 style="margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em">Vos voyages</h1>
+        <div style="font-size: 15px; color: #5E6675; margin-top: 4px">Des idées aujourd’hui, des souvenirs demain</div>
+      </div>
+      <button disabled aria-label="Nouveau voyage — connexion requise" style="flex: 0 0 auto; width: 52px; height: 52px; border-radius: 18px; border: 2px dashed #C9C2B4; background: transparent; color: #8C8A84; display: flex; align-items: center; justify-content: center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div style="align-self: flex-end; position: relative; margin-top: -6px; background: #1B2433; color: #FFFFFF; border-radius: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; max-width: 230px">
+      <div style="position: absolute; top: -6px; right: 20px; width: 12px; height: 12px; background: #1B2433; transform: rotate(45deg)"></div>
+      Un compte est nécessaire pour créer un voyage.
+    </div>
+
+    <div style="margin-top: 8px; background: #FFFFFF; border-radius: 24px; overflow: hidden; box-shadow: 0 2px 10px rgba(27,36,51,0.05)">
+      <div style="height: 190px; position: relative; background: #DCEADF; overflow: hidden">
+        <svg width="350" height="190" viewBox="0 0 350 190" aria-hidden="true" style="position: absolute; inset: 0">
+          <g fill="none" stroke="#B9D3C1" stroke-width="1.5"><ellipse cx="80" cy="150" rx="120" ry="60"/><ellipse cx="80" cy="150" rx="80" ry="38"/><ellipse cx="290" cy="50" rx="90" ry="44"/><ellipse cx="290" cy="50" rx="56" ry="24"/></g>
+          <path d="M70 140 C120 90 190 150 240 100 S290 60 290 60" fill="none" stroke="#22553F" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>
+          <circle cx="70" cy="140" r="8" fill="#FFFFFF" stroke="#22553F" stroke-width="3"/>
+          <path d="M290 74s16-15 16-27a16 16 0 0 0-32 0c0 12 16 27 16 27z" fill="#E0703C"/><circle cx="290" cy="47" r="6" fill="#FFFFFF"/>
+        </svg>
+      </div>
+      <div style="padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px">
+        <div>
+          <div style="font-size: 20px; font-weight: 800">Ton prochain voyage commence ici</div>
+          <div style="font-size: 14px; color: #5E6675; margin-top: 6px; line-height: 1.5">Idées, sondages, planning, dépenses et documents : tout ton voyage au même endroit.</div>
+        </div>
+        <a href="G-Connexion.dc.html" style="height: 50px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700">Créer un compte</a>
+        <a href="G-Connexion.dc.html" style="height: 50px; border-radius: 16px; background: #F7F3EC; color: #1B2433; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700">J’ai déjà un compte</a>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: flex-start; padding: 4px 4px 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+      <div style="font-size: 13px; color: #5E6675; line-height: 1.5">Invité par un ami ? Ouvre simplement son lien : tu pourras rejoindre le voyage et voter sans créer de compte.</div>
+    </div>
+  </div>
+
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 88px; background: #FFFFFF; border-top: 1px solid #EDE7DC; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 8px 16px 24px; box-sizing: border-box; gap: 8px">
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: #E3EFE8; border-radius: 16px; color: {{accent}}; font-size: 12px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Voyages</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 12px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Portfolio</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 12px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profil</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#2F7A5D' };
+  }
+}
+</script>
+</body>
+</html>

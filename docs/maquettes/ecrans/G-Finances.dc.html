@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Finances</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+    <a href="G-Dashboard.dc.html" aria-label="Retour au tableau de bord" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B2433" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <div style="flex: 1">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Finances</h1>
+      <div style="font-size: 13px; color: #5E6675">Road trip Andalousie</div>
+    </div>
+    <a href="G-AjoutDepense.dc.html" aria-label="Ajouter une dépense" style="width: 48px; height: 48px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(47,122,93,0.25)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></a>
+  </div>
+
+  <div style="padding: 14px 16px 0">
+    <div style="display: flex; background: #EDE7DC; border-radius: 14px; padding: 4px">
+      <span style="flex: 1; height: 38px; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 1px 3px rgba(27,36,51,0.12)">Dépenses</span>
+      <a href="G-Soldes.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Soldes</a>
+      <a href="G-Budget.dc.html" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5E6675">Mon budget</a>
+    </div>
+  </div>
+
+  <div style="padding: 14px 16px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px">
+      <div style="font-size: 12px; font-weight: 600; color: #5E6675">Total du groupe</div>
+      <div style="font-size: 24px; font-weight: 800; margin-top: 2px">1 284 €</div>
+      <div style="font-size: 12px; color: #5E6675">23 dépenses</div>
+    </div>
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px">
+      <div style="font-size: 12px; font-weight: 600; color: #5E6675">Mon coût réel</div>
+      <div style="font-size: 24px; font-weight: 800; margin-top: 2px">310 €</div>
+      <div style="font-size: 12px; color: #5E6675">J’ai avancé 285,50 €</div>
+    </div>
+  </div>
+
+  <div style="padding: 16px 16px 0; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-size: 13px; font-weight: 700; color: #5E6675">Lundi 20 octobre</div>
+    <div style="background: #FFFFFF; border-radius: 20px; display: flex; flex-direction: column">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: #E3EFE8; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22553F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 0 0 4v5h18v-5a2 2 0 0 1 0-4V4H3z"/></svg></div>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">Billets Alcázar</div><div style="font-size: 12px; color: #5E6675">Payé par Thomas · partagé à 6</div></div>
+        <div style="text-align: right"><div style="font-size: 15px; font-weight: 700">81,00 €</div><div style="font-size: 12px; color: #5E6675">ta part 13,50 €</div></div>
+      </div>
+      <div style="height: 1px; background: #EEE8DD; margin-left: 66px"></div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: #FBE6D8; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A3D12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 3-3 6s1 4 3 4v8"/></svg></div>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">Déjeuner Eslava</div><div style="font-size: 12px; color: #5E6675">Avancé par toi · partagé à 6</div></div>
+        <div style="text-align: right"><div style="font-size: 15px; font-weight: 700">96,00 €</div><div style="font-size: 12px; color: #5E6675">ta part 16,00 €</div></div>
+      </div>
+      <div style="height: 1px; background: #EEE8DD; margin-left: 66px"></div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: #F2EDE4; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3A4352" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0"/></svg></div>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">Éventail</div><div style="font-size: 12px; color: #5E6675">Personnelle</div></div>
+        <div style="text-align: right"><div style="font-size: 15px; font-weight: 700">12,00 €</div><div style="font-size: 12px; color: #5E6675">ta part 12,00 €</div></div>
+      </div>
+    </div>
+
+    <div style="font-size: 13px; font-weight: 700; color: #5E6675; margin-top: 4px">Dimanche 19 octobre</div>
+    <div style="background: #FFFFFF; border-radius: 20px; display: flex; flex-direction: column">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: #C8E0EA; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F5F7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.5-5h11l1.5 5M4 16h16v3H4zM7 19v2M17 19v2"/></svg></div>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">Essence</div><div style="font-size: 12px; color: #5E6675">Payé par Léa · partagé à 6</div></div>
+        <div style="text-align: right"><div style="font-size: 15px; font-weight: 700">64,20 €</div><div style="font-size: 12px; color: #5E6675">ta part 10,70 €</div></div>
+      </div>
+    </div>
+  </div>
+
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 88px; background: #FFFFFF; border-top: 1px solid #EDE7DC; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 10px 24px; box-sizing: border-box; gap: 4px">
+    <a href="G-Dashboard.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="G-Planning.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Planning</a>
+    <a href="G-Idees.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>Idées</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: #E3EFE8; border-radius: 16px; color: {{accent}}; font-size: 11px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>Finances</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5E6675; font-size: 11px; font-weight: 500">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Plus</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#2F7A5D' };
+  }
+}
+</script>
+</body>
+</html>

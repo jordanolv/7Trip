@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>7Trip — Ajouter une idée au planning</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F3EC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B2433">
+  <img src="/_blob/d19e4a959b6e2b62fc5ca3fc9e6ff602" alt="" style="position: absolute; top: 0; left: 0; width: 390px; height: 240px; object-fit: cover">
+  <a href="G-IdeeDetail.dc.html" aria-label="Fermer" style="position: absolute; inset: 0; background: rgba(14,20,30,0.5)"></a>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #F7F3EC; border-radius: 28px 28px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 16px">
+    <div style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #D9D2C4"></div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <img src="/_blob/d19e4a959b6e2b62fc5ca3fc9e6ff602" alt="Plaza de España" style="width: 52px; height: 52px; border-radius: 14px; object-fit: cover">
+      <div style="flex: 1">
+        <div style="font-size: 13px; color: #5E6675; font-weight: 600">Ajouter au planning</div>
+        <div style="font-size: 17px; font-weight: 800; line-height: 1.2">Coucher de soleil à la Plaza de España</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 15px; font-weight: 700">Quel jour ?</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="8">
+          <button onClick="{{d.pick}}" style="height: 60px; border-radius: 14px; border: {{d.border}}; font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: {{d.bg}}; color: {{d.fg}}">
+            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase">{{d.dow}}</span>
+            <span style="font-size: 18px; font-weight: 800">{{d.num}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 15px; font-weight: 700">Horaire <span style="font-weight: 500; color: #5E6675">· facultatif</span></div>
+      <div style="display: flex; gap: 8px">
+        <span style="height: 40px; padding: 0 14px; border-radius: 12px; background: #FFFFFF; border: 1.5px solid #D9D2C4; display: flex; align-items: center; font-size: 14px; font-weight: 600">Sans horaire</span>
+        <span style="height: 40px; padding: 0 14px; border-radius: 12px; background: #1B2433; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600">18:00 – 19:30</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #5E6675; line-height: 1.45">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      L’idée garde sa fiche, ses infos et son auteur. Si tu la retires du planning, elle revient simplement dans la boîte à idées.
+    </div>
+
+    <a href="G-Planning.dc.html" style="height: 54px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700">{{cta}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F7A5D","options":["#2F7A5D","#1F6F8B","#B4532A","#5B4B8A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { day: 4 };
+  }
+  renderVals() {
+    const days = [['ven', '17'], ['sam', '18'], ['dim', '19'], ['lun', '20'], ['mar', '21'], ['mer', '22'], ['jeu', '23'], ['ven', '24']];
+    const cur = days[this.state.day];
+    return {
+      accent: this.props.accent ?? '#2F7A5D',
+      cta: 'Ajouter au ' + cur[0] + '. ' + cur[1] + ' oct.',
+      days: days.map(([dow, num], i) => ({
+        dow, num,
+        bg: i === this.state.day ? '#1B2433' : '#FFFFFF',
+        fg: i === this.state.day ? '#FFFFFF' : '#1B2433',
+        border: i === this.state.day ? 'none' : '1.5px solid #E3DCCF',
+        pick: () => this.setState({ day: i })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
