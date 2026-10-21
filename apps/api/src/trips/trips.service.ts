@@ -116,6 +116,13 @@ export class TripsService {
   }
 
   /** Loads a trip the user belongs to. Non-members get a 404: a trip's existence is not revealed. */
+  /** Deletes the trip for everyone (participants and destinations cascade). Organizers only. */
+  async remove(userId: string, tripId: string): Promise<void> {
+    const trip = await this.findForMember(userId, tripId);
+    this.requireOrganizer(trip, userId);
+    await this.prisma.trip.delete({ where: { id: tripId } });
+  }
+
   private async findForMember(userId: string, tripId: string): Promise<TripWithRelations> {
     if (!z.uuid().safeParse(tripId).success) throw notFound();
     const trip = await this.prisma.trip.findFirst({

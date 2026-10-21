@@ -1,4 +1,4 @@
-import { localIsoDate, tripPhase, type TripPhase } from '@7trip/shared';
+import { localIsoDate, sortTrips, tripPhase, type TripPhase } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -109,7 +109,7 @@ function SignedInContent({
   const [filter, setFilter] = useState<Filter>('all');
   const today = localIsoDate();
   const visible = useMemo(
-    () => (trips.data ?? []).filter((trip) => filter === 'all' || tripPhase(trip, today) === filter),
+    () => sortTrips(trips.data ?? [], today).filter((trip) => filter === 'all' || tripPhase(trip, today) === filter),
     [trips.data, filter, today],
   );
 

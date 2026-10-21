@@ -18,6 +18,7 @@ export const colors = {
   infoTint: '#FBEBD0',
   infoInk: '#6B3F08',
   danger: '#A12C1C',
+  dangerTint: '#F7E1DC',
   topoLine: '#ECE4D6',
 } as const;
 

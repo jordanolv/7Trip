@@ -1,8 +1,13 @@
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { EMAIL_CODE_LENGTH } from '@7trip/shared';
 
 export function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/** Keyed hash, for low-entropy secrets that a leaked database must not reveal. */
+export function hmacSha256(key: string, value: string): string {
+  return createHmac('sha256', key).update(value).digest('hex');
 }
 
 /** 256-bit random token, URL safe. */

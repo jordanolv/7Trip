@@ -27,18 +27,8 @@ export class TokensService {
 
   async issue(userId: string): Promise<AuthTokens> {
     const refreshToken = randomToken();
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        tokenHash: sha256(refreshToken),
-        expiresAt: new Date(Date.now() + this.env.REFRESH_TOKEN_TTL_DAYS * DAY_MS),
-      },
-    });
-    return {
-      accessToken: await this.signAccessToken(userId),
-      refreshToken,
-      expiresIn: this.env.ACCESS_TOKEN_TTL_SECONDS,
-    };
+    await this.prisma.refreshToken.create({ data: this.refreshTokenData(userId, refreshToken) });
+    return this.pair(userId, refreshToken);
   }
 
   /** Exchanges a refresh token for a new pair. Returns the user id the tokens belong to. */
@@ -53,14 +43,25 @@ export class TokensService {
     }
     if (stored.expiresAt <= new Date()) throw invalid;
 
-    const { count } = await this.prisma.refreshToken.updateMany({
-      where: { id: stored.id, revokedAt: null },
-      data: { revokedAt: new Date() },
+    // Revoke and replace in one transaction: a concurrent request with the same token waits on the
+    // row lock, then sees it revoked only once the replacement exists, so its revokeAll covers it.
+    const next = randomToken();
+    const rotated = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (count === 0) return false;
+      await tx.refreshToken.create({ data: this.refreshTokenData(stored.userId, next) });
+      return true;
     });
-    // Lost a race with a concurrent refresh using the same token.
-    if (count === 0) throw invalid;
+    // Another request rotated this token at the same time: same reuse signal as above.
+    if (!rotated) {
+      await this.revokeAll(stored.userId);
+      throw invalid;
+    }
 
-    return { userId: stored.userId, tokens: await this.issue(stored.userId) };
+    return { userId: stored.userId, tokens: await this.pair(stored.userId, next) };
   }
 
   async revoke(refreshToken: string): Promise<void> {
@@ -85,6 +86,22 @@ export class TokensService {
     } catch {
       return null;
     }
+  }
+
+  private refreshTokenData(userId: string, refreshToken: string) {
+    return {
+      userId,
+      tokenHash: sha256(refreshToken),
+      expiresAt: new Date(Date.now() + this.env.REFRESH_TOKEN_TTL_DAYS * DAY_MS),
+    };
+  }
+
+  private async pair(userId: string, refreshToken: string): Promise<AuthTokens> {
+    return {
+      accessToken: await this.signAccessToken(userId),
+      refreshToken,
+      expiresIn: this.env.ACCESS_TOKEN_TTL_SECONDS,
+    };
   }
 
   private signAccessToken(userId: string): Promise<string> {
