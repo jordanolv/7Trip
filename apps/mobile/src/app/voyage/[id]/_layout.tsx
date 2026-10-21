@@ -11,6 +11,8 @@ export default function VoyageLayout() {
         <Stack.Screen name="(onglets)" />
         <Stack.Screen name="personnaliser" options={{ presentation: 'modal' }} />
         <Stack.Screen name="modifier" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="participants" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="parametres" options={{ presentation: 'modal' }} />
       </Stack>
     </TripIdProvider>
   );

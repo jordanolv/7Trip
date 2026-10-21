@@ -1,7 +1,7 @@
 import { localIsoDate, sortTrips, tripPhase, type TripPhase } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
@@ -12,6 +12,7 @@ import { TopoLines } from '@/components/topo-lines';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { takePendingInvitation } from '@/lib/invitation-link';
 import { TripCard } from '@/trips/trip-card';
 import { useMyTrips } from '@/trips/trips-api';
 
@@ -113,6 +114,14 @@ function SignedInContent({
     [trips.data, filter, today],
   );
 
+  // Invitation link opened while signed out: resume it once back here, signed in.
+  useFocusEffect(
+    useCallback(() => {
+      const code = takePendingInvitation();
+      if (code) router.push({ pathname: '/j/[code]', params: { code } });
+    }, []),
+  );
+
   return (
     <>
       {!emailVerified ? (
@@ -181,6 +190,13 @@ function SignedInContent({
           </View>
         </>
       )}
+
+      <Pressable accessibilityRole="button" onPress={() => router.push('/rejoindre')} style={styles.joinLink}>
+        <Icon name="link" color={colors.accentInk} size={18} />
+        <AppText variant="bodyStrong" style={{ color: colors.accentInk }}>
+          J’ai un lien d’invitation
+        </AppText>
+      </Pressable>
     </>
   );
 }
@@ -303,6 +319,7 @@ const styles = StyleSheet.create({
   filterTextActive: { fontFamily: fontFamily.semibold, color: colors.surface },
   list: { gap: spacing.md },
   emptyFilter: { textAlign: 'center', marginTop: spacing.lg },
+  joinLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 44 },
   card: { backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
   illustration: { height: 170, backgroundColor: '#DCEADF' },
   cardBody: { padding: spacing.xl, gap: spacing.md },

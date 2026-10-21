@@ -27,6 +27,10 @@ export type TripKind = (typeof TRIP_KINDS)[number];
 export const PARTICIPANT_ROLES = ['ORGANIZER', 'PARTICIPANT'] as const;
 export type ParticipantRole = (typeof PARTICIPANT_ROLES)[number];
 
+/** Who may share the invitation link (docs/architecture.md §5). */
+export const INVITE_POLICIES = ['ALL', 'ORGANIZERS'] as const;
+export type InvitePolicy = (typeof INVITE_POLICIES)[number];
+
 /** Calendar date without time or timezone, e.g. "2026-10-17". */
 export const isoDateSchema = z.iso.date('Date invalide');
 
@@ -63,6 +67,7 @@ export const updateTripRequestSchema = z
     kind: z.enum(TRIP_KINDS).optional(),
     color: z.enum(TRIP_COLORS).optional(),
     icon: z.enum(TRIP_ICONS).optional(),
+    invitePolicy: z.enum(INVITE_POLICIES).optional(),
   })
   .refine(datesRefinement, datesMessage);
 export type UpdateTripRequest = z.input<typeof updateTripRequestSchema>;
@@ -89,6 +94,7 @@ export interface TripSummary {
 }
 
 export interface TripDetail extends TripSummary {
+  invitePolicy: InvitePolicy;
   participants: TripParticipant[];
   createdAt: string;
 }

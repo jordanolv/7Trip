@@ -135,14 +135,16 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
 function useTripMenu(trip: TripDetail) {
   const confirmDelete = useConfirmDeleteTrip(trip);
   const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
+  const invite = () => router.push(`/voyage/${trip.id}/participants` as Href);
   return () => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Modifier le voyage', 'Supprimer le voyage', 'Annuler'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
-        (index) => (index === 0 ? edit() : index === 1 ? confirmDelete() : undefined),
+        { options: ['Inviter des amis', 'Modifier le voyage', 'Supprimer le voyage', 'Annuler'], destructiveButtonIndex: 2, cancelButtonIndex: 3 },
+        (index) => [invite, edit, confirmDelete][index]?.(),
       );
     } else {
       Alert.alert(trip.title, undefined, [
+        { text: 'Inviter des amis', onPress: invite },
         { text: 'Modifier le voyage', onPress: edit },
         { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
         { text: 'Annuler', style: 'cancel' },
@@ -170,7 +172,7 @@ function setupSteps(trip: TripDetail, isOrganizer: boolean): Step[] {
       label: 'Inviter tes amis',
       hint: 'Ils pourront rejoindre et voter sans compte',
       icon: 'users',
-      onPress: () => Alert.alert('Bientôt', 'Les invitations arrivent avec la prochaine mise à jour.'),
+      onPress: () => router.push(`/voyage/${trip.id}/participants` as Href),
     });
   }
   return steps;

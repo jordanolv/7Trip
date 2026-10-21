@@ -1,4 +1,4 @@
-import type { TripDetail } from '@7trip/shared';
+import { canDo, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -22,6 +22,8 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const insets = useSafeAreaInsets();
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const confirmDelete = useConfirmDeleteTrip(trip);
+  const canInvite = canDo('invite', trip.myRole, trip);
+  const openParticipants = () => router.push(`/voyage/${trip.id}/participants` as Href);
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
   return (
@@ -44,8 +46,8 @@ function PlusContent({ trip }: { trip: TripDetail }) {
       </View>
 
       <Section title="Participants">
-        {trip.participants.map((p) => (
-          <View key={p.id} style={styles.row}>
+        {trip.participants.slice(0, 4).map((p) => (
+          <Pressable key={p.id} accessibilityRole="button" onPress={openParticipants} style={styles.row}>
             <Avatar name={p.displayName} size={36} />
             <AppText variant="bodyStrong" style={styles.flex}>
               {p.displayName}
@@ -56,18 +58,20 @@ function PlusContent({ trip }: { trip: TripDetail }) {
                 {p.role === 'ORGANIZER' ? 'Organisateur' : 'Participant'}
               </AppText>
             </View>
-          </View>
+          </Pressable>
         ))}
-        <Row icon="users" label="Inviter des amis" onPress={soon('L’invitation par lien')} />
+        <Row
+          icon="users"
+          label={canInvite ? 'Inviter des amis' : trip.participantCount > 4 ? `Voir les ${trip.participantCount} participants` : 'Voir les participants'}
+          onPress={openParticipants}
+        />
       </Section>
 
-      {isOrganizer ? (
-        <Section title="Voyage">
-          <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} />
-          <Row icon="sliders" label="Paramètres et notifications" onPress={soon('Les paramètres du voyage')} />
-          <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} />
-        </Section>
-      ) : null}
+      <Section title="Voyage">
+        {isOrganizer ? <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} /> : null}
+        <Row icon="sliders" label="Paramètres et notifications" onPress={() => router.push(`/voyage/${trip.id}/parametres` as Href)} />
+        {isOrganizer ? <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} /> : null}
+      </Section>
     </ScrollView>
   );
 }
