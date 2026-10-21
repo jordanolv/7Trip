@@ -1,4 +1,4 @@
-import { TRIP_COLORS, TRIP_ICONS, formatDestinations, localIsoDate, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
+import { TRIP_COLORS, TRIP_ICONS, localIsoDate, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
 import { colors, radii, spacing, tripColors } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -11,9 +11,9 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useAction } from '@/lib/use-action';
-import { formatDateRange } from '@/trips/format';
 import { TripQueryState } from '@/trips/trip-query-state';
-import { TripCover, TripIcon, TripIconTile, tripColorNames, tripIconNames } from '@/trips/trip-visuals';
+import { TripTicket } from '@/trips/trip-ticket';
+import { TripCover, TripIcon, tripColorNames, tripIconNames } from '@/trips/trip-visuals';
 import { useTrip, useUpdateTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
@@ -35,8 +35,6 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
     await update.mutateAsync({ color, icon });
     done();
   });
-
-  const dates = formatDateRange(trip.startDate, trip.endDate, localIsoDate());
 
   return (
     <>
@@ -60,22 +58,7 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
       <FormScreen footer={<Button title="Terminer" loading={save.loading} onPress={() => void save.run()} />}>
         <AppText variant="title">Donne-lui son style</AppText>
 
-        <View style={styles.preview}>
-          <TripCover color={color} style={styles.previewCover} />
-          <View style={styles.previewBody}>
-            <View style={styles.previewTile}>
-              <TripIconTile color={color} icon={icon} size={56} bordered />
-            </View>
-            <View style={styles.previewText}>
-              <AppText variant="bodyStrong" numberOfLines={1}>
-                {trip.title}
-              </AppText>
-              <AppText variant="caption" tone="secondary" numberOfLines={2}>
-                {[dates, formatDestinations(trip.destinations)].filter(Boolean).join(' · ') || 'Destination et dates à décider'}
-              </AppText>
-            </View>
-          </View>
-        </View>
+        <TripTicket trip={trip} color={color} icon={icon} today={localIsoDate()} />
 
         <View style={styles.group}>
           <AppText variant="bodyStrong">Couverture</AppText>
@@ -172,12 +155,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   later: { minHeight: 44, justifyContent: 'center' },
-  preview: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden' },
-  previewCover: { height: 88 },
-  // Profile-card layout: the tile straddles the cover, the text sits under it with even padding.
-  previewBody: { gap: spacing.sm + 2, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
-  previewTile: { marginTop: -28 },
-  previewText: { gap: 2 },
   group: { gap: spacing.sm + 2 },
   covers: { flexDirection: 'row', gap: spacing.sm + 2 },
   coverOption: {

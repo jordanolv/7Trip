@@ -14,6 +14,12 @@ export function formatDate(iso: string): string {
   return `${day} ${MONTHS_SHORT[month]} ${year}`;
 }
 
+/** "17 oct." */
+export function formatDayMonth(iso: string): string {
+  const { month, day } = parts(iso);
+  return `${day} ${MONTHS_SHORT[month]}`;
+}
+
 /** "17 – 24 octobre", "28 oct. – 3 nov.", "3 – 9 juillet 2025" (year only when not the current one). */
 export function formatDateRange(start: string | null, end: string | null, today: string): string | null {
   if (!start) return null;

@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 
 import { formatDateRange, participantsLabel, tripBadge } from './format';
+import { TripStatusChip } from './status-chip';
 import { TripCover, TripIcon } from './trip-visuals';
 
 export function TripCard({ trip, today }: { trip: TripSummary; today: string }) {
@@ -44,9 +45,7 @@ export function TripCard({ trip, today }: { trip: TripSummary; today: string }) 
         </View>
         <View style={styles.footer}>
           {phase !== 'ongoing' ? (
-            <View style={[styles.chip, chipStyles[trip.startDate ? phase : 'undated']]}>
-              <Text style={[styles.chipText, chipTextStyles[trip.startDate ? phase : 'undated']]}>{badge}</Text>
-            </View>
+            <TripStatusChip trip={trip} today={today} />
           ) : (
             <View />
           )}
@@ -80,20 +79,5 @@ const styles = StyleSheet.create({
   liveBadgeText: { fontFamily: fontFamily.bold, fontSize: 11, color: colors.surface },
   body: { flex: 1, padding: spacing.md, paddingLeft: spacing.md + 2, justifyContent: 'space-between', gap: spacing.sm },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chip: { borderRadius: radii.chip, paddingHorizontal: 10, paddingVertical: 4 },
-  chipText: { fontFamily: fontFamily.semibold, fontSize: 12 },
 });
 
-const chipStyles = StyleSheet.create({
-  upcoming: { backgroundColor: colors.accentTint },
-  undated: { backgroundColor: colors.warningTint },
-  past: { backgroundColor: colors.chip },
-  ongoing: {},
-});
-
-const chipTextStyles = StyleSheet.create({
-  upcoming: { color: colors.accentInk },
-  undated: { color: colors.warningInk },
-  past: { color: colors.inkTertiary },
-  ongoing: {},
-});
