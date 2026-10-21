@@ -70,7 +70,7 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
               <AppText variant="bodyStrong" numberOfLines={1}>
                 {trip.title}
               </AppText>
-              <AppText variant="caption" tone="secondary" numberOfLines={1}>
+              <AppText variant="caption" tone="secondary" numberOfLines={2}>
                 {[dates, formatDestinations(trip.destinations)].filter(Boolean).join(' · ') || 'Destination et dates à décider'}
               </AppText>
             </View>
@@ -93,7 +93,10 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
             </Pressable>
             <View style={[styles.coverOption, styles.coverDisabled]}>
               <AppText variant="caption" tone="secondary" style={{ textAlign: 'center', fontSize: 11 }}>
-                Suggestions dès que la destination est choisie
+                {/* Destination photos are not wired yet (needs a photo provider). */}
+                {trip.destinations.length > 0
+                  ? `Photos de ${trip.destinations[0]} bientôt`
+                  : 'Suggestions dès que la destination est choisie'}
               </AppText>
             </View>
           </View>
@@ -172,9 +175,17 @@ const styles = StyleSheet.create({
   preview: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden' },
   previewCover: { height: 100 },
   // Only the icon tile overlaps the cover; the text stays entirely on the white part.
-  previewBody: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  previewBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    minHeight: 84,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.lg + 2,
+  },
   previewTile: { marginTop: -28 },
-  previewText: { flex: 1, paddingTop: spacing.sm + 2 },
+  previewText: { flex: 1, gap: 2, paddingTop: spacing.sm + 2 },
   group: { gap: spacing.sm + 2 },
   covers: { flexDirection: 'row', gap: spacing.sm + 2 },
   coverOption: {
