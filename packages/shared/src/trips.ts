@@ -109,6 +109,26 @@ export function tripPhase(trip: Pick<TripSummary, 'startDate' | 'endDate'>, toda
   return 'upcoming';
 }
 
+const PHASE_ORDER: Record<TripPhase | 'undated', number> = { ongoing: 0, upcoming: 1, undated: 2, past: 3 };
+
+/**
+ * Order for "Mes voyages": ongoing, then upcoming (soonest first), then undated (input order kept),
+ * then past (most recent first). Done client side because the phase depends on the user's `today`.
+ */
+export function sortTrips<T extends Pick<TripSummary, 'startDate' | 'endDate'>>(trips: readonly T[], today: string): T[] {
+  const rank = (trip: T) => PHASE_ORDER[trip.startDate ? tripPhase(trip, today) : 'undated'];
+  return trips
+    .map((trip, index) => ({ trip, index }))
+    .sort((a, b) => {
+      const byPhase = rank(a.trip) - rank(b.trip);
+      if (byPhase !== 0) return byPhase;
+      const [x, y] = [a.trip.startDate ?? '', b.trip.startDate ?? ''];
+      if (x !== y) return rank(a.trip) === PHASE_ORDER.past ? (x < y ? 1 : -1) : x < y ? -1 : 1;
+      return a.index - b.index;
+    })
+    .map(({ trip }) => trip);
+}
+
 /** Whole days between two ISO dates (b − a). */
 export function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);

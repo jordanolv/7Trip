@@ -127,6 +127,17 @@ describe('Auth (e2e)', () => {
       expect(after.body.code).toBe('INVALID_REFRESH_TOKEN');
     });
 
+    // Needs a real Postgres: the local `prisma dev` database (PGlite) breaks under concurrent queries.
+    it.skipIf(!process.env.CI)('revokes every session when the same refresh token is used twice at once', async () => {
+      const session = await register();
+      const send = () => api().post('/v1/auth/refresh').send({ refreshToken: session.refreshToken });
+      const results = await Promise.all([send(), send()]);
+
+      expect(results.map((r) => r.status).sort((a, b) => a - b)).toEqual([200, 401]);
+      const winner = results.find((r) => r.status === 200)!;
+      await api().post('/v1/auth/refresh').send({ refreshToken: winner.body.refreshToken }).expect(401);
+    });
+
     it('logs out by revoking the refresh token', async () => {
       const session = await register();
       await api().post('/v1/auth/logout').send({ refreshToken: session.refreshToken }).expect(204);

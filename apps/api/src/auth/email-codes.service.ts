@@ -1,19 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { ENV, type Env } from '../config/env.js';
 import { EmailCodePurpose } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { randomNumericCode, safeEqual, sha256 } from './crypto.js';
+import { hmacSha256, randomNumericCode, safeEqual } from './crypto.js';
 
 const CODE_TTL_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
-function hashCode(userId: string, purpose: EmailCodePurpose, code: string): string {
-  return sha256(`${userId}:${purpose}:${code}`);
-}
-
 /** One-time six-digit codes (email verification, password reset). Only the latest one is valid. */
 @Injectable()
 export class EmailCodesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(ENV) private readonly env: Env,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** Keyed with a server secret: a six-digit code is brute-forced in no time from a plain hash. */
+  private hashCode(userId: string, purpose: EmailCodePurpose, code: string): string {
+    return hmacSha256(this.env.JWT_SECRET, `email-code:${userId}:${purpose}:${code}`);
+  }
 
   async issue(userId: string, purpose: EmailCodePurpose): Promise<string> {
     const code = randomNumericCode();
@@ -26,7 +31,7 @@ export class EmailCodesService {
         data: {
           userId,
           purpose,
-          codeHash: hashCode(userId, purpose, code),
+          codeHash: this.hashCode(userId, purpose, code),
           expiresAt: new Date(Date.now() + CODE_TTL_MS),
         },
       }),
@@ -42,7 +47,7 @@ export class EmailCodesService {
     });
     if (!current || current.attempts >= MAX_ATTEMPTS) return false;
 
-    if (!safeEqual(current.codeHash, hashCode(userId, purpose, code))) {
+    if (!safeEqual(current.codeHash, this.hashCode(userId, purpose, code))) {
       await this.prisma.emailCode.update({ where: { id: current.id }, data: { attempts: { increment: 1 } } });
       return false;
     }

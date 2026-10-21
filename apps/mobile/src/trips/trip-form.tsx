@@ -80,8 +80,8 @@ export function TripForm({
                 onChange({
                   ...values,
                   startDate: date,
-                  // Keep the range valid when the start moves after the end.
-                  endDate: date && values.endDate && values.endDate < date ? date : values.endDate,
+                  // Keep the range valid: no end without a start, no end before the start.
+                  endDate: !date ? null : values.endDate && values.endDate < date ? date : values.endDate,
                 })
               }
             />

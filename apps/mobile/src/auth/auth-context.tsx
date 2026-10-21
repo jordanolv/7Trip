@@ -89,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Let an in-flight refresh land first, so we revoke the newest token and nothing re-applies it after.
+    await refreshing.current;
     const refreshToken = await loadRefreshToken();
     await resetSession();
     if (refreshToken) {

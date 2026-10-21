@@ -1,4 +1,4 @@
-import { createTripRequestSchema, daysBetween, formatDestinations, tripPhase } from './trips.js';
+import { createTripRequestSchema, daysBetween, formatDestinations, sortTrips, tripPhase } from './trips.js';
 
 describe('createTripRequestSchema', () => {
   it('accepts a title alone (CDC §4: destination and dates are optional)', () => {
@@ -46,6 +46,26 @@ describe('tripPhase', () => {
 
   it('treats a start date without end date as a one-day trip', () => {
     expect(tripPhase({ startDate: '2026-10-19', endDate: null }, today)).toBe('past');
+  });
+});
+
+describe('sortTrips', () => {
+  it('lists ongoing, upcoming, undated then past trips', () => {
+    const trip = (id: string, startDate: string | null, endDate: string | null = startDate) => ({ id, startDate, endDate });
+    const today = '2026-10-20';
+    const sorted = sortTrips(
+      [
+        trip('old', '2025-07-03', '2025-07-09'),
+        trip('undated-a', null),
+        trip('later', '2026-12-20'),
+        trip('recent', '2026-09-01', '2026-09-05'),
+        trip('now', '2026-10-18', '2026-10-24'),
+        trip('soon', '2026-11-14'),
+        trip('undated-b', null),
+      ],
+      today,
+    );
+    expect(sorted.map((t) => t.id)).toEqual(['now', 'soon', 'later', 'undated-a', 'undated-b', 'recent', 'old']);
   });
 });
 
