@@ -48,3 +48,16 @@ export function useUpdateTrip(id: string) {
     },
   });
 }
+
+/** Deletes the trip for everyone. Leaving the trip screens is up to the caller (see useConfirmDeleteTrip). */
+export function useDeleteTrip(id: string) {
+  const { authedRequest } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => authedRequest<void>(`/trips/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      client.setQueryData<TripSummary[]>(tripKeys.mine, (trips) => trips?.filter((trip) => trip.id !== id));
+      void client.invalidateQueries({ queryKey: tripKeys.mine });
+    },
+  });
+}

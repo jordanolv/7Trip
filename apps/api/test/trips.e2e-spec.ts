@@ -123,10 +123,25 @@ describe('Trips (e2e)', () => {
 
     await api().get(`/v1/trips/${created.body.id}`).set(stranger.auth).expect(404);
     await api().patch(`/v1/trips/${created.body.id}`).set(stranger.auth).send({ title: 'Piraté' }).expect(404);
+    await api().delete(`/v1/trips/${created.body.id}`).set(stranger.auth).expect(404);
     await api().get('/v1/trips/pas-un-uuid').set(stranger.auth).expect(404);
 
     const strangerList = await api().get('/v1/me/trips').set(stranger.auth).expect(200);
     expect(strangerList.body).toEqual([]);
+  });
+
+  it('lets the organizer delete the trip for everyone', async () => {
+    const created = await api()
+      .post('/v1/trips')
+      .set(jordan.auth)
+      .send({ title: 'À supprimer', destinations: ['Lisbonne'] })
+      .expect(201);
+
+    await api().delete(`/v1/trips/${created.body.id}`).set(jordan.auth).expect(204);
+    await api().get(`/v1/trips/${created.body.id}`).set(jordan.auth).expect(404);
+    const list = await api().get('/v1/me/trips').set(jordan.auth).expect(200);
+    expect((list.body as TripSummary[]).map((t) => t.id)).not.toContain(created.body.id);
+    await api().delete(`/v1/trips/${created.body.id}`).set(jordan.auth).expect(404);
   });
 
   it('requires authentication', async () => {

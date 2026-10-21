@@ -11,6 +11,7 @@ import { formatDateRange, participantsLabel } from '@/trips/format';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
+import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function TripDashboardScreen() {
@@ -25,6 +26,7 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const steps = setupSteps(trip, isOrganizer);
+  const openMenu = useTripMenu(trip);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -47,7 +49,7 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
               ))}
             </View>
             {isOrganizer ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={() => openTripMenu(trip.id)} style={styles.roundButton}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={openMenu} style={styles.roundButton}>
                 <Icon name="more" />
               </Pressable>
             ) : null}
@@ -128,27 +130,24 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
   );
 }
 
-/** Same entries as the "Voyage" section of the Plus tab, one tap away from the dashboard. */
-function openTripMenu(tripId: string) {
-  const actions = [
-    { label: 'Nom, destination et dates', href: `/voyage/${tripId}/modifier` },
-    { label: 'Couleur et icône', href: `/voyage/${tripId}/personnaliser` },
-  ];
-  const go = (index: number) => {
-    const action = actions[index];
-    if (action) router.push(action.href as Href);
+/** Organizer actions, one tap away from the dashboard (same as the "Voyage" section of Plus). */
+function useTripMenu(trip: TripDetail) {
+  const confirmDelete = useConfirmDeleteTrip(trip);
+  const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
+  return () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['Modifier le voyage', 'Supprimer le voyage', 'Annuler'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
+        (index) => (index === 0 ? edit() : index === 1 ? confirmDelete() : undefined),
+      );
+    } else {
+      Alert.alert(trip.title, undefined, [
+        { text: 'Modifier le voyage', onPress: edit },
+        { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
+        { text: 'Annuler', style: 'cancel' },
+      ]);
+    }
   };
-  if (Platform.OS === 'ios') {
-    ActionSheetIOS.showActionSheetWithOptions(
-      { options: [...actions.map((a) => a.label), 'Annuler'], cancelButtonIndex: actions.length },
-      go,
-    );
-  } else {
-    Alert.alert('Modifier le voyage', undefined, [
-      ...actions.map((a, index) => ({ text: a.label, onPress: () => go(index) })),
-      { text: 'Annuler', style: 'cancel' as const },
-    ]);
-  }
 }
 
 interface Step {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import {
   createTripRequestSchema,
   updateTripRequestSchema,
@@ -40,5 +40,11 @@ export class TripsController {
     @Body(new ZodValidationPipe(updateTripRequestSchema)) body: z.output<typeof updateTripRequestSchema>,
   ): Promise<TripDetail> {
     return this.trips.update(userId, tripId, body);
+  }
+
+  @Delete('trips/:tripId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@CurrentUserId() userId: string, @Param('tripId') tripId: string): Promise<void> {
+    return this.trips.remove(userId, tripId);
   }
 }

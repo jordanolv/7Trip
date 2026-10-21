@@ -10,6 +10,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
+import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function PlusScreen() {
@@ -20,6 +21,7 @@ export default function PlusScreen() {
 function PlusContent({ trip }: { trip: TripDetail }) {
   const insets = useSafeAreaInsets();
   const isOrganizer = trip.myRole === 'ORGANIZER';
+  const confirmDelete = useConfirmDeleteTrip(trip);
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
   return (
@@ -61,9 +63,9 @@ function PlusContent({ trip }: { trip: TripDetail }) {
 
       {isOrganizer ? (
         <Section title="Voyage">
-          <Row icon="pencil" label="Nom, destination et dates" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} />
-          <Row icon="palette" label="Couleur et icône" onPress={() => router.push(`/voyage/${trip.id}/personnaliser` as Href)} />
+          <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} />
           <Row icon="sliders" label="Paramètres et notifications" onPress={soon('Les paramètres du voyage')} />
+          <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} />
         </Section>
       ) : null}
     </ScrollView>
@@ -97,16 +99,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+function Row({ icon, label, onPress, danger = false }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
-      <View style={styles.rowIcon}>
-        <Icon name={icon} color={colors.accentInk} size={18} />
+      <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+        <Icon name={icon} color={danger ? colors.danger : colors.accentInk} size={18} />
       </View>
-      <AppText variant="bodyStrong" style={styles.flex}>
+      <AppText variant="bodyStrong" style={[styles.flex, danger && { color: colors.danger }]}>
         {label}
       </AppText>
-      <Icon name="chevronRight" color={colors.inkSecondary} size={18} />
+      {danger ? null : <Icon name="chevronRight" color={colors.inkSecondary} size={18} />}
     </Pressable>
   );
 }
@@ -138,6 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  rowIconDanger: { backgroundColor: colors.dangerTint },
   role: { borderRadius: radii.chip, paddingHorizontal: 9, paddingVertical: 4 },
   roleOrganizer: { backgroundColor: colors.ink },
   roleParticipant: { backgroundColor: colors.chip },
