@@ -1,8 +1,9 @@
-import { canDo, type TripDetail } from '@7trip/shared';
+import type { TripDetail } from '@7trip/shared';
 
 import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
 import { InvitationCard } from '@/trips/invitation-card';
+import { can } from '@/trips/permissions';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
@@ -15,7 +16,7 @@ export default function InviteScreen() {
 function Invite({ trip }: { trip: TripDetail }) {
   return (
     <Sheet title="Inviter des amis">
-      {canDo('invite', trip.myRole, trip) ? (
+      {can('invite', trip) ? (
         <>
           <InvitationCard trip={trip} />
           <AppText variant="caption" tone="secondary">

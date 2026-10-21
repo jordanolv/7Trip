@@ -31,6 +31,10 @@ export function ParticipantRow({ trip, participant }: { trip: TripDetail; partic
   };
 
   const openMenu = () => {
+    if (participant.isGuest) {
+      confirmRemove();
+      return;
+    }
     const roleLabel = organizer ? 'Repasser participant' : 'Nommer organisateur';
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -50,7 +54,10 @@ export function ParticipantRow({ trip, participant }: { trip: TripDetail; partic
   const actions: SwipeAction[] =
     manageable && !busy
       ? [
-          { icon: organizer ? 'user' : 'crown', label: organizer ? 'Participant' : 'Organisateur', onPress: toggleRole },
+          // A guest needs an account to become organizer.
+          ...(participant.isGuest
+            ? []
+            : [{ icon: organizer ? 'user' : 'crown', label: organizer ? 'Participant' : 'Organisateur', onPress: toggleRole } as const]),
           { icon: 'trash', label: 'Retirer', danger: true, onPress: confirmRemove },
         ]
       : [];
@@ -67,15 +74,17 @@ export function ParticipantRow({ trip, participant }: { trip: TripDetail; partic
         {participant.displayName}
         {participant.isMe ? ' (toi)' : ''}
       </AppText>
-      {busy ? <ActivityIndicator color={colors.accent} /> : <RoleChip organizer={organizer} />}
+      {busy ? <ActivityIndicator color={colors.accent} /> : <RoleChip organizer={organizer} guest={participant.isGuest} />}
     </SwipeRow>
   );
 }
 
-function RoleChip({ organizer }: { organizer: boolean }) {
+function RoleChip({ organizer, guest }: { organizer: boolean; guest: boolean }) {
   return (
     <View style={[styles.role, organizer ? styles.roleOrganizer : styles.roleParticipant]}>
-      <Text style={[styles.roleText, { color: organizer ? colors.surface : colors.inkTertiary }]}>{organizer ? 'Organisateur' : 'Participant'}</Text>
+      <Text style={[styles.roleText, { color: organizer ? colors.surface : colors.inkTertiary }]}>
+        {organizer ? 'Organisateur' : guest ? 'Invité' : 'Participant'}
+      </Text>
     </View>
   );
 }

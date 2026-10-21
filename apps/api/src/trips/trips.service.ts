@@ -15,6 +15,7 @@ import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, type TripKind } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { actorWhere, isActor, userActor, type Actor } from './actor.js';
 
 export interface TripInput {
   title?: string;
@@ -54,8 +55,9 @@ export interface LockedTrip {
   me: Participant;
 }
 
-export function assertCan(role: ParticipantRole | undefined, action: TripAction, trip: { invitePolicy: InvitePolicy }): void {
-  if (!role || !canDo(action, role, trip)) {
+/** Guests (no account) can do none of these: see canDo. */
+export function assertCan(me: Pick<Participant, 'role' | 'userId'>, action: TripAction, trip: { invitePolicy: InvitePolicy }): void {
+  if (!canDo(action, me.role, trip, me.userId === null)) {
     throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, FORBIDDEN_MESSAGES[action]);
   }
 }
@@ -97,7 +99,7 @@ export class TripsService {
       },
       include: TRIP_INCLUDE,
     });
-    return this.toDetail(trip, userId);
+    return this.toDetail(trip, userActor(userId));
   }
 
   async listForUser(userId: string): Promise<TripSummary[]> {
@@ -106,18 +108,18 @@ export class TripsService {
       include: TRIP_INCLUDE,
       orderBy: [{ startDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
     });
-    return trips.map((trip) => this.toSummary(trip, userId));
+    return trips.map((trip) => this.toSummary(trip, userActor(userId)));
   }
 
-  async get(userId: string, tripId: string): Promise<TripDetail> {
-    const trip = await this.findForMember(userId, tripId);
-    return this.toDetail(trip, userId);
+  async get(actor: Actor, tripId: string): Promise<TripDetail> {
+    const trip = await this.findForMember(actor, tripId);
+    return this.toDetail(trip, actor);
   }
 
   /** Under the trip lock, so an organizer demoted meanwhile cannot still edit. */
-  async update(userId: string, tripId: string, input: TripInput): Promise<TripDetail> {
-    const updated = await this.withTripLock(userId, tripId, async (tx, locked) => {
-      assertCan(locked.me.role, 'editTrip', locked);
+  async update(actor: Actor, tripId: string, input: TripInput): Promise<TripDetail> {
+    const updated = await this.withTripLock(actor, tripId, async (tx, locked) => {
+      assertCan(locked.me, 'editTrip', locked);
       const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId } });
 
       // Validate the resulting date range, not just the fields sent in this request.
@@ -139,22 +141,22 @@ export class TripsService {
         include: TRIP_INCLUDE,
       });
     });
-    return this.toDetail(updated, userId);
+    return this.toDetail(updated, actor);
   }
 
   /** Deletes the trip for everyone (participants and destinations cascade). Organizers only. */
-  async remove(userId: string, tripId: string): Promise<void> {
-    await this.withTripLock(userId, tripId, async (tx, locked) => {
-      assertCan(locked.me.role, 'deleteTrip', locked);
+  async remove(actor: Actor, tripId: string): Promise<void> {
+    await this.withTripLock(actor, tripId, async (tx, locked) => {
+      assertCan(locked.me, 'deleteTrip', locked);
       await tx.trip.delete({ where: { id: tripId } });
     });
   }
 
-  /** The trip with its active participants, or 404 when the user is not one of them. */
-  async findForMember(userId: string, tripId: string): Promise<TripWithRelations> {
+  /** The trip with its active participants, or 404 when the caller is not one of them. */
+  async findForMember(actor: Actor, tripId: string): Promise<TripWithRelations> {
     if (!z.uuid().safeParse(tripId).success) throw notFound();
     const trip = await this.prisma.trip.findFirst({
-      where: { id: tripId, participants: { some: { userId, status: ParticipantStatus.ACTIVE } } },
+      where: { id: tripId, participants: { some: { ...actorWhere(actor), status: ParticipantStatus.ACTIVE } } },
       include: TRIP_INCLUDE,
     });
     if (!trip) throw notFound();
@@ -166,12 +168,12 @@ export class TripsService {
    * inside it. Every membership or invitation change goes through here, so concurrent requests
    * are applied one after the other and always check permissions against the current state.
    */
-  async withTripLock<T>(userId: string, tripId: string, fn: (tx: Prisma.TransactionClient, ctx: LockedTrip) => Promise<T>): Promise<T> {
+  async withTripLock<T>(actor: Actor, tripId: string, fn: (tx: Prisma.TransactionClient, ctx: LockedTrip) => Promise<T>): Promise<T> {
     if (!z.uuid().safeParse(tripId).success) throw notFound();
     return this.prisma.$transaction(async (tx) => {
       const [trip] = await tx.$queryRaw<{ invitePolicy: InvitePolicy }[]>`
         SELECT "invitePolicy" FROM "Trip" WHERE id = ${tripId}::uuid FOR UPDATE`;
-      const me = trip && (await tx.participant.findFirst({ where: { tripId, userId, status: ParticipantStatus.ACTIVE } }));
+      const me = trip && (await tx.participant.findFirst({ where: { tripId, ...actorWhere(actor), status: ParticipantStatus.ACTIVE } }));
       if (!trip || !me) throw notFound();
       return fn(tx, { invitePolicy: trip.invitePolicy, me });
     });
@@ -190,8 +192,8 @@ export class TripsService {
     };
   }
 
-  private toSummary(trip: TripWithRelations, userId: string): TripSummary {
-    const me = trip.participants.find((p) => p.userId === userId);
+  private toSummary(trip: TripWithRelations, actor: Actor): TripSummary {
+    const me = trip.participants.find((p) => isActor(p, actor));
     return {
       id: trip.id,
       title: trip.title,
@@ -206,14 +208,14 @@ export class TripsService {
     };
   }
 
-  toDetail(trip: TripWithRelations, userId: string): TripDetail {
+  toDetail(trip: TripWithRelations, actor: Actor): TripDetail {
     return {
-      ...this.toSummary(trip, userId),
+      ...this.toSummary(trip, actor),
       invitePolicy: trip.invitePolicy,
       createdAt: trip.createdAt.toISOString(),
       participants: trip.participants
         .toSorted((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
-        .map((p) => ({ id: p.id, displayName: p.displayName, role: p.role, isMe: p.userId === userId })),
+        .map((p) => ({ id: p.id, displayName: p.displayName, role: p.role, isMe: isActor(p, actor), isGuest: p.userId === null })),
     };
   }
 }

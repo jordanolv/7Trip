@@ -48,7 +48,7 @@ function RootNavigator() {
       <Stack.Screen name="profil/nom" options={{ presentation: 'modal' }} />
       <Stack.Screen name="voyage/nouveau" options={{ presentation: 'modal' }} />
       <Stack.Screen name="voyage/[id]" />
-      <Stack.Screen name="j/[code]" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="j/[code]" options={sheetOptions} />
       <Stack.Screen name="rejoindre" options={sheetOptions} />
       <Stack.Screen name="menu/[id]" options={sheetOptions} />
     </Stack>

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { takePendingInvitation } from '@/lib/invitation-link';
 import { TripCard } from '@/trips/trip-card';
-import { useMyTrips } from '@/trips/trips-api';
+import { useGuestTrips, useMyTrips } from '@/trips/trips-api';
 
 type Filter = 'all' | TripPhase;
 const FILTERS: { key: Filter; label: string }[] = [
@@ -191,17 +191,44 @@ function SignedInContent({
         </>
       )}
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/rejoindre')} style={styles.joinLink}>
-        <Icon name="link" color={colors.accentInk} size={18} />
-        <AppText variant="bodyStrong" style={{ color: colors.accentInk }}>
-          J’ai un lien d’invitation
-        </AppText>
-      </Pressable>
+      <JoinLink />
     </>
   );
 }
 
 function VisitorContent() {
+  const guestTrips = useGuestTrips();
+  const today = localIsoDate();
+  const trips = sortTrips(
+    guestTrips.flatMap((query) => (query.data ? [query.data] : [])),
+    today,
+  );
+  const loading = guestTrips.some((query) => query.isPending);
+
+  if (trips.length > 0 || loading) {
+    return (
+      <>
+        <View style={styles.list}>
+          {trips.map((trip) => (
+            <TripCard key={trip.id} trip={trip} today={today} />
+          ))}
+          {loading ? <ActivityIndicator color={colors.accent} /> : null}
+        </View>
+        <View style={styles.card}>
+          <View style={styles.cardBody}>
+            <AppText variant="heading">Tu voyages en invité</AppText>
+            <AppText tone="secondary">
+              Crée ton compte pour retrouver ces voyages sur tous tes appareils et créer les tiens. Tout ce que tu as fait reste.
+            </AppText>
+            <Button title="Créer mon compte" onPress={() => router.push('/auth')} />
+            <Button title="J’ai déjà un compte" variant="soft" onPress={() => router.push('/auth')} />
+          </View>
+        </View>
+        <JoinLink />
+      </>
+    );
+  }
+
   return (
     <>
       <View style={styles.tooltip}>
@@ -224,7 +251,19 @@ function VisitorContent() {
           Invité par un ami ? Ouvre simplement son lien : tu pourras rejoindre le voyage et voter sans créer de compte.
         </AppText>
       </View>
+      <JoinLink />
     </>
+  );
+}
+
+function JoinLink() {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push('/rejoindre')} style={styles.joinLink}>
+      <Icon name="link" color={colors.accentInk} size={18} />
+      <AppText variant="bodyStrong" style={{ color: colors.accentInk }}>
+        J’ai un lien d’invitation
+      </AppText>
+    </Pressable>
   );
 }
 

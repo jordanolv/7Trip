@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from '@7trip/shared';
+import { GUEST_TOKEN_HEADER, type ApiErrorBody } from '@7trip/shared';
 
 import { apiUrl } from './config';
 
@@ -18,9 +18,11 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   accessToken?: string | null;
+  /** Guest session token: opens one trip without an account. */
+  guestToken?: string | null;
 }
 
-export async function apiRequest<T>(path: string, { method = 'GET', body, accessToken }: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, { method = 'GET', body, accessToken, guestToken }: RequestOptions = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${apiUrl}/v1${path}`, {
@@ -29,6 +31,7 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, access
         Accept: 'application/json',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(guestToken ? { [GUEST_TOKEN_HEADER]: guestToken } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });

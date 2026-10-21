@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
 import { queryClient } from '@/lib/query-client';
+import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
 import { clearRefreshToken, loadRefreshToken, saveRefreshToken } from '@/lib/session-store';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -19,7 +20,15 @@ interface AuthContextValue {
   setUser: (user: Me) => void;
   /** Calls the API as the signed-in user, refreshing the access token once if it expired. */
   authedRequest: <T>(path: string, options?: Omit<RequestOptions, 'accessToken'>) => Promise<T>;
+  /** Trips joined on this device without an account: { [tripId]: guest token }. */
+  guestSessions: GuestSessions;
+  addGuestSession: (tripId: string, token: string) => Promise<void>;
+  removeGuestSession: (tripId: string) => Promise<void>;
+  /** Calls a route of one trip: with its guest session when there is one, otherwise as the user. */
+  tripRequest: <T>(tripId: string, path: string, options?: Omit<RequestOptions, 'accessToken' | 'guestToken'>) => Promise<T>;
 }
+
+type TripRequestOptions = Omit<RequestOptions, 'accessToken' | 'guestToken'>;
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -31,6 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshing = useRef<Promise<string | null> | null>(null);
   /** Bumped on every sign-in / sign-out, so a refresh started before it cannot bring the old session back. */
   const epoch = useRef(0);
+  const [guestSessions, setGuestSessions] = useState<GuestSessions>({});
+  /** Mirror of guestSessions for the request callbacks, which must not change identity. */
+  const guests = useRef<GuestSessions>({});
+  const claiming = useRef(false);
+
+  const updateGuests = useCallback(async (change: (sessions: GuestSessions) => GuestSessions) => {
+    guests.current = change(guests.current);
+    setGuestSessions(guests.current);
+    await saveGuestSessions(guests.current);
+  }, []);
 
   const applySession = useCallback(async (session: AuthResponse) => {
     accessToken.current = session.accessToken;
@@ -77,9 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession, resetSession]);
 
   useEffect(() => {
-    void refreshAccessToken().then((token) => {
+    void (async () => {
+      // Guest sessions first: trip screens may need them as soon as the app is ready.
+      guests.current = await loadGuestSessions();
+      setGuestSessions(guests.current);
+      const token = await refreshAccessToken();
       if (!token) setStatus((current) => (current === 'loading' ? 'signedOut' : current));
-    });
+    })();
   }, [refreshAccessToken]);
 
   const authedRequest = useCallback(
@@ -96,6 +119,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [refreshAccessToken],
   );
+
+  const removeGuestSession = useCallback(
+    (tripId: string) =>
+      updateGuests((sessions) => {
+        const { [tripId]: _removed, ...rest } = sessions;
+        return rest;
+      }),
+    [updateGuests],
+  );
+
+  const tripRequest = useCallback(
+    async <T,>(tripId: string, path: string, options: TripRequestOptions = {}): Promise<T> => {
+      const guestToken = guests.current[tripId];
+      if (!guestToken) return authedRequest<T>(path, options);
+      try {
+        return await apiRequest<T>(path, { ...options, guestToken });
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 401) throw error;
+        // The session is over: claimed by the account just signed in (then retry as the user),
+        // or removed from the trip / left from another screen.
+        await removeGuestSession(tripId);
+        if (accessToken.current) return authedRequest<T>(path, options);
+        throw new ApiError(404, 'NOT_FOUND', 'Tu ne fais plus partie de ce voyage.');
+      }
+    },
+    [authedRequest, removeGuestSession],
+  );
+
+  // Guest → account: once signed in, this device's guest sessions become participations of the account.
+  useEffect(() => {
+    const tokens = Object.entries(guestSessions);
+    if (status !== 'signedIn' || tokens.length === 0 || claiming.current) return;
+    claiming.current = true;
+    void authedRequest('/me/guest-sessions/claim', { method: 'POST', body: { tokens: tokens.map(([, token]) => token) } })
+      .then(async () => {
+        await updateGuests((sessions) => Object.fromEntries(Object.entries(sessions).filter(([tripId]) => !tokens.some(([id]) => id === tripId))));
+        void queryClient.invalidateQueries({ queryKey: ['trips'] });
+      })
+      // Offline or failing: kept, and tried again on the next sign-in or launch.
+      .catch(() => undefined)
+      .finally(() => {
+        claiming.current = false;
+      });
+  }, [status, guestSessions, authedRequest, updateGuests]);
 
   const signOut = useCallback(async () => {
     // Local sign-out is immediate; a refresh still in flight is discarded and revoked when it lands.
@@ -119,8 +186,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       setUser,
       authedRequest,
+      guestSessions,
+      addGuestSession: (tripId, token) => updateGuests((sessions) => ({ ...sessions, [tripId]: token })),
+      removeGuestSession,
+      tripRequest,
     }),
-    [status, user, devEmailCode, applySession, signOut, authedRequest],
+    [status, user, devEmailCode, applySession, signOut, authedRequest, guestSessions, updateGuests, removeGuestSession, tripRequest],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

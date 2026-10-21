@@ -8,19 +8,23 @@ import {
 import type { z } from 'zod';
 import { AccessTokenGuard, CurrentUserId } from '../auth/access-token.guard.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
+import type { Actor } from './actor.js';
+import { CurrentActor, TripMemberGuard } from './trip-member.guard.js';
 import { TripsService } from './trips.service.js';
 
+/** Account routes use AccessTokenGuard; routes of one trip are also open to its guests. */
 @Controller()
-@UseGuards(AccessTokenGuard)
 export class TripsController {
   constructor(private readonly trips: TripsService) {}
 
   @Get('me/trips')
+  @UseGuards(AccessTokenGuard)
   list(@CurrentUserId() userId: string): Promise<TripSummary[]> {
     return this.trips.listForUser(userId);
   }
 
   @Post('trips')
+  @UseGuards(AccessTokenGuard)
   create(
     @CurrentUserId() userId: string,
     @Body(new ZodValidationPipe(createTripRequestSchema)) body: z.output<typeof createTripRequestSchema>,
@@ -29,22 +33,25 @@ export class TripsController {
   }
 
   @Get('trips/:tripId')
-  get(@CurrentUserId() userId: string, @Param('tripId') tripId: string): Promise<TripDetail> {
-    return this.trips.get(userId, tripId);
+  @UseGuards(TripMemberGuard)
+  get(@CurrentActor() actor: Actor, @Param('tripId') tripId: string): Promise<TripDetail> {
+    return this.trips.get(actor, tripId);
   }
 
   @Patch('trips/:tripId')
+  @UseGuards(TripMemberGuard)
   update(
-    @CurrentUserId() userId: string,
+    @CurrentActor() actor: Actor,
     @Param('tripId') tripId: string,
     @Body(new ZodValidationPipe(updateTripRequestSchema)) body: z.output<typeof updateTripRequestSchema>,
   ): Promise<TripDetail> {
-    return this.trips.update(userId, tripId, body);
+    return this.trips.update(actor, tripId, body);
   }
 
   @Delete('trips/:tripId')
+  @UseGuards(TripMemberGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@CurrentUserId() userId: string, @Param('tripId') tripId: string): Promise<void> {
-    return this.trips.remove(userId, tripId);
+  remove(@CurrentActor() actor: Actor, @Param('tripId') tripId: string): Promise<void> {
+    return this.trips.remove(actor, tripId);
   }
 }

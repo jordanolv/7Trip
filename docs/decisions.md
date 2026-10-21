@@ -73,3 +73,16 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 Rejoindre un voyage avec un pseudo, voir le résumé du voyage (titre, dates, participants), voter
 aux sondages ouverts, et ouvrir l'app ou la télécharger. Pas de planning, de finances ni de
 documents sur le web en V1.
+
+## Invités — sessions et passage au compte
+
+- Rejoindre sans compte crée un participant sans utilisateur et un **jeton de session invitée**
+  (aléatoire, stocké haché). L'app l'envoie dans l'en-tête `x-7trip-guest` ; il n'ouvre que ce
+  voyage. Quitter le voyage ou en être retiré met fin à la session.
+- Un invité ne gère rien : ni invitation (même si « tout le monde peut inviter »), ni rôles, ni
+  modification du voyage. Il ne peut pas être nommé organisateur sans créer de compte.
+- À la connexion (inscription ou compte existant), l'app envoie ses jetons invités :
+  le participant invité est **rattaché au compte**, même ligne, donc tout ce qu'il possède reste.
+- Si le compte était déjà dans le voyage, la participation invitée est fermée et fusionnée dans
+  celle du compte. Chaque étape qui ajoute du contenu lié aux participants (votes, idées,
+  dépenses…) complète `GuestSessionsService.merge` pour le déplacer.

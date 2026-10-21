@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ENV, type Env } from '../config/env.js';
 import { MeController } from '../users/me.controller.js';
-import { AccessTokenGuard } from './access-token.guard.js';
+import { AccessTokenGuard, OptionalAccessTokenGuard } from './access-token.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { EmailCodesService } from './email-codes.service.js';
@@ -21,7 +21,7 @@ import { TokensService } from './tokens.service.js';
     }),
   ],
   controllers: [AuthController, MeController],
-  providers: [AuthService, TokensService, EmailCodesService, PasswordService, AccessTokenGuard],
-  exports: [TokensService, AccessTokenGuard],
+  providers: [AuthService, TokensService, EmailCodesService, PasswordService, AccessTokenGuard, OptionalAccessTokenGuard],
+  exports: [TokensService, AccessTokenGuard, OptionalAccessTokenGuard],
 })
 export class AuthModule {}

@@ -3,9 +3,12 @@ import { ApiErrorCode, type ParticipantRole as Role, type TripDetail } from '@7t
 import { apiError } from '../common/api-error.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js';
+import type { Actor } from './actor.js';
 import { TripsService, assertCan } from './trips.service.js';
 
 const participantNotFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Participant introuvable');
+/** Leaving also ends a guest session: the token stops working. */
+const LEFT_NOW = () => ({ status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null });
 const lastOrganizer = (message: string) => apiError(HttpStatus.CONFLICT, ApiErrorCode.LastOrganizer, message);
 
 /**
@@ -16,33 +19,36 @@ const lastOrganizer = (message: string) => apiError(HttpStatus.CONFLICT, ApiErro
 export class ParticipantsService {
   constructor(private readonly trips: TripsService) {}
 
-  async updateRole(userId: string, tripId: string, participantId: string, role: Role): Promise<TripDetail> {
-    await this.trips.withTripLock(userId, tripId, async (tx, trip) => {
-      assertCan(trip.me.role, 'manageParticipants', trip);
+  async updateRole(actor: Actor, tripId: string, participantId: string, role: Role): Promise<TripDetail> {
+    await this.trips.withTripLock(actor, tripId, async (tx, trip) => {
+      assertCan(trip.me, 'manageParticipants', trip);
       const target = await this.activeParticipant(tx, tripId, participantId);
+      if (target.userId === null && role === ParticipantRole.ORGANIZER) {
+        throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'Un invité doit créer un compte pour devenir organisateur.');
+      }
       if (target.role === ParticipantRole.ORGANIZER && role === ParticipantRole.PARTICIPANT && (await this.organizerCount(tx, tripId)) <= 1) {
         throw lastOrganizer('Il faut au moins un organisateur : nomme quelqu’un d’autre avant.');
       }
       await tx.participant.update({ where: { id: target.id }, data: { role } });
     });
-    return this.detail(userId, tripId);
+    return this.detail(actor, tripId);
   }
 
   /** An organizer removes someone else. Their content stays, shown as "(parti)". */
-  async remove(userId: string, tripId: string, participantId: string): Promise<TripDetail> {
-    await this.trips.withTripLock(userId, tripId, async (tx, trip) => {
-      assertCan(trip.me.role, 'manageParticipants', trip);
+  async remove(actor: Actor, tripId: string, participantId: string): Promise<TripDetail> {
+    await this.trips.withTripLock(actor, tripId, async (tx, trip) => {
+      assertCan(trip.me, 'manageParticipants', trip);
       const target = await this.activeParticipant(tx, tripId, participantId);
       if (target.id === trip.me.id) {
         throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'Pour partir toi-même, utilise « Quitter le voyage ».');
       }
-      await tx.participant.update({ where: { id: target.id }, data: { status: ParticipantStatus.LEFT, leftAt: new Date() } });
+      await tx.participant.update({ where: { id: target.id }, data: LEFT_NOW() });
     });
-    return this.detail(userId, tripId);
+    return this.detail(actor, tripId);
   }
 
-  async leave(userId: string, tripId: string): Promise<void> {
-    await this.trips.withTripLock(userId, tripId, async (tx, { me }) => {
+  async leave(actor: Actor, tripId: string): Promise<void> {
+    await this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       if (me.role === ParticipantRole.ORGANIZER && (await this.organizerCount(tx, tripId)) <= 1) {
         const others = await tx.participant.count({ where: { tripId, status: ParticipantStatus.ACTIVE, NOT: { id: me.id } } });
         throw lastOrganizer(
@@ -51,7 +57,7 @@ export class ParticipantsService {
             : 'Tu es seul dans ce voyage : supprime-le plutôt.',
         );
       }
-      await tx.participant.update({ where: { id: me.id }, data: { status: ParticipantStatus.LEFT, leftAt: new Date() } });
+      await tx.participant.update({ where: { id: me.id }, data: LEFT_NOW() });
     });
   }
 
@@ -65,7 +71,7 @@ export class ParticipantsService {
     return tx.participant.count({ where: { tripId, status: ParticipantStatus.ACTIVE, role: ParticipantRole.ORGANIZER } });
   }
 
-  private async detail(userId: string, tripId: string): Promise<TripDetail> {
-    return this.trips.toDetail(await this.trips.findForMember(userId, tripId), userId);
+  private async detail(actor: Actor, tripId: string): Promise<TripDetail> {
+    return this.trips.toDetail(await this.trips.findForMember(actor, tripId), actor);
   }
 }

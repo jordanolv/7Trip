@@ -76,8 +76,10 @@ export interface TripParticipant {
   id: string;
   displayName: string;
   role: ParticipantRole;
-  /** True for the participant row of the signed-in user. */
+  /** True for the participant row of the signed-in user (or of this guest session). */
   isMe: boolean;
+  /** Joined without an account. */
+  isGuest: boolean;
 }
 
 export interface TripSummary {

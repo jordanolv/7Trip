@@ -1,10 +1,10 @@
-import { canDo } from '@7trip/shared';
 import { colors, radii } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ActionRow } from '@/components/action-row';
 import { Sheet } from '@/components/sheet';
+import { can } from '@/trips/permissions';
 import { useMyTrips, useTrip } from '@/trips/trips-api';
 import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
 import { useConfirmLeaveTrip } from '@/trips/use-confirm-leave-trip';
@@ -31,7 +31,7 @@ export default function TripMenuSheet() {
 
   const isOrganizer = trip.myRole === 'ORGANIZER';
   // The list only knows the role; the invite policy comes with the detail.
-  const canInvite = detail ? canDo('invite', detail.myRole, detail) : isOrganizer;
+  const canInvite = detail ? can('invite', detail) : isOrganizer;
   // Close the sheet first; `withAnchor` puts the trip under a screen opened from the list.
   const go = (href: string) => () => {
     router.back();
