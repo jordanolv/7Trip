@@ -43,8 +43,9 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
           <View style={styles.heroActions}>
             <View style={styles.avatars}>
               {trip.participants.slice(0, 3).map((p, index) => (
-                <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -10 }]}>
-                  <Avatar name={p.displayName} size={32} />
+                <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -12 }]}>
+                  {/* 40 + 2×2 ring = 44, the size of the round buttons beside it. */}
+                  <Avatar name={p.displayName} size={40} />
                 </View>
               ))}
             </View>
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   },
   heroActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   avatars: { flexDirection: 'row' },
-  avatarRing: { borderRadius: 18, borderWidth: 2, borderColor: colors.surface },
+  avatarRing: { borderRadius: 22, borderWidth: 2, borderColor: colors.surface },
   heroTitle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md + 2 },
   heroSubtitle: { color: colors.inkTertiary },
   body: { padding: spacing.lg, gap: spacing.md },
