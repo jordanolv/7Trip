@@ -100,6 +100,8 @@ function Join({ preview }: { preview: InvitationPreview }) {
             autoComplete="given-name"
             returnKeyType="go"
             onSubmitEditing={() => name.trim() && void run.run()}
+            maxLength={40}
+            error={run.fieldErrors.displayName}
           />
           <AppText variant="caption" tone="secondary">
             Pas besoin de compte pour voir le voyage et voter. Si tu en crées un plus tard, tu retrouveras tout ce que tu as fait.
