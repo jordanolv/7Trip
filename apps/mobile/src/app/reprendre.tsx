@@ -14,12 +14,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export default function ResumeGuestSessionScreen() {
   const { voyage, jeton } = useLocalSearchParams<{ voyage?: string; jeton?: string }>();
-  const { addGuestSession, guestSessions } = useAuth();
+  const { addGuestSession, guestSessions, status } = useAuth();
   // Once: storing the session changes the auth context, which would run this again.
   const done = useRef(false);
 
   useEffect(() => {
-    if (done.current) return;
+    // Opened cold from the link: wait until the stored guest sessions are loaded.
+    if (status === 'loading' || done.current) return;
     done.current = true;
     if (!voyage || !UUID.test(voyage) || !jeton) {
       router.replace('/');
@@ -40,7 +41,7 @@ export default function ResumeGuestSessionScreen() {
       Alert.alert('Lien expiré', 'Cette session invitée n’est plus valable. Rouvre le lien d’invitation pour rejoindre le voyage.');
       router.replace('/');
     })();
-  }, [voyage, jeton, addGuestSession, guestSessions]);
+  }, [voyage, jeton, addGuestSession, guestSessions, status]);
 
   return (
     <View style={styles.center}>
