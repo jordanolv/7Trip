@@ -13,7 +13,7 @@ interface ApiOptions {
  */
 export async function callApi<T>(event: H3Event, path: string, { method = 'GET', body, guestToken }: ApiOptions = {}): Promise<T> {
   const { apiUrl } = useRuntimeConfig(event);
-  const ip = getRequestIP(event, { xForwardedFor: true });
+  const ip = visitorIp(event);
   try {
     // An external URL: Nitro's route typing does not apply.
     const result: unknown = await $fetch(`${apiUrl}${path}`, {
@@ -33,6 +33,23 @@ export async function callApi<T>(event: H3Event, path: string, { method = 'GET',
       data: { code: response.data?.code ?? 'SERVER_UNAVAILABLE', fields: response.data?.fields },
     });
   }
+}
+
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/**
+ * The visitor's address, as seen by our own reverse proxy (nginx / tunnel, on this machine).
+ * X-Forwarded-For is only read when the request comes from that local proxy, and only its last
+ * entry, the one the proxy appended: anything before it was written by the client.
+ */
+function visitorIp(event: H3Event): string | undefined {
+  const peer = event.node.req.socket.remoteAddress;
+  if (!peer || !LOOPBACK.has(peer)) return peer;
+  const forwarded = getRequestHeader(event, 'x-forwarded-for')
+    ?.split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return forwarded?.at(-1) ?? peer;
 }
 
 /** One HttpOnly cookie per trip joined as a guest: it holds the guest session token. */
