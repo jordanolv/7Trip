@@ -1,4 +1,4 @@
-import { canDo, type TripDetail } from '@7trip/shared';
+import type { TripDetail } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
@@ -11,13 +11,14 @@ import { haptics } from '@/lib/haptics';
 import { invitationUrl } from '@/lib/invitation-link';
 
 import { useInvitation, useRenewInvitation } from './trips-api';
+import { can } from './permissions';
 
 /** The trip's invitation link: copy, share and, for organizers, revoke and renew. */
 export function InvitationCard({ trip }: { trip: TripDetail }) {
   const invitation = useInvitation(trip.id, true);
   const renew = useRenewInvitation(trip.id);
   const [notice, setNotice] = useState<string | null>(null);
-  const canRenew = canDo('renewInvitation', trip.myRole, trip);
+  const canRenew = can('renewInvitation', trip);
   const url = invitation.data ? invitationUrl(invitation.data.code) : null;
 
   const copy = async () => {

@@ -142,14 +142,16 @@ enum ParticipantStatus {
 /// Membership of a trip. Everything inside a trip points to a participant, not a user, so that
 /// guests (userId null) and people who left keep consistent data (docs/architecture.md §4).
 model Participant {
-  id          String            @id @default(uuid(7)) @db.Uuid
-  tripId      String            @db.Uuid
-  userId      String?           @db.Uuid
-  displayName String
-  role        ParticipantRole   @default(PARTICIPANT)
-  status      ParticipantStatus @default(ACTIVE)
-  joinedAt    DateTime          @default(now())
-  leftAt      DateTime?
+  id             String            @id @default(uuid(7)) @db.Uuid
+  tripId         String            @db.Uuid
+  userId         String?           @db.Uuid
+  displayName    String
+  role           ParticipantRole   @default(PARTICIPANT)
+  status         ParticipantStatus @default(ACTIVE)
+  joinedAt       DateTime          @default(now())
+  leftAt         DateTime?
+  /// Guest participants (userId null): SHA-256 of their session token. Cleared when they leave or sign up.
+  guestTokenHash String?           @unique
 
   trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)

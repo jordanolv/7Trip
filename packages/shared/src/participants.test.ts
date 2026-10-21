@@ -16,6 +16,10 @@ describe('canDo', () => {
     expect(canDo('manageParticipants', 'PARTICIPANT', { invitePolicy: 'ALL' })).toBe(false);
     expect(canDo('deleteTrip', 'PARTICIPANT', { invitePolicy: 'ALL' })).toBe(false);
   });
+
+  it('lets guests manage nothing, not even invite', () => {
+    expect(canDo('invite', 'PARTICIPANT', { invitePolicy: 'ALL' }, true)).toBe(false);
+  });
 });
 
 describe('parseInvitationCode', () => {

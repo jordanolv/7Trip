@@ -1,4 +1,4 @@
-import { canDo, type TripDetail } from '@7trip/shared';
+import type { TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -8,6 +8,7 @@ import { ActionRow } from '@/components/action-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ParticipantRow } from '@/trips/participant-row';
+import { amGuest, can } from '@/trips/permissions';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
@@ -24,7 +25,8 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const insets = useSafeAreaInsets();
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const confirmDelete = useConfirmDeleteTrip(trip);
-  const canInvite = canDo('invite', trip.myRole, trip);
+  const canInvite = can('invite', trip);
+  const guest = amGuest(trip);
   const confirmLeave = useConfirmLeaveTrip(trip);
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
@@ -37,10 +39,25 @@ function PlusContent({ trip }: { trip: TripDetail }) {
             {trip.title}
           </AppText>
           <AppText variant="caption" tone="secondary">
-            {isOrganizer ? 'Tu es organisateur' : 'Tu es participant'}
+            {isOrganizer ? 'Tu es organisateur' : guest ? 'Tu es invité, sans compte' : 'Tu es participant'}
           </AppText>
         </View>
       </View>
+
+      {guest ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={styles.guestBanner}>
+          <Icon name="user" color={colors.accentInk} />
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong" style={{ color: colors.accentInk }}>
+              Crée ton compte
+            </AppText>
+            <AppText variant="caption" style={{ color: colors.accentInk }}>
+              Pour garder ce voyage sur tous tes appareils. Tout ce que tu y as fait reste.
+            </AppText>
+          </View>
+          <Icon name="chevronRight" color={colors.accentInk} size={18} />
+        </Pressable>
+      ) : null}
 
       <View style={styles.grid}>
         <Tile icon="poll" title="Sondages" detail="Bientôt" onPress={soon('Les sondages')} />
@@ -105,6 +122,14 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   grid: { flexDirection: 'row', gap: spacing.md },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.accentTint,
+  },
   tile: { flex: 1, backgroundColor: colors.surface, borderRadius: 22, padding: spacing.lg, gap: spacing.md + 2 },
   tileIcon: {
     width: 44,

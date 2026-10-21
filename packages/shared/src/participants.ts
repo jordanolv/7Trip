@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
-import { PARTICIPANT_ROLES, type InvitePolicy, type ParticipantRole, type TripColorKey, type TripIconKey } from './trips.js';
+import { displayNameSchema } from './auth.js';
+import {
+  PARTICIPANT_ROLES,
+  type InvitePolicy,
+  type ParticipantRole,
+  type TripColorKey,
+  type TripDetail,
+  type TripIconKey,
+} from './trips.js';
 
 /**
  * Permission matrix of a trip (docs/architecture.md §5), shared so the app only shows what the API
- * will accept. Guests arrive with step 3.
+ * will accept. Guests (no account) can do none of these.
  */
 export type TripAction =
   | 'invite'
@@ -13,7 +21,8 @@ export type TripAction =
   | 'editTrip'
   | 'deleteTrip';
 
-export function canDo(action: TripAction, role: ParticipantRole, trip: { invitePolicy: InvitePolicy }): boolean {
+export function canDo(action: TripAction, role: ParticipantRole, trip: { invitePolicy: InvitePolicy }, isGuest = false): boolean {
+  if (isGuest) return false;
   if (role === 'ORGANIZER') return true;
   return action === 'invite' && trip.invitePolicy === 'ALL';
 }
@@ -53,3 +62,21 @@ export interface InvitationPreview {
   organizers: string[];
   alreadyMember: boolean;
 }
+
+/**
+ * Guest sessions: joining without an account gives an opaque token that opens that trip only.
+ * The app sends it in this header; the web keeps it in an HttpOnly cookie.
+ */
+export const GUEST_TOKEN_HEADER = 'x-7trip-guest';
+
+export const guestJoinRequestSchema = z.object({ displayName: displayNameSchema });
+export type GuestJoinRequest = z.input<typeof guestJoinRequestSchema>;
+
+export interface GuestJoinResponse {
+  token: string;
+  trip: TripDetail;
+}
+
+/** Sent after signing in: the guest sessions of this device become participations of the account. */
+export const claimGuestSessionsRequestSchema = z.object({ tokens: z.array(z.string().min(1).max(200)).max(50) });
+export type ClaimGuestSessionsRequest = z.input<typeof claimGuestSessionsRequestSchema>;
