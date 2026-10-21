@@ -1,9 +1,10 @@
 import { colors } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { apiRequest } from '@/lib/api';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -13,7 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export default function ResumeGuestSessionScreen() {
   const { voyage, jeton } = useLocalSearchParams<{ voyage?: string; jeton?: string }>();
-  const { addGuestSession } = useAuth();
+  const { addGuestSession, guestSessions } = useAuth();
   // Once: storing the session changes the auth context, which would run this again.
   const done = useRef(false);
 
@@ -24,8 +25,22 @@ export default function ResumeGuestSessionScreen() {
       router.replace('/');
       return;
     }
-    void addGuestSession(voyage, jeton).then(() => router.replace(`/voyage/${voyage}` as Href));
-  }, [voyage, jeton, addGuestSession]);
+    void (async () => {
+      // Only a token that still opens this trip replaces what the device has: an old link must not
+      // overwrite a session that works.
+      const valid = await apiRequest(`/trips/${voyage}`, { guestToken: jeton }).then(
+        () => true,
+        () => false,
+      );
+      if (valid) await addGuestSession(voyage, jeton);
+      if (valid || voyage in guestSessions) {
+        router.replace(`/voyage/${voyage}` as Href);
+        return;
+      }
+      Alert.alert('Lien expiré', 'Cette session invitée n’est plus valable. Rouvre le lien d’invitation pour rejoindre le voyage.');
+      router.replace('/');
+    })();
+  }, [voyage, jeton, addGuestSession, guestSessions]);
 
   return (
     <View style={styles.center}>
