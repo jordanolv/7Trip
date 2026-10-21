@@ -4,6 +4,9 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { sheetOptions } from '@/components/sheet';
 import { TripIdProvider } from '@/trips/use-trip-id';
 
+// A screen of the trip opened from outside (the list, a link) keeps the trip under it.
+export const unstable_settings = { initialRouteName: '(onglets)' };
+
 export default function VoyageLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   return (

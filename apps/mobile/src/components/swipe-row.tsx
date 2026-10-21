@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { Pressable as GesturePressable, type PressableStateCallbackType } from 'react-native-gesture-handler';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
+import { haptics } from '@/lib/haptics';
+
 import { Icon, type IconName } from './ui/icon';
 
 export interface SwipeAction {
@@ -21,6 +23,7 @@ export function SwipeRow({
   actions,
   variant,
   onPress,
+  onLongPress,
   style,
   accessibilityLabel,
   children,
@@ -28,6 +31,7 @@ export function SwipeRow({
   actions: SwipeAction[];
   variant: 'card' | 'inline';
   onPress?: () => void;
+  onLongPress?: () => void;
   style?: StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>);
   accessibilityLabel?: string;
   children: ReactNode;
@@ -41,7 +45,10 @@ export function SwipeRow({
     <Swipeable
       ref={swipeable}
       enabled={actions.length > 0}
-      onSwipeableWillOpen={() => (shown.current = true)}
+      onSwipeableWillOpen={() => {
+        shown.current = true;
+        haptics.tick();
+      }}
       onSwipeableClose={() => (shown.current = false)}
       friction={2}
       rightThreshold={40}
@@ -70,6 +77,13 @@ export function SwipeRow({
         accessibilityActions={actions.map((a) => ({ name: a.label, label: a.label }))}
         onAccessibilityAction={(event) => actions.find((a) => a.label === event.nativeEvent.actionName)?.onPress()}
         onPress={press}
+        onLongPress={
+          onLongPress &&
+          (() => {
+            haptics.press();
+            onLongPress();
+          })
+        }
         style={style}
       >
         {children}

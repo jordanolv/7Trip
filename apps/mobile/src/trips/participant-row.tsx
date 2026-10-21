@@ -6,6 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { SwipeRow, type SwipeAction } from '@/components/swipe-row';
 import { AppText } from '@/components/ui/app-text';
 import { errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 
 import { useRemoveParticipant, useUpdateParticipantRole } from './trips-api';
 
@@ -20,12 +21,14 @@ export function ParticipantRow({ trip, participant }: { trip: TripDetail; partic
   const toggleRole = () =>
     void updateRole
       .mutateAsync({ participantId: participant.id, role: organizer ? 'PARTICIPANT' : 'ORGANIZER' })
-      .catch(fail('Impossible de changer le rôle'));
-  const confirmRemove = () =>
+      .then(haptics.success, fail('Impossible de changer le rôle'));
+  const confirmRemove = () => {
+    haptics.warning();
     Alert.alert(`Retirer ${participant.displayName} ?`, 'Il n’aura plus accès au voyage. Ce qu’il a ajouté reste visible.', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Retirer', style: 'destructive', onPress: () => void remove.mutateAsync(participant.id).catch(fail('Impossible de retirer')) },
     ]);
+  };
 
   const openMenu = () => {
     const roleLabel = organizer ? 'Repasser participant' : 'Nommer organisateur';

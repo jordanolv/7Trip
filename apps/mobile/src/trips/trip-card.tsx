@@ -27,6 +27,7 @@ export function TripCard({ trip, today }: { trip: TripSummary; today: string }) 
       actions={actions}
       accessibilityLabel={`${trip.title}, ${subtitle}, ${badge}`}
       onPress={() => router.push(`/voyage/${trip.id}`)}
+      onLongPress={() => router.push(`/menu/${trip.id}?ouvrir=1` as Href)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <TripCover color={trip.color} style={styles.cover}>
@@ -63,7 +64,7 @@ function useTripCardActions(trip: TripSummary): SwipeAction[] {
   const confirmLeave = useConfirmLeaveTrip(trip);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const actions: SwipeAction[] = [];
-  if (isOrganizer) actions.push({ icon: 'pencil', label: 'Modifier', onPress: () => router.push(`/voyage/${trip.id}/modifier` as Href) });
+  if (isOrganizer) actions.push({ icon: 'pencil', label: 'Modifier', onPress: () => router.push(`/voyage/${trip.id}/modifier` as Href, { withAnchor: true }) });
   // Alone in a trip, leaving would orphan it: deleting is the way out.
   if (trip.participantCount > 1) actions.push({ icon: 'logout', label: 'Quitter', onPress: confirmLeave });
   if (isOrganizer) actions.push({ icon: 'trash', label: 'Supprimer', danger: true, onPress: confirmDelete });

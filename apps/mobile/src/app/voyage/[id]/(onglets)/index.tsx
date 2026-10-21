@@ -1,7 +1,7 @@
 import { daysBetween, formatDestinations, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
-import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -11,7 +11,6 @@ import { formatDateRange, participantsLabel } from '@/trips/format';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
-import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function TripDashboardScreen() {
@@ -26,7 +25,6 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const steps = setupSteps(trip, isOrganizer);
-  const openMenu = useTripMenu(trip);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -55,11 +53,14 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
                 </View>
               ))}
             </Pressable>
-            {isOrganizer ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={openMenu} style={styles.roundButton}>
-                <Icon name="more" />
-              </Pressable>
-            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Options du voyage"
+              onPress={() => router.push(`/menu/${trip.id}` as Href)}
+              style={styles.roundButton}
+            >
+              <Icon name="more" />
+            </Pressable>
           </View>
         </View>
         <View style={styles.heroTitle}>
@@ -135,33 +136,6 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
       </View>
     </View>
   );
-}
-
-/** Organizer actions, one tap away from the dashboard (same as the "Voyage" section of Plus). */
-function useTripMenu(trip: TripDetail) {
-  const confirmDelete = useConfirmDeleteTrip(trip);
-  const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
-  const invite = () => router.push(`/voyage/${trip.id}/inviter` as Href);
-  return () => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Inviter des amis', 'Modifier le voyage', 'Supprimer le voyage', 'Annuler'], destructiveButtonIndex: 2, cancelButtonIndex: 3 },
-        (index) => [invite, edit, confirmDelete][index]?.(),
-      );
-    } else {
-      // Android alerts show three buttons at most: cancel by tapping outside or with Back.
-      Alert.alert(
-        trip.title,
-        undefined,
-        [
-          { text: 'Inviter des amis', onPress: invite },
-          { text: 'Modifier le voyage', onPress: edit },
-          { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
-        ],
-        { cancelable: true },
-      );
-    }
-  };
 }
 
 interface Step {

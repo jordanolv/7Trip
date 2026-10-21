@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 
 import { tripKeys, useLeaveTrip } from './trips-api';
 
@@ -22,9 +23,11 @@ export function useConfirmLeaveTrip(trip: Pick<TripDetail, 'id' | 'title'>) {
     }
   };
 
-  return () =>
+  return () => {
+    haptics.warning();
     Alert.alert(`Quitter « ${trip.title} » ?`, 'Tu n’y auras plus accès. Ce que tu as ajouté reste visible des autres.', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Quitter', style: 'destructive', onPress: () => void run() },
     ]);
+  };
 }

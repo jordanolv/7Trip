@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } fr
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 import { invitationUrl } from '@/lib/invitation-link';
 
 import { useInvitation, useRenewInvitation } from './trips-api';
@@ -22,6 +23,7 @@ export function InvitationCard({ trip }: { trip: TripDetail }) {
   const copy = async () => {
     if (!url) return;
     await Clipboard.setStringAsync(url);
+    haptics.success();
     setNotice('Lien copié.');
   };
   const share = () => {

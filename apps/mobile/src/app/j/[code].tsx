@@ -10,6 +10,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { ApiError } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 import { setPendingInvitation } from '@/lib/invitation-link';
 import { useAction } from '@/lib/use-action';
 import { TripPreviewCard } from '@/trips/trip-preview-card';
@@ -52,6 +53,7 @@ function Join({ preview }: { preview: InvitationPreview }) {
   const open = () => router.replace(`/voyage/${preview.tripId}` as Href);
   const run = useAction(async () => {
     await join.mutateAsync();
+    haptics.success();
     open();
   });
   const organizers = preview.organizers.join(', ');

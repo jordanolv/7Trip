@@ -50,6 +50,7 @@ function RootNavigator() {
       <Stack.Screen name="voyage/[id]" />
       <Stack.Screen name="j/[code]" options={{ presentation: 'modal' }} />
       <Stack.Screen name="rejoindre" options={sheetOptions} />
+      <Stack.Screen name="menu/[id]" options={sheetOptions} />
     </Stack>
   );
 }

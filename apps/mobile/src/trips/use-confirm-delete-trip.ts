@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 
 import { tripKeys, useDeleteTrip } from './trips-api';
 
@@ -23,9 +24,11 @@ export function useConfirmDeleteTrip(trip: Pick<TripDetail, 'id' | 'title'>) {
     }
   };
 
-  return () =>
+  return () => {
+    haptics.warning();
     Alert.alert(`Supprimer « ${trip.title} » ?`, 'Le voyage sera supprimé pour tous les participants. C’est définitif.', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: () => void run() },
     ]);
+  };
 }

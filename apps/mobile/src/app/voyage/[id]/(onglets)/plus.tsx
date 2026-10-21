@@ -4,6 +4,7 @@ import { router, type Href } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActionRow } from '@/components/action-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ParticipantRow } from '@/trips/participant-row';
@@ -53,14 +54,14 @@ function PlusContent({ trip }: { trip: TripDetail }) {
         {trip.participants.map((p) => (
           <ParticipantRow key={p.id} trip={trip} participant={p} />
         ))}
-        {canInvite ? <Row icon="users" label="Inviter des amis" onPress={() => router.push(`/voyage/${trip.id}/inviter` as Href)} /> : null}
+        {canInvite ? <ActionRow icon="users" label="Inviter des amis" onPress={() => router.push(`/voyage/${trip.id}/inviter` as Href)} /> : null}
       </Section>
 
       <Section title="Voyage">
-        {isOrganizer ? <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} /> : null}
-        <Row icon="sliders" label="Paramètres et notifications" onPress={() => router.push(`/voyage/${trip.id}/parametres` as Href)} />
-        <Row icon="logout" label="Quitter le voyage" danger onPress={confirmLeave} />
-        {isOrganizer ? <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} /> : null}
+        {isOrganizer ? <ActionRow icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} /> : null}
+        <ActionRow icon="sliders" label="Paramètres et notifications" onPress={() => router.push(`/voyage/${trip.id}/parametres` as Href)} />
+        {trip.participantCount > 1 ? <ActionRow icon="logout" label="Quitter le voyage" danger onPress={confirmLeave} /> : null}
+        {isOrganizer ? <ActionRow icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} /> : null}
       </Section>
     </ScrollView>
   );
@@ -98,20 +99,6 @@ function Section({ title, footer, children }: { title: string; footer?: string; 
   );
 }
 
-function Row({ icon, label, onPress, danger = false }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
-      <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
-        <Icon name={icon} color={danger ? colors.danger : colors.accentInk} size={18} />
-      </View>
-      <AppText variant="bodyStrong" style={[styles.flex, danger && { color: colors.danger }]}>
-        {label}
-      </AppText>
-      {danger ? null : <Icon name="chevronRight" color={colors.inkSecondary} size={18} />}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
@@ -130,14 +117,4 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   sectionTitle: { marginLeft: spacing.xs },
   card: { backgroundColor: colors.surface, borderRadius: radii.card, paddingVertical: spacing.xs },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52, paddingHorizontal: spacing.lg - 2 },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.accentTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowIconDanger: { backgroundColor: colors.dangerTint },
 });
