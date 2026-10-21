@@ -143,12 +143,17 @@ function useTripMenu(trip: TripDetail) {
         (index) => [invite, edit, confirmDelete][index]?.(),
       );
     } else {
-      Alert.alert(trip.title, undefined, [
-        { text: 'Inviter des amis', onPress: invite },
-        { text: 'Modifier le voyage', onPress: edit },
-        { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
-        { text: 'Annuler', style: 'cancel' },
-      ]);
+      // Android alerts show three buttons at most: cancel by tapping outside or with Back.
+      Alert.alert(
+        trip.title,
+        undefined,
+        [
+          { text: 'Inviter des amis', onPress: invite },
+          { text: 'Modifier le voyage', onPress: edit },
+          { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
+        ],
+        { cancelable: true },
+      );
     }
   };
 }

@@ -91,6 +91,10 @@ export class InvitationsService {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
     await this.prisma.$transaction(async (tx) => {
+      // Same trip lock as renew(): a link renewed meanwhile is seen as revoked here.
+      await tx.$queryRaw`SELECT id FROM "Trip" WHERE id = ${tripId}::uuid FOR UPDATE`;
+      const stillValid = await tx.invitation.findFirst({ where: { id: invitation.id, revokedAt: null } });
+      if (!stillValid) throw invalidInvitation();
       const existing = await tx.participant.findUnique({ where: { tripId_userId: { tripId, userId } } });
       if (existing?.status === ParticipantStatus.ACTIVE) return;
       await tx.participant.upsert({
