@@ -1,4 +1,4 @@
-import { localIsoDate, parseInvitationCode, type InvitationPreview } from '@7trip/shared';
+import { DISPLAY_NAME_MAX_LENGTH, localIsoDate, parseInvitationCode, type InvitationPreview } from '@7trip/shared';
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -83,7 +83,7 @@ function Join({ preview }: { preview: InvitationPreview }) {
             autoComplete="given-name"
             returnKeyType="go"
             onSubmitEditing={() => name.trim() && void run.run()}
-            maxLength={40}
+            maxLength={DISPLAY_NAME_MAX_LENGTH}
             error={run.fieldErrors.displayName}
           />
           <AppText variant="caption" tone="secondary">

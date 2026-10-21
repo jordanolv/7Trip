@@ -1,3 +1,4 @@
+import { formatDayMonth } from '@7trip/shared';
 import type { TripColorKey, TripIconKey, TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing, tripColors } from '@7trip/ui-tokens';
 import { StyleSheet, View } from 'react-native';
@@ -5,7 +6,6 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 
-import { formatDayMonth } from './format';
 import { TripStatusChip } from './status-chip';
 import { TripCover, TripIcon } from './trip-visuals';
 

@@ -1,4 +1,4 @@
-import { formatDestinations, tripPhase, type TripSummary } from '@7trip/shared';
+import { formatDateRange, formatDestinations, participantsLabel, tripBadge, tripPhase, type TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
@@ -7,7 +7,6 @@ import { SwipeRow, type SwipeAction } from '@/components/swipe-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 
-import { formatDateRange, participantsLabel, tripBadge } from './format';
 import { TripStatusChip } from './status-chip';
 import { TripCover, TripIcon } from './trip-visuals';
 import { useConfirmDeleteTrip } from './use-confirm-delete-trip';

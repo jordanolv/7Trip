@@ -1,4 +1,6 @@
-import { daysBetween, tripPhase, type TripSummary } from '@7trip/shared';
+import { daysBetween, tripPhase, type TripSummary } from './trips.js';
+
+// French display helpers shared by the app and the guest web.
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
