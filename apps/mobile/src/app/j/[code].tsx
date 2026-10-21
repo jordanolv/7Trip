@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
-import { FormScreen } from '@/components/form-screen';
-import { ScreenHeader } from '@/components/screen-header';
+import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
@@ -17,35 +16,33 @@ import { useAction } from '@/lib/use-action';
 import { TripPreviewCard } from '@/trips/trip-preview-card';
 import { useInvitationPreview, useJoinAsGuest, useJoinTrip } from '@/trips/trips-api';
 
-/** Opened from an invitation link (…/j/<code>) or from "Rejoindre un voyage". */
+/** Opened from an invitation link (…/j/<code>) or from "Rejoindre un voyage". A sheet sized to its content. */
 export default function InvitationScreen() {
   const params = useLocalSearchParams<{ code: string }>();
   const code = parseInvitationCode(params.code ?? '');
   const { status } = useAuth();
-
-  return (
-    <>
-      <ScreenHeader mode="close" title="Invitation" />
-      {!code ? <Invalid /> : status === 'loading' ? null : <Preview code={code} />}
-    </>
-  );
+  if (!code) return <Invalid />;
+  return status === 'loading' ? <Loading /> : <Preview code={code} />;
 }
 
 function Preview({ code }: { code: string }) {
   const preview = useInvitationPreview(code);
   if (preview.data) return <Join preview={preview.data} />;
-  if (preview.isPending) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  if (preview.isPending) return <Loading />;
   if (preview.error instanceof ApiError && preview.error.status === 404) return <Invalid />;
   return (
-    <FormScreen footer={<Button title="Réessayer" onPress={() => void preview.refetch()} />}>
+    <Sheet title="Invitation">
       <AppText tone="secondary">{preview.error?.message}</AppText>
-    </FormScreen>
+      <Button title="Réessayer" onPress={() => void preview.refetch()} />
+    </Sheet>
+  );
+}
+
+function Loading() {
+  return (
+    <Sheet title="Invitation">
+      <ActivityIndicator color={colors.accent} style={styles.loading} />
+    </Sheet>
   );
 }
 
@@ -71,21 +68,7 @@ function Join({ preview }: { preview: InvitationPreview }) {
   const organizers = preview.organizers.join(', ');
 
   return (
-    <FormScreen
-      footer={
-        alreadyIn ? (
-          <Button title="Ouvrir le voyage" onPress={open} />
-        ) : signedIn ? (
-          <Button title="Rejoindre le voyage" loading={run.loading} onPress={() => void run.run()} />
-        ) : (
-          <View style={styles.actions}>
-            <Button title="Rejoindre sans compte" loading={run.loading} disabled={!name.trim()} onPress={() => void run.run()} />
-            <Button title="J’ai un compte" variant="soft" onPress={signIn} />
-          </View>
-        )
-      }
-    >
-      <AppText variant="title">{alreadyIn ? 'Tu fais déjà partie de ce voyage' : `${organizers} t’invite à rejoindre ce voyage`}</AppText>
+    <Sheet title={alreadyIn ? 'Tu fais déjà partie de ce voyage' : `${organizers} t’invite à rejoindre ce voyage`}>
       <TripPreviewCard trip={preview} color={preview.color} icon={preview.icon} today={localIsoDate()} />
       {alreadyIn ? null : signedIn ? (
         <AppText tone="secondary">Tu le rejoindras comme participant : tu pourras voir le planning, proposer des idées, voter et ajouter des dépenses.</AppText>
@@ -113,20 +96,30 @@ function Join({ preview }: { preview: InvitationPreview }) {
           {run.error}
         </AppText>
       ) : null}
-    </FormScreen>
+      {alreadyIn ? (
+        <Button title="Ouvrir le voyage" onPress={open} />
+      ) : signedIn ? (
+        <Button title="Rejoindre le voyage" loading={run.loading} onPress={() => void run.run()} />
+      ) : (
+        <View style={styles.actions}>
+          <Button title="Rejoindre sans compte" loading={run.loading} disabled={!name.trim()} onPress={() => void run.run()} />
+          <Button title="J’ai un compte" variant="soft" onPress={signIn} />
+        </View>
+      )}
+    </Sheet>
   );
 }
 
 function Invalid() {
   return (
-    <FormScreen footer={<Button title="Retour à mes voyages" variant="secondary" onPress={() => router.dismissTo('/')} />}>
-      <AppText variant="title">Ce lien n’est plus valable</AppText>
+    <Sheet title="Ce lien n’est plus valable">
       <AppText tone="secondary">L’organisateur a peut-être renouvelé le lien d’invitation. Demande-lui le nouveau.</AppText>
-    </FormScreen>
+      <Button title="Fermer" variant="soft" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  loading: { marginVertical: spacing.xl },
   actions: { gap: spacing.sm },
 });
