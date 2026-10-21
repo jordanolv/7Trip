@@ -112,6 +112,8 @@ export const ApiErrorCode = {
   Forbidden: 'FORBIDDEN',
   NotFound: 'NOT_FOUND',
   TooManyRequests: 'TOO_MANY_REQUESTS',
+  LastOrganizer: 'LAST_ORGANIZER',
+  InvitationInvalid: 'INVITATION_INVALID',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
 

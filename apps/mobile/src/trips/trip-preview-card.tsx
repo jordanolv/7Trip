@@ -1,4 +1,4 @@
-import type { TripColorKey, TripDetail, TripIconKey } from '@7trip/shared';
+import type { TripColorKey, TripIconKey, TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing, tripColors } from '@7trip/ui-tokens';
 import { StyleSheet, View } from 'react-native';
 
@@ -10,7 +10,9 @@ import { TripStatusChip } from './status-chip';
 import { TripCover, TripIcon } from './trip-visuals';
 
 /** Preview of a trip: same shape as the list card, with the route, departure/return and travellers. */
-export function TripPreviewCard({ trip, color, icon, today }: { trip: TripDetail; color: TripColorKey; icon: TripIconKey; today: string }) {
+type PreviewTrip = Pick<TripSummary, 'title' | 'destinations' | 'startDate' | 'endDate' | 'participantCount'>;
+
+export function TripPreviewCard({ trip, color, icon, today }: { trip: PreviewTrip; color: TripColorKey; icon: TripIconKey; today: string }) {
   const stops = trip.destinations.length <= 3 ? trip.destinations : trip.destinations.slice(0, 2);
   const extra = trip.destinations.length - stops.length;
 

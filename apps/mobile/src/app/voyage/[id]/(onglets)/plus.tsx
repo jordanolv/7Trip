@@ -1,16 +1,18 @@
-import type { TripDetail } from '@7trip/shared';
+import { canDo, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/avatar';
+import { ActionRow } from '@/components/action-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ParticipantRow } from '@/trips/participant-row';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
 import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
+import { useConfirmLeaveTrip } from '@/trips/use-confirm-leave-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function PlusScreen() {
@@ -22,6 +24,8 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const insets = useSafeAreaInsets();
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const confirmDelete = useConfirmDeleteTrip(trip);
+  const canInvite = canDo('invite', trip.myRole, trip);
+  const confirmLeave = useConfirmLeaveTrip(trip);
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
   return (
@@ -43,31 +47,22 @@ function PlusContent({ trip }: { trip: TripDetail }) {
         <Tile icon="folder" title="Documents" detail="Bientôt" onPress={soon('Les documents')} />
       </View>
 
-      <Section title="Participants">
+      <Section
+        title={`Participants · ${trip.participantCount}`}
+        footer={isOrganizer && trip.participantCount > 1 ? 'Glisse un participant vers la gauche pour changer son rôle ou le retirer.' : undefined}
+      >
         {trip.participants.map((p) => (
-          <View key={p.id} style={styles.row}>
-            <Avatar name={p.displayName} size={36} />
-            <AppText variant="bodyStrong" style={styles.flex}>
-              {p.displayName}
-              {p.isMe ? ' (toi)' : ''}
-            </AppText>
-            <View style={[styles.role, p.role === 'ORGANIZER' ? styles.roleOrganizer : styles.roleParticipant]}>
-              <AppText variant="label" style={{ fontSize: 11, color: p.role === 'ORGANIZER' ? colors.surface : colors.inkTertiary }}>
-                {p.role === 'ORGANIZER' ? 'Organisateur' : 'Participant'}
-              </AppText>
-            </View>
-          </View>
+          <ParticipantRow key={p.id} trip={trip} participant={p} />
         ))}
-        <Row icon="users" label="Inviter des amis" onPress={soon('L’invitation par lien')} />
+        {canInvite ? <ActionRow icon="users" label="Inviter des amis" onPress={() => router.push(`/voyage/${trip.id}/inviter` as Href)} /> : null}
       </Section>
 
-      {isOrganizer ? (
-        <Section title="Voyage">
-          <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} />
-          <Row icon="sliders" label="Paramètres et notifications" onPress={soon('Les paramètres du voyage')} />
-          <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} />
-        </Section>
-      ) : null}
+      <Section title="Voyage">
+        {isOrganizer ? <ActionRow icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} /> : null}
+        <ActionRow icon="sliders" label="Paramètres et notifications" onPress={() => router.push(`/voyage/${trip.id}/parametres` as Href)} />
+        {trip.participantCount > 1 ? <ActionRow icon="logout" label="Quitter le voyage" danger onPress={confirmLeave} /> : null}
+        {isOrganizer ? <ActionRow icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} /> : null}
+      </Section>
     </ScrollView>
   );
 }
@@ -88,28 +83,19 @@ function Tile({ icon, title, detail, onPress }: { icon: IconName; title: string;
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, footer, children }: { title: string; footer?: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <AppText variant="label" tone="secondary" style={styles.sectionTitle}>
         {title}
       </AppText>
       <View style={styles.card}>{children}</View>
+      {footer ? (
+        <AppText variant="caption" tone="secondary" style={styles.sectionTitle}>
+          {footer}
+        </AppText>
+      ) : null}
     </View>
-  );
-}
-
-function Row({ icon, label, onPress, danger = false }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
-      <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
-        <Icon name={icon} color={danger ? colors.danger : colors.accentInk} size={18} />
-      </View>
-      <AppText variant="bodyStrong" style={[styles.flex, danger && { color: colors.danger }]}>
-        {label}
-      </AppText>
-      {danger ? null : <Icon name="chevronRight" color={colors.inkSecondary} size={18} />}
-    </Pressable>
   );
 }
 
@@ -131,17 +117,4 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   sectionTitle: { marginLeft: spacing.xs },
   card: { backgroundColor: colors.surface, borderRadius: radii.card, paddingVertical: spacing.xs },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52, paddingHorizontal: spacing.lg - 2 },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.accentTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowIconDanger: { backgroundColor: colors.dangerTint },
-  role: { borderRadius: radii.chip, paddingHorizontal: 9, paddingVertical: 4 },
-  roleOrganizer: { backgroundColor: colors.ink },
-  roleParticipant: { backgroundColor: colors.chip },
 });

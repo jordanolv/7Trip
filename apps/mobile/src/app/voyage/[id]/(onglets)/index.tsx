@@ -1,7 +1,7 @@
 import { daysBetween, formatDestinations, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
-import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -11,7 +11,6 @@ import { formatDateRange, participantsLabel } from '@/trips/format';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
-import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function TripDashboardScreen() {
@@ -26,7 +25,6 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const steps = setupSteps(trip, isOrganizer);
-  const openMenu = useTripMenu(trip);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -41,19 +39,28 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
             <Icon name="back" />
           </Pressable>
           <View style={styles.heroActions}>
-            <View style={styles.avatars}>
+            {/* The participants live in the Plus tab. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Voir les participants (${trip.participantCount})`}
+              onPress={() => router.navigate(`/voyage/${trip.id}/plus` as Href)}
+              style={styles.avatars}
+            >
               {trip.participants.slice(0, 3).map((p, index) => (
                 <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -12 }]}>
                   {/* 40 + 2×2 ring = 44, the size of the round buttons beside it. */}
                   <Avatar name={p.displayName} size={40} />
                 </View>
               ))}
-            </View>
-            {isOrganizer ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={openMenu} style={styles.roundButton}>
-                <Icon name="more" />
-              </Pressable>
-            ) : null}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Options du voyage"
+              onPress={() => router.push(`/menu/${trip.id}` as Href)}
+              style={styles.roundButton}
+            >
+              <Icon name="more" />
+            </Pressable>
           </View>
         </View>
         <View style={styles.heroTitle}>
@@ -131,26 +138,6 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
   );
 }
 
-/** Organizer actions, one tap away from the dashboard (same as the "Voyage" section of Plus). */
-function useTripMenu(trip: TripDetail) {
-  const confirmDelete = useConfirmDeleteTrip(trip);
-  const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
-  return () => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Modifier le voyage', 'Supprimer le voyage', 'Annuler'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
-        (index) => (index === 0 ? edit() : index === 1 ? confirmDelete() : undefined),
-      );
-    } else {
-      Alert.alert(trip.title, undefined, [
-        { text: 'Modifier le voyage', onPress: edit },
-        { text: 'Supprimer le voyage', style: 'destructive', onPress: confirmDelete },
-        { text: 'Annuler', style: 'cancel' },
-      ]);
-    }
-  };
-}
-
 interface Step {
   label: string;
   hint: string;
@@ -170,7 +157,7 @@ function setupSteps(trip: TripDetail, isOrganizer: boolean): Step[] {
       label: 'Inviter tes amis',
       hint: 'Ils pourront rejoindre et voter sans compte',
       icon: 'users',
-      onPress: () => Alert.alert('Bientôt', 'Les invitations arrivent avec la prochaine mise à jour.'),
+      onPress: () => router.push(`/voyage/${trip.id}/inviter` as Href),
     });
   }
   return steps;

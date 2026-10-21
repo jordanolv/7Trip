@@ -28,6 +28,7 @@ model User {
   refreshTokens RefreshToken[]
   emailCodes    EmailCode[]
   participants  Participant[]
+  invitations   Invitation[]
   createdTrips  Trip[]
 }
 
@@ -96,6 +97,24 @@ model Trip {
   createdBy    User              @relation(fields: [createdById], references: [id])
   participants Participant[]
   destinations TripDestination[]
+  invitations  Invitation[]
+}
+
+/// Group invitation link of a trip (7trip.app/j/<code>). One active link per trip; renewing it
+/// revokes the old one. Joining always gives the PARTICIPANT role (docs/architecture.md §5).
+model Invitation {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  tripId      String    @db.Uuid
+  code        String    @unique
+  createdById String    @db.Uuid
+  revokedAt   DateTime?
+  usesCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  trip      Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
 }
 
 /// Ordered stops of a trip ("Cracovie → Varsovie"). Empty while the destination is undecided.
@@ -130,6 +149,7 @@ model Participant {
   role        ParticipantRole   @default(PARTICIPANT)
   status      ParticipantStatus @default(ACTIVE)
   joinedAt    DateTime          @default(now())
+  leftAt      DateTime?
 
   trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)

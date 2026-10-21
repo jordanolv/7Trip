@@ -10,6 +10,14 @@ const icons = {
   chevronRight: <Path d="M9 6l6 6-6 6" />,
   check: <Path d="M5 12l5 5 9-10" />,
   bell: <Path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0" />,
+  share: <Path d="M12 15V3M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />,
+  copy: (
+    <>
+      <Rect x="8" y="8" width="13" height="13" rx="2" />
+      <Path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </>
+  ),
+  refresh: <Path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4" />,
   link: <Path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />,
   mail: (
     <>
@@ -79,6 +87,7 @@ const icons = {
     </>
   ),
   pencil: <Path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
+  crown: <Path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" />,
   trash: <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
 } as const;
 

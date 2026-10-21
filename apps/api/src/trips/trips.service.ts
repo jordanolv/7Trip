@@ -2,6 +2,9 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   ApiErrorCode,
   TRIP_COLORS,
+  canDo,
+  type InvitePolicy,
+  type TripAction,
   type TripColorKey,
   type TripDetail,
   type TripIconKey,
@@ -9,7 +12,7 @@ import {
 } from '@7trip/shared';
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, type TripKind } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -21,6 +24,7 @@ export interface TripInput {
   kind?: 'SOLO' | 'GROUP';
   color?: TripColorKey;
   icon?: TripIconKey;
+  invitePolicy?: InvitePolicy;
 }
 
 const TRIP_INCLUDE = {
@@ -28,7 +32,7 @@ const TRIP_INCLUDE = {
   destinations: { orderBy: { position: 'asc' } },
 } satisfies Prisma.TripInclude;
 
-type TripWithRelations = Prisma.TripGetPayload<{ include: typeof TRIP_INCLUDE }>;
+export type TripWithRelations = Prisma.TripGetPayload<{ include: typeof TRIP_INCLUDE }>;
 
 interface TripColumns {
   title?: string;
@@ -37,12 +41,32 @@ interface TripColumns {
   kind?: TripKind;
   color?: string;
   icon?: string;
+  invitePolicy?: InvitePolicy;
 }
 
 const toDate = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const toIso = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
 const toStops = (names: string[]) => names.map((name, position) => ({ name, position }));
-const notFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Voyage introuvable');
+export const notFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Voyage introuvable');
+
+export interface LockedTrip {
+  invitePolicy: InvitePolicy;
+  me: Participant;
+}
+
+export function assertCan(role: ParticipantRole | undefined, action: TripAction, trip: { invitePolicy: InvitePolicy }): void {
+  if (!role || !canDo(action, role, trip)) {
+    throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, FORBIDDEN_MESSAGES[action]);
+  }
+}
+
+const FORBIDDEN_MESSAGES: Record<TripAction, string> = {
+  invite: 'Seuls les organisateurs peuvent inviter dans ce voyage',
+  renewInvitation: 'Seuls les organisateurs peuvent renouveler le lien',
+  manageParticipants: 'Seuls les organisateurs peuvent gérer les participants',
+  editTrip: 'Seuls les organisateurs peuvent faire cette modification',
+  deleteTrip: 'Seuls les organisateurs peuvent supprimer le voyage',
+};
 
 @Injectable()
 export class TripsService {
@@ -90,40 +114,44 @@ export class TripsService {
     return this.toDetail(trip, userId);
   }
 
+  /** Under the trip lock, so an organizer demoted meanwhile cannot still edit. */
   async update(userId: string, tripId: string, input: TripInput): Promise<TripDetail> {
-    const trip = await this.findForMember(userId, tripId);
-    this.requireOrganizer(trip, userId);
+    const updated = await this.withTripLock(userId, tripId, async (tx, locked) => {
+      assertCan(locked.me.role, 'editTrip', locked);
+      const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId } });
 
-    // Validate the resulting date range, not just the fields sent in this request.
-    const startDate = input.startDate !== undefined ? input.startDate : toIso(trip.startDate);
-    const endDate = input.endDate !== undefined ? input.endDate : toIso(trip.endDate);
-    if (startDate && endDate && endDate < startDate) {
-      throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
-    }
+      // Validate the resulting date range, not just the fields sent in this request.
+      const startDate = input.startDate !== undefined ? input.startDate : toIso(trip.startDate);
+      const endDate = input.endDate !== undefined ? input.endDate : toIso(trip.endDate);
+      if (startDate && endDate && endDate < startDate) {
+        throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
+      }
 
-    const updated = await this.prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        ...this.toData(input),
-        // The list is replaced as a whole, in the same statement as the other fields.
-        ...(input.destinations !== undefined && {
-          destinations: { deleteMany: {}, create: toStops(input.destinations) },
-        }),
-      },
-      include: TRIP_INCLUDE,
+      return tx.trip.update({
+        where: { id: tripId },
+        data: {
+          ...this.toData(input),
+          // The list is replaced as a whole, in the same statement as the other fields.
+          ...(input.destinations !== undefined && {
+            destinations: { deleteMany: {}, create: toStops(input.destinations) },
+          }),
+        },
+        include: TRIP_INCLUDE,
+      });
     });
     return this.toDetail(updated, userId);
   }
 
-  /** Loads a trip the user belongs to. Non-members get a 404: a trip's existence is not revealed. */
   /** Deletes the trip for everyone (participants and destinations cascade). Organizers only. */
   async remove(userId: string, tripId: string): Promise<void> {
-    const trip = await this.findForMember(userId, tripId);
-    this.requireOrganizer(trip, userId);
-    await this.prisma.trip.delete({ where: { id: tripId } });
+    await this.withTripLock(userId, tripId, async (tx, locked) => {
+      assertCan(locked.me.role, 'deleteTrip', locked);
+      await tx.trip.delete({ where: { id: tripId } });
+    });
   }
 
-  private async findForMember(userId: string, tripId: string): Promise<TripWithRelations> {
+  /** The trip with its active participants, or 404 when the user is not one of them. */
+  async findForMember(userId: string, tripId: string): Promise<TripWithRelations> {
     if (!z.uuid().safeParse(tripId).success) throw notFound();
     const trip = await this.prisma.trip.findFirst({
       where: { id: tripId, participants: { some: { userId, status: ParticipantStatus.ACTIVE } } },
@@ -133,11 +161,20 @@ export class TripsService {
     return trip;
   }
 
-  private requireOrganizer(trip: TripWithRelations, userId: string): void {
-    const me = trip.participants.find((p) => p.userId === userId);
-    if (me?.role !== ParticipantRole.ORGANIZER) {
-      throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, 'Seuls les organisateurs peuvent faire cette modification');
-    }
+  /**
+   * Runs `fn` in a transaction holding a lock on the trip row, with the caller's membership read
+   * inside it. Every membership or invitation change goes through here, so concurrent requests
+   * are applied one after the other and always check permissions against the current state.
+   */
+  async withTripLock<T>(userId: string, tripId: string, fn: (tx: Prisma.TransactionClient, ctx: LockedTrip) => Promise<T>): Promise<T> {
+    if (!z.uuid().safeParse(tripId).success) throw notFound();
+    return this.prisma.$transaction(async (tx) => {
+      const [trip] = await tx.$queryRaw<{ invitePolicy: InvitePolicy }[]>`
+        SELECT "invitePolicy" FROM "Trip" WHERE id = ${tripId}::uuid FOR UPDATE`;
+      const me = trip && (await tx.participant.findFirst({ where: { tripId, userId, status: ParticipantStatus.ACTIVE } }));
+      if (!trip || !me) throw notFound();
+      return fn(tx, { invitePolicy: trip.invitePolicy, me });
+    });
   }
 
   /** Scalar columns from the request, ready for both create and update. */
@@ -149,6 +186,7 @@ export class TripsService {
       ...(input.kind !== undefined && { kind: input.kind }),
       ...(input.color !== undefined && { color: input.color }),
       ...(input.icon !== undefined && { icon: input.icon }),
+      ...(input.invitePolicy !== undefined && { invitePolicy: input.invitePolicy }),
     };
   }
 
@@ -168,9 +206,10 @@ export class TripsService {
     };
   }
 
-  private toDetail(trip: TripWithRelations, userId: string): TripDetail {
+  toDetail(trip: TripWithRelations, userId: string): TripDetail {
     return {
       ...this.toSummary(trip, userId),
+      invitePolicy: trip.invitePolicy,
       createdAt: trip.createdAt.toISOString(),
       participants: trip.participants
         .toSorted((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
