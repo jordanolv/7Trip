@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
-import { ApiError } from '@/lib/api';
+import { errorMessage } from '@/lib/api';
 
 import { tripKeys, useDeleteTrip } from './trips-api';
 
@@ -19,7 +19,7 @@ export function useConfirmDeleteTrip(trip: Pick<TripDetail, 'id' | 'title'>) {
       // After leaving, so the trip screens do not flash "Voyage introuvable".
       client.removeQueries({ queryKey: tripKeys.detail(trip.id) });
     } catch (error) {
-      Alert.alert('Suppression impossible', error instanceof ApiError ? error.message : 'Réessaie dans un instant.');
+      Alert.alert('Suppression impossible', errorMessage(error));
     }
   };
 

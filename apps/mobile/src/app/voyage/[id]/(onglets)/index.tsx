@@ -41,14 +41,20 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
             <Icon name="back" />
           </Pressable>
           <View style={styles.heroActions}>
-            <View style={styles.avatars}>
+            {/* The participants live in the Plus tab. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Voir les participants (${trip.participantCount})`}
+              onPress={() => router.navigate(`/voyage/${trip.id}/plus` as Href)}
+              style={styles.avatars}
+            >
               {trip.participants.slice(0, 3).map((p, index) => (
                 <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -12 }]}>
                   {/* 40 + 2×2 ring = 44, the size of the round buttons beside it. */}
                   <Avatar name={p.displayName} size={40} />
                 </View>
               ))}
-            </View>
+            </Pressable>
             {isOrganizer ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={openMenu} style={styles.roundButton}>
                 <Icon name="more" />
@@ -135,7 +141,7 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
 function useTripMenu(trip: TripDetail) {
   const confirmDelete = useConfirmDeleteTrip(trip);
   const edit = () => router.push(`/voyage/${trip.id}/modifier` as Href);
-  const invite = () => router.push(`/voyage/${trip.id}/participants` as Href);
+  const invite = () => router.push(`/voyage/${trip.id}/inviter` as Href);
   return () => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -177,7 +183,7 @@ function setupSteps(trip: TripDetail, isOrganizer: boolean): Step[] {
       label: 'Inviter tes amis',
       hint: 'Ils pourront rejoindre et voter sans compte',
       icon: 'users',
-      onPress: () => router.push(`/voyage/${trip.id}/participants` as Href),
+      onPress: () => router.push(`/voyage/${trip.id}/inviter` as Href),
     });
   }
   return steps;

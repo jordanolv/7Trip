@@ -55,3 +55,6 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, access
     error.fields,
   );
 }
+
+/** What to show the user when a request fails: the API's message, or a generic retry hint. */
+export const errorMessage = (error: unknown) => (error instanceof ApiError ? error.message : 'Réessaie dans un instant.');

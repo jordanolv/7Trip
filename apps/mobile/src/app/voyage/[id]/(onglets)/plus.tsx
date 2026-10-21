@@ -4,13 +4,14 @@ import { router, type Href } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ParticipantRow } from '@/trips/participant-row';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
 import { useConfirmDeleteTrip } from '@/trips/use-confirm-delete-trip';
+import { useConfirmLeaveTrip } from '@/trips/use-confirm-leave-trip';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function PlusScreen() {
@@ -23,7 +24,7 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const confirmDelete = useConfirmDeleteTrip(trip);
   const canInvite = canDo('invite', trip.myRole, trip);
-  const openParticipants = () => router.push(`/voyage/${trip.id}/participants` as Href);
+  const confirmLeave = useConfirmLeaveTrip(trip);
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
   return (
@@ -45,31 +46,20 @@ function PlusContent({ trip }: { trip: TripDetail }) {
         <Tile icon="folder" title="Documents" detail="Bientôt" onPress={soon('Les documents')} />
       </View>
 
-      <Section title="Participants">
-        {trip.participants.slice(0, 4).map((p) => (
-          <Pressable key={p.id} accessibilityRole="button" onPress={openParticipants} style={styles.row}>
-            <Avatar name={p.displayName} size={36} />
-            <AppText variant="bodyStrong" style={styles.flex}>
-              {p.displayName}
-              {p.isMe ? ' (toi)' : ''}
-            </AppText>
-            <View style={[styles.role, p.role === 'ORGANIZER' ? styles.roleOrganizer : styles.roleParticipant]}>
-              <AppText variant="label" style={{ fontSize: 11, color: p.role === 'ORGANIZER' ? colors.surface : colors.inkTertiary }}>
-                {p.role === 'ORGANIZER' ? 'Organisateur' : 'Participant'}
-              </AppText>
-            </View>
-          </Pressable>
+      <Section
+        title={`Participants · ${trip.participantCount}`}
+        footer={isOrganizer && trip.participantCount > 1 ? 'Touche un participant pour changer son rôle ou le retirer.' : undefined}
+      >
+        {trip.participants.map((p) => (
+          <ParticipantRow key={p.id} trip={trip} participant={p} />
         ))}
-        <Row
-          icon="users"
-          label={canInvite ? 'Inviter des amis' : trip.participantCount > 4 ? `Voir les ${trip.participantCount} participants` : 'Voir les participants'}
-          onPress={openParticipants}
-        />
+        {canInvite ? <Row icon="users" label="Inviter des amis" onPress={() => router.push(`/voyage/${trip.id}/inviter` as Href)} /> : null}
       </Section>
 
       <Section title="Voyage">
         {isOrganizer ? <Row icon="pencil" label="Modifier le voyage" onPress={() => router.push(`/voyage/${trip.id}/modifier` as Href)} /> : null}
         <Row icon="sliders" label="Paramètres et notifications" onPress={() => router.push(`/voyage/${trip.id}/parametres` as Href)} />
+        <Row icon="logout" label="Quitter le voyage" danger onPress={confirmLeave} />
         {isOrganizer ? <Row icon="trash" label="Supprimer le voyage" danger onPress={confirmDelete} /> : null}
       </Section>
     </ScrollView>
@@ -92,13 +82,18 @@ function Tile({ icon, title, detail, onPress }: { icon: IconName; title: string;
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, footer, children }: { title: string; footer?: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <AppText variant="label" tone="secondary" style={styles.sectionTitle}>
         {title}
       </AppText>
       <View style={styles.card}>{children}</View>
+      {footer ? (
+        <AppText variant="caption" tone="secondary" style={styles.sectionTitle}>
+          {footer}
+        </AppText>
+      ) : null}
     </View>
   );
 }
@@ -145,7 +140,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowIconDanger: { backgroundColor: colors.dangerTint },
-  role: { borderRadius: radii.chip, paddingHorizontal: 9, paddingVertical: 4 },
-  roleOrganizer: { backgroundColor: colors.ink },
-  roleParticipant: { backgroundColor: colors.chip },
 });

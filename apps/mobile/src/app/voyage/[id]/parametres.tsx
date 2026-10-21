@@ -6,7 +6,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-na
 import { ScreenHeader } from '@/components/screen-header';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
-import { ApiError } from '@/lib/api';
+import { errorMessage } from '@/lib/api';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripIconTile } from '@/trips/trip-visuals';
 import { useTrip, useUpdateTrip } from '@/trips/trips-api';
@@ -30,7 +30,7 @@ function Parametres({ trip }: { trip: TripDetail }) {
   const setEveryoneInvites = (value: boolean) =>
     void update
       .mutateAsync({ invitePolicy: value ? 'ALL' : 'ORGANIZERS' })
-      .catch((error: unknown) => Alert.alert('Modification impossible', error instanceof ApiError ? error.message : 'Réessaie dans un instant.'));
+      .catch((error: unknown) => Alert.alert('Modification impossible', errorMessage(error)));
 
   return (
     <>
