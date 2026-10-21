@@ -1,7 +1,9 @@
 import { formatDestinations, tripPhase, type TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
+import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable as GesturePressable } from 'react-native-gesture-handler';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { AppText } from '@/components/ui/app-text';
@@ -19,19 +21,27 @@ export function TripCard({ trip, today }: { trip: TripSummary; today: string }) 
   const where = [formatDestinations(trip.destinations), dates].filter(Boolean).join(' · ');
   const subtitle = `${where || 'Destination et dates à décider'} · ${participantsLabel(trip.participantCount)}`;
   const badge = tripBadge(trip, today);
+  const swipeable = useRef<SwipeableMethods>(null);
+  const actionsShown = useRef(false);
+  // A tap while the actions are shown puts the card back instead of opening the trip.
+  const open = () => (actionsShown.current ? swipeable.current?.close() : router.push(`/voyage/${trip.id}`));
 
   return (
     <Swipeable
+      ref={swipeable}
+      onSwipeableWillOpen={() => (actionsShown.current = true)}
+      onSwipeableClose={() => (actionsShown.current = false)}
       friction={2}
       rightThreshold={40}
       overshootRight={false}
       renderRightActions={(_progress, _translation, methods) => <TripCardActions trip={trip} swipeable={methods} />}
     >
-      <Pressable
+      {/* Gesture-handler's Pressable, so a swipe cancels the tap instead of opening the trip on release. */}
+      <GesturePressable
         accessibilityRole="button"
         accessibilityLabel={`${trip.title}, ${subtitle}, ${badge}`}
         accessibilityHint="Glisse vers la gauche pour plus d’actions"
-        onPress={() => router.push(`/voyage/${trip.id}`)}
+        onPress={open}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
         <TripCover color={trip.color} style={styles.cover}>
@@ -58,7 +68,7 @@ export function TripCard({ trip, today }: { trip: TripSummary; today: string }) 
             <Icon name="chevronRight" color={colors.inkSecondary} size={18} />
           </View>
         </View>
-      </Pressable>
+      </GesturePressable>
     </Swipeable>
   );
 }
