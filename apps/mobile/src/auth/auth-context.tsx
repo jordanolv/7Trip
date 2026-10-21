@@ -29,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [devEmailCode, setDevCode] = useState<string | null>(null);
   const accessToken = useRef<string | null>(null);
   const refreshing = useRef<Promise<string | null> | null>(null);
+  /** Bumped on every sign-in / sign-out, so a refresh started before it cannot bring the old session back. */
+  const epoch = useRef(0);
 
   const applySession = useCallback(async (session: AuthResponse) => {
     accessToken.current = session.accessToken;
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetSession = useCallback(async () => {
+    epoch.current += 1;
     accessToken.current = null;
     // Never show one account's data to the next one.
     queryClient.clear();
@@ -50,15 +53,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** Single-flight refresh: concurrent 401s share one refresh call. */
   const refreshAccessToken = useCallback((): Promise<string | null> => {
     refreshing.current ??= (async () => {
+      const startedAt = epoch.current;
       try {
         const refreshToken = await loadRefreshToken();
         if (!refreshToken) return null;
         const session = await apiRequest<AuthResponse>('/auth/refresh', { method: 'POST', body: { refreshToken } });
+        if (epoch.current !== startedAt) {
+          // Signed out (or in again) meanwhile: drop this session server side too.
+          void apiRequest('/auth/logout', { method: 'POST', body: { refreshToken: session.refreshToken } }).catch(() => undefined);
+          return null;
+        }
         await applySession(session);
         return session.accessToken;
       } catch (error) {
         // Offline: keep the stored session and try again later. Rejected token: sign out.
-        if (error instanceof ApiError && error.status === 401) await resetSession();
+        if (error instanceof ApiError && error.status === 401 && epoch.current === startedAt) await resetSession();
         return null;
       } finally {
         refreshing.current = null;
@@ -89,8 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    // Let an in-flight refresh land first, so we revoke the newest token and nothing re-applies it after.
-    await refreshing.current;
+    // Local sign-out is immediate; a refresh still in flight is discarded and revoked when it lands.
     const refreshToken = await loadRefreshToken();
     await resetSession();
     if (refreshToken) {
@@ -104,7 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       devEmailCode,
       setDevEmailCode: (code) => setDevCode(code ?? null),
-      signIn: applySession,
+      signIn: (session) => {
+        epoch.current += 1;
+        return applySession(session);
+      },
       signOut,
       setUser,
       authedRequest,
