@@ -2,9 +2,7 @@ import { parseInvitationCode } from '@7trip/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 
-import { FormScreen } from '@/components/form-screen';
-import { ScreenHeader } from '@/components/screen-header';
-import { AppText } from '@/components/ui/app-text';
+import { Sheet } from '@/components/sheet';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 
@@ -23,26 +21,23 @@ export default function RejoindreScreen() {
   };
 
   return (
-    <>
-      <ScreenHeader mode="close" title="Rejoindre un voyage" />
-      <FormScreen footer={<Button title="Continuer" onPress={submit} />}>
-        <AppText variant="title">Tu as reçu une invitation ?</AppText>
-        <TextField
-          label="Lien ou code d’invitation"
-          value={value}
-          onChangeText={(text) => {
-            setValue(text);
-            setError(undefined);
-          }}
-          placeholder="k7mz2qpx4r"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoFocus
-          returnKeyType="go"
-          onSubmitEditing={submit}
-          error={error}
-        />
-      </FormScreen>
-    </>
+    <Sheet title="Rejoindre un voyage">
+      <TextField
+        label="Lien ou code d’invitation"
+        value={value}
+        onChangeText={(text) => {
+          setValue(text);
+          setError(undefined);
+        }}
+        placeholder="k7mz2qpx4r"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoFocus
+        returnKeyType="go"
+        onSubmitEditing={submit}
+        error={error}
+      />
+      <Button title="Continuer" onPress={submit} />
+    </Sheet>
   );
 }

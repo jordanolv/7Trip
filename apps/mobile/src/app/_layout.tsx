@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/auth/auth-context';
+import { sheetOptions } from '@/components/sheet';
 import { queryClient } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,7 +49,7 @@ function RootNavigator() {
       <Stack.Screen name="voyage/nouveau" options={{ presentation: 'modal' }} />
       <Stack.Screen name="voyage/[id]" />
       <Stack.Screen name="j/[code]" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="rejoindre" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="rejoindre" options={sheetOptions} />
     </Stack>
   );
 }
