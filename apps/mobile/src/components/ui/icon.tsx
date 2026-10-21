@@ -87,6 +87,7 @@ const icons = {
     </>
   ),
   pencil: <Path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
+  crown: <Path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" />,
   trash: <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
 } as const;
 

@@ -1,13 +1,11 @@
 import { formatDestinations, tripPhase, type TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
-import { useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Pressable as GesturePressable } from 'react-native-gesture-handler';
-import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { SwipeRow, type SwipeAction } from '@/components/swipe-row';
 import { AppText } from '@/components/ui/app-text';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 
 import { formatDateRange, participantsLabel, tripBadge } from './format';
 import { TripStatusChip } from './status-chip';
@@ -21,86 +19,55 @@ export function TripCard({ trip, today }: { trip: TripSummary; today: string }) 
   const where = [formatDestinations(trip.destinations), dates].filter(Boolean).join(' · ');
   const subtitle = `${where || 'Destination et dates à décider'} · ${participantsLabel(trip.participantCount)}`;
   const badge = tripBadge(trip, today);
-  const swipeable = useRef<SwipeableMethods>(null);
-  const actionsShown = useRef(false);
-  // A tap while the actions are shown puts the card back instead of opening the trip.
-  const open = () => (actionsShown.current ? swipeable.current?.close() : router.push(`/voyage/${trip.id}`));
+  const actions = useTripCardActions(trip);
 
   return (
-    <Swipeable
-      ref={swipeable}
-      onSwipeableWillOpen={() => (actionsShown.current = true)}
-      onSwipeableClose={() => (actionsShown.current = false)}
-      friction={2}
-      rightThreshold={40}
-      overshootRight={false}
-      renderRightActions={(_progress, _translation, methods) => <TripCardActions trip={trip} swipeable={methods} />}
+    <SwipeRow
+      variant="card"
+      actions={actions}
+      accessibilityLabel={`${trip.title}, ${subtitle}, ${badge}`}
+      onPress={() => router.push(`/voyage/${trip.id}`)}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      {/* Gesture-handler's Pressable, so a swipe cancels the tap instead of opening the trip on release. */}
-      <GesturePressable
-        accessibilityRole="button"
-        accessibilityLabel={`${trip.title}, ${subtitle}, ${badge}`}
-        accessibilityHint="Glisse vers la gauche pour plus d’actions"
-        onPress={open}
-        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-      >
-        <TripCover color={trip.color} style={styles.cover}>
-          <View style={styles.coverIcon}>
-            <TripIcon icon={trip.icon} size={32} color={colors.ink} />
-          </View>
-          {phase === 'ongoing' ? (
-            <View style={styles.liveBadge}>
-              <Text style={styles.liveBadgeText}>{badge}</Text>
-            </View>
-          ) : null}
-        </TripCover>
-        <View style={styles.body}>
-          <View>
-            <AppText variant="bodyStrong" numberOfLines={1}>
-              {trip.title}
-            </AppText>
-            <AppText variant="caption" tone="secondary" numberOfLines={2}>
-              {subtitle}
-            </AppText>
-          </View>
-          <View style={styles.footer}>
-            {phase !== 'ongoing' ? <TripStatusChip trip={trip} today={today} /> : <View />}
-            <Icon name="chevronRight" color={colors.inkSecondary} size={18} />
-          </View>
+      <TripCover color={trip.color} style={styles.cover}>
+        <View style={styles.coverIcon}>
+          <TripIcon icon={trip.icon} size={32} color={colors.ink} />
         </View>
-      </GesturePressable>
-    </Swipeable>
+        {phase === 'ongoing' ? (
+          <View style={styles.liveBadge}>
+            <Text style={styles.liveBadgeText}>{badge}</Text>
+          </View>
+        ) : null}
+      </TripCover>
+      <View style={styles.body}>
+        <View>
+          <AppText variant="bodyStrong" numberOfLines={1}>
+            {trip.title}
+          </AppText>
+          <AppText variant="caption" tone="secondary" numberOfLines={2}>
+            {subtitle}
+          </AppText>
+        </View>
+        <View style={styles.footer}>
+          {phase !== 'ongoing' ? <TripStatusChip trip={trip} today={today} /> : <View />}
+          <Icon name="chevronRight" color={colors.inkSecondary} size={18} />
+        </View>
+      </View>
+    </SwipeRow>
   );
 }
 
 /** Revealed by swiping a card left: the same trip actions as in the trip, without opening it. */
-function TripCardActions({ trip, swipeable }: { trip: TripSummary; swipeable: SwipeableMethods }) {
+function useTripCardActions(trip: TripSummary): SwipeAction[] {
   const confirmDelete = useConfirmDeleteTrip(trip);
   const confirmLeave = useConfirmLeaveTrip(trip);
   const isOrganizer = trip.myRole === 'ORGANIZER';
-  const then = (action: () => void) => () => {
-    swipeable.close();
-    action();
-  };
-
-  return (
-    <View style={styles.actions}>
-      {isOrganizer ? <CardAction icon="pencil" label="Modifier" onPress={then(() => router.push(`/voyage/${trip.id}/modifier` as Href))} /> : null}
-      {/* Alone in a trip, leaving would orphan it: deleting is the way out. */}
-      {trip.participantCount > 1 ? <CardAction icon="logout" label="Quitter" onPress={then(confirmLeave)} /> : null}
-      {isOrganizer ? <CardAction icon="trash" label="Supprimer" danger onPress={then(confirmDelete)} /> : null}
-    </View>
-  );
-}
-
-function CardAction({ icon, label, onPress, danger = false }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
-  const color = danger ? colors.danger : colors.accentInk;
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.action, danger && styles.actionDanger]}>
-      <Icon name={icon} color={color} size={22} />
-      <Text style={[styles.actionText, { color }]}>{label}</Text>
-    </Pressable>
-  );
+  const actions: SwipeAction[] = [];
+  if (isOrganizer) actions.push({ icon: 'pencil', label: 'Modifier', onPress: () => router.push(`/voyage/${trip.id}/modifier` as Href) });
+  // Alone in a trip, leaving would orphan it: deleting is the way out.
+  if (trip.participantCount > 1) actions.push({ icon: 'logout', label: 'Quitter', onPress: confirmLeave });
+  if (isOrganizer) actions.push({ icon: 'trash', label: 'Supprimer', danger: true, onPress: confirmDelete });
+  return actions;
 }
 
 const styles = StyleSheet.create({
@@ -126,8 +93,4 @@ const styles = StyleSheet.create({
   liveBadgeText: { fontFamily: fontFamily.bold, fontSize: 11, color: colors.surface },
   body: { flex: 1, padding: spacing.md, paddingLeft: spacing.md + 2, justifyContent: 'space-between', gap: spacing.sm },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  actions: { flexDirection: 'row', gap: spacing.sm, paddingLeft: spacing.sm },
-  action: { width: 76, borderRadius: radii.card, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  actionDanger: { backgroundColor: colors.dangerTint },
-  actionText: { fontFamily: fontFamily.bold, fontSize: 12 },
 });

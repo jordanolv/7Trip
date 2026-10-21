@@ -48,7 +48,7 @@ function PlusContent({ trip }: { trip: TripDetail }) {
 
       <Section
         title={`Participants · ${trip.participantCount}`}
-        footer={isOrganizer && trip.participantCount > 1 ? 'Touche un participant pour changer son rôle ou le retirer.' : undefined}
+        footer={isOrganizer && trip.participantCount > 1 ? 'Glisse un participant vers la gauche pour changer son rôle ou le retirer.' : undefined}
       >
         {trip.participants.map((p) => (
           <ParticipantRow key={p.id} trip={trip} participant={p} />
