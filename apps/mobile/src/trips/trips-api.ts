@@ -146,6 +146,8 @@ export function useLeaveTrip(tripId: string) {
     onSuccess: () => {
       client.setQueryData<TripSummary[]>(tripKeys.mine, (trips) => trips?.filter((trip) => trip.id !== tripId));
       void client.invalidateQueries({ queryKey: tripKeys.mine });
+      // A cached preview of this trip's link would still say "already a member" and hide the join button.
+      client.removeQueries({ queryKey: ['invitations'] });
     },
   });
 }
