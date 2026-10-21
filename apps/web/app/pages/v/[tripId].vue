@@ -5,6 +5,7 @@ const route = useRoute();
 const tripId = String(route.params.tripId ?? '');
 const { data, error } = await useFetch(`/api/trips/${tripId}`);
 const today = localIsoDate();
+const leaveError = computed(() => (typeof route.query.erreur === 'string' ? route.query.erreur : null));
 
 const trip = computed(() => data.value?.trip ?? null);
 const me = computed(() => trip.value?.participants.find((p) => p.isMe));
@@ -59,6 +60,7 @@ useHead(() => ({ title: trip.value ? `${trip.value.title} · 7Trip` : 'Voyage ·
         <form method="post" :action="`/api/trips/${trip.id}/leave`" onsubmit="return confirm('Quitter ce voyage ? Tu n’y auras plus accès.')">
           <button type="submit" class="button danger">Quitter le voyage</button>
         </form>
+        <p v-if="leaveError" class="error" role="alert">Impossible de quitter le voyage : {{ leaveError }}</p>
       </div>
     </template>
 
