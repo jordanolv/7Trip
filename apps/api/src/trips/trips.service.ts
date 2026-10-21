@@ -12,7 +12,7 @@ import {
 } from '@7trip/shared';
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, type TripKind } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -48,6 +48,17 @@ const toDate = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const toIso = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
 const toStops = (names: string[]) => names.map((name, position) => ({ name, position }));
 export const notFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Voyage introuvable');
+
+export interface LockedTrip {
+  invitePolicy: InvitePolicy;
+  me: Participant;
+}
+
+export function assertCan(role: ParticipantRole | undefined, action: TripAction, trip: { invitePolicy: InvitePolicy }): void {
+  if (!role || !canDo(action, role, trip)) {
+    throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, FORBIDDEN_MESSAGES[action]);
+  }
+}
 
 const FORBIDDEN_MESSAGES: Record<TripAction, string> = {
   invite: 'Seuls les organisateurs peuvent inviter dans ce voyage',
@@ -149,10 +160,23 @@ export class TripsService {
 
   /** Throws 403 unless the user's role allows the action (matrix in @7trip/shared). */
   require(trip: TripWithRelations, userId: string, action: TripAction): void {
-    const me = trip.participants.find((p) => p.userId === userId);
-    if (!me || !canDo(action, me.role, trip)) {
-      throw apiError(HttpStatus.FORBIDDEN, ApiErrorCode.Forbidden, FORBIDDEN_MESSAGES[action]);
-    }
+    assertCan(trip.participants.find((p) => p.userId === userId)?.role, action, trip);
+  }
+
+  /**
+   * Runs `fn` in a transaction holding a lock on the trip row, with the caller's membership read
+   * inside it. Every membership or invitation change goes through here, so concurrent requests
+   * are applied one after the other and always check permissions against the current state.
+   */
+  async withTripLock<T>(userId: string, tripId: string, fn: (tx: Prisma.TransactionClient, ctx: LockedTrip) => Promise<T>): Promise<T> {
+    if (!z.uuid().safeParse(tripId).success) throw notFound();
+    return this.prisma.$transaction(async (tx) => {
+      const [trip] = await tx.$queryRaw<{ invitePolicy: InvitePolicy }[]>`
+        SELECT "invitePolicy" FROM "Trip" WHERE id = ${tripId}::uuid FOR UPDATE`;
+      const me = trip && (await tx.participant.findFirst({ where: { tripId, userId, status: ParticipantStatus.ACTIVE } }));
+      if (!trip || !me) throw notFound();
+      return fn(tx, { invitePolicy: trip.invitePolicy, me });
+    });
   }
 
   /** Scalar columns from the request, ready for both create and update. */

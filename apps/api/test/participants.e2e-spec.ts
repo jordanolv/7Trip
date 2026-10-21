@@ -141,6 +141,32 @@ describe('Invitations & participants (e2e)', () => {
     expect((list.body as { id: string }[]).map((t) => t.id)).not.toContain(trip.id);
   });
 
+  // Need a real Postgres: the local `prisma dev` database (PGlite) breaks under concurrent queries.
+  it.skipIf(!process.env.CI)('never leaves a trip without an organizer, even with concurrent removals', async () => {
+    const trip = await newTrip();
+    const joined = await join(trip.id, lea);
+    const leaId = joined.participants.find((p) => p.isMe)!.id;
+    const jordanId = joined.participants.find((p) => !p.isMe)!.id;
+    await api().patch(`/v1/trips/${trip.id}/participants/${leaId}`).set(jordan.auth).send({ role: 'ORGANIZER' }).expect(200);
+
+    const results = await Promise.all([
+      api().delete(`/v1/trips/${trip.id}/participants/${leaId}`).set(jordan.auth),
+      api().delete(`/v1/trips/${trip.id}/participants/${jordanId}`).set(lea.auth),
+    ]);
+    // The second request runs after the first, when its author is no longer in the trip.
+    expect(results.map((r) => r.status).sort((a, b) => a - b)).toEqual([200, 404]);
+    const winner = results[0].status === 200 ? jordan : lea;
+    const after = await api().get(`/v1/trips/${trip.id}`).set(winner.auth).expect(200);
+    expect((after.body as TripDetail).participants.map((p) => p.role)).toEqual(['ORGANIZER']);
+  });
+
+  it.skipIf(!process.env.CI)('creates a single link when several people open it at once', async () => {
+    const trip = await newTrip();
+    await join(trip.id, lea);
+    const codes = await Promise.all([invitationCode(trip.id), invitationCode(trip.id, lea), invitationCode(trip.id)]);
+    expect(new Set(codes).size).toBe(1);
+  });
+
   it('hides invitations of other trips', async () => {
     const trip = await newTrip();
     await api().get(`/v1/trips/${trip.id}/invitation`).set(lea.auth).expect(404);

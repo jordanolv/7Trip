@@ -14,7 +14,7 @@ import { apiError } from '../common/api-error.js';
 import type { Invitation } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, TripKind } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { TripsService } from './trips.service.js';
+import { TripsService, assertCan } from './trips.service.js';
 
 const invalidInvitation = () =>
   apiError(HttpStatus.NOT_FOUND, ApiErrorCode.InvitationInvalid, 'Ce lien d’invitation n’est plus valable. Demande-en un nouveau.');
@@ -36,24 +36,22 @@ export class InvitationsService {
     private readonly trips: TripsService,
   ) {}
 
-  /** The active link, created on first use. */
-  async current(userId: string, tripId: string): Promise<TripInvitation> {
-    const trip = await this.trips.findForMember(userId, tripId);
-    this.trips.require(trip, userId, 'invite');
-    const active = await this.prisma.invitation.findFirst({ where: { tripId, revokedAt: null }, orderBy: { createdAt: 'desc' } });
-    if (active) return toInvitation(active);
-    return toInvitation(await this.prisma.invitation.create({ data: { tripId, code: newCode(), createdById: userId } }));
+  /** The active link, created on first use. Under the trip lock: never two active links. */
+  current(userId: string, tripId: string): Promise<TripInvitation> {
+    return this.trips.withTripLock(userId, tripId, async (tx, trip) => {
+      assertCan(trip.me.role, 'invite', trip);
+      const active = await tx.invitation.findFirst({ where: { tripId, revokedAt: null }, orderBy: { createdAt: 'desc' } });
+      return toInvitation(active ?? (await tx.invitation.create({ data: { tripId, code: newCode(), createdById: userId } })));
+    });
   }
 
   /** Revokes the current link and creates a new one: the old code stops working. */
-  async renew(userId: string, tripId: string): Promise<TripInvitation> {
-    const trip = await this.trips.findForMember(userId, tripId);
-    this.trips.require(trip, userId, 'renewInvitation');
-    const [, created] = await this.prisma.$transaction([
-      this.prisma.invitation.updateMany({ where: { tripId, revokedAt: null }, data: { revokedAt: new Date() } }),
-      this.prisma.invitation.create({ data: { tripId, code: newCode(), createdById: userId } }),
-    ]);
-    return toInvitation(created);
+  renew(userId: string, tripId: string): Promise<TripInvitation> {
+    return this.trips.withTripLock(userId, tripId, async (tx, trip) => {
+      assertCan(trip.me.role, 'renewInvitation', trip);
+      await tx.invitation.updateMany({ where: { tripId, revokedAt: null }, data: { revokedAt: new Date() } });
+      return toInvitation(await tx.invitation.create({ data: { tripId, code: newCode(), createdById: userId } }));
+    });
   }
 
   async preview(userId: string, code: string): Promise<InvitationPreview> {
