@@ -2,6 +2,7 @@ import type { AuthResponse, Me } from '@7trip/shared';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
+import { queryClient } from '@/lib/query-client';
 import { clearRefreshToken, loadRefreshToken, saveRefreshToken } from '@/lib/session-store';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -38,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetSession = useCallback(async () => {
     accessToken.current = null;
+    // Never show one account's data to the next one.
+    queryClient.clear();
     await clearRefreshToken();
     setUser(null);
     setDevCode(null);

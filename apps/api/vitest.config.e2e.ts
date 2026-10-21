@@ -6,6 +6,8 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // Test files share one database: run them one after another.
+    fileParallelism: false,
     // DATABASE_URL comes from .env or the CI environment; everything else is fixed for tests.
     env: {
       NODE_ENV: 'test',

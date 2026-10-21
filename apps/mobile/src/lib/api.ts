@@ -44,6 +44,10 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, access
   if (response.status === 429) {
     throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Trop de tentatives, réessaie dans une minute.');
   }
+  // Proxy / tunnel errors (502, 503…) come back as HTML, not as our JSON error body.
+  if (response.status >= 500 && typeof error.code !== 'string') {
+    throw new ApiError(response.status, 'SERVER_UNAVAILABLE', 'Le serveur 7Trip ne répond pas pour le moment, réessaie dans un instant.');
+  }
   throw new ApiError(
     response.status,
     typeof error.code === 'string' ? error.code : 'UNKNOWN',
