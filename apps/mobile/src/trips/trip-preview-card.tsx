@@ -7,25 +7,20 @@ import { Icon } from '@/components/ui/icon';
 
 import { formatDayMonth } from './format';
 import { TripStatusChip } from './status-chip';
-import { TripCover, TripIconTile } from './trip-visuals';
+import { TripCover, TripIcon } from './trip-visuals';
 
-const NOTCH = 18;
-
-/** Boarding-pass preview of a trip: stub in the trip colour, route, departure/return, travellers. */
-export function TripTicket({ trip, color, icon, today }: { trip: TripDetail; color: TripColorKey; icon: TripIconKey; today: string }) {
+/** Preview of a trip: same shape as the list card, with the route, departure/return and travellers. */
+export function TripPreviewCard({ trip, color, icon, today }: { trip: TripDetail; color: TripColorKey; icon: TripIconKey; today: string }) {
   const stops = trip.destinations.length <= 3 ? trip.destinations : trip.destinations.slice(0, 2);
   const extra = trip.destinations.length - stops.length;
 
   return (
-    <View style={styles.ticket}>
-      <TripCover color={color} style={styles.stub}>
-        <TripIconTile color={color} icon={icon} size={52} />
+    <View style={styles.card}>
+      <TripCover color={color} style={styles.cover}>
+        <View style={styles.coverIcon}>
+          <TripIcon icon={icon} size={32} color={colors.ink} />
+        </View>
       </TripCover>
-      <View style={styles.perforation}>
-        <View style={[styles.notch, { top: -NOTCH / 2 - 1 }]} />
-        <View style={styles.dashes} />
-        <View style={[styles.notch, { bottom: -NOTCH / 2 - 1 }]} />
-      </View>
       <View style={styles.body}>
         <View style={styles.header}>
           <View style={styles.flex}>
@@ -79,24 +74,10 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  ticket: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radii.card },
-  stub: {
-    width: 92,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopLeftRadius: radii.card,
-    borderBottomLeftRadius: radii.card,
-  },
-  perforation: { width: 2, alignItems: 'center' },
-  dashes: {
-    flex: 1,
-    marginVertical: spacing.md + 2,
-    borderLeftWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.separator,
-  },
-  // Half-circles cut into the ticket edges, painted in the screen background.
-  notch: { position: 'absolute', width: NOTCH, height: NOTCH, borderRadius: NOTCH / 2, backgroundColor: colors.background },
+  card: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden' },
+  // Same cover as TripCard; a custom photo will replace it later.
+  cover: { width: 120 },
+  coverIcon: { flex: 1, alignItems: 'center', justifyContent: 'center', opacity: 0.75 },
   body: { flex: 1, padding: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   flex: { flex: 1 },

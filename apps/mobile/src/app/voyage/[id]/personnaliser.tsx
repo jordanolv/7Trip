@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useAction } from '@/lib/use-action';
 import { TripQueryState } from '@/trips/trip-query-state';
-import { TripTicket } from '@/trips/trip-ticket';
+import { TripPreviewCard } from '@/trips/trip-preview-card';
 import { TripCover, TripIcon, tripColorNames, tripIconNames } from '@/trips/trip-visuals';
 import { useTrip, useUpdateTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
@@ -58,7 +58,7 @@ function Personnaliser({ trip }: { trip: TripDetail }) {
       <FormScreen footer={<Button title="Terminer" loading={save.loading} onPress={() => void save.run()} />}>
         <AppText variant="title">Donne-lui son style</AppText>
 
-        <TripTicket trip={trip} color={color} icon={icon} today={localIsoDate()} />
+        <TripPreviewCard trip={trip} color={color} icon={icon} today={localIsoDate()} />
 
         <View style={styles.group}>
           <AppText variant="bodyStrong">Couverture</AppText>
