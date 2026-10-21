@@ -8,7 +8,7 @@ import { loadEnv } from './config/env.js';
 async function bootstrap() {
   const env = loadEnv();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  configureApp(app);
+  configureApp(app, env.TRUST_PROXY);
   app.enableShutdownHooks();
   await app.listen(env.PORT);
 }

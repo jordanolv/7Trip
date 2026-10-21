@@ -13,7 +13,14 @@ const envSchema = z
     /** `log` prints emails to the console instead of sending them (development). */
     MAIL_TRANSPORT: z.enum(['log', 'smtp']).default('log'),
     SMTP_URL: z.string().optional(),
-    MAIL_FROM: z.string().default('7Trip <no-reply@7trip.co>'),
+    MAIL_FROM: z.string().default('7Trip <no-reply@7trip.fr>'),
+
+    /**
+     * Express "trust proxy": which peers may set X-Forwarded-For. `loopback` on a single host;
+     * `loopback, uniquelocal` in Docker, where Traefik and the guest web reach the API over the
+     * private network.
+     */
+    TRUST_PROXY: z.string().default('loopback'),
 
     /** Requests allowed per minute and per IP on sensitive auth routes. */
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),

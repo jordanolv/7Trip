@@ -27,7 +27,7 @@ describe('parseInvitationCode', () => {
     expect(parseInvitationCode('k7mz2qpx4r')).toBe('k7mz2qpx4r');
     expect(parseInvitationCode('  K7MZ2QPX4R ')).toBe('k7mz2qpx4r');
     expect(parseInvitationCode('exp://abc.exp.direct/--/j/k7mz2qpx4r')).toBe('k7mz2qpx4r');
-    expect(parseInvitationCode('https://7trip.app/j/k7mz2qpx4r/')).toBe('k7mz2qpx4r');
+    expect(parseInvitationCode('https://7trip.fr/j/k7mz2qpx4r/')).toBe('k7mz2qpx4r');
   });
 
   it('rejects anything else', () => {
