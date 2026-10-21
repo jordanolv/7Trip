@@ -35,22 +35,26 @@ export async function callApi<T>(event: H3Event, path: string, { method = 'GET',
   }
 }
 
+/** Set on every request by the visitor-ip middleware; internal SSR requests inherit it. */
+export const VISITOR_IP_HEADER = 'x-7trip-visitor-ip';
+
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
 /**
- * The visitor's address, as seen by our own reverse proxy (nginx / tunnel, on this machine).
- * X-Forwarded-For is only read when the request comes from that local proxy, and only its last
- * entry, the one the proxy appended: anything before it was written by the client.
+ * The visitor's address, as seen by our own reverse proxy (on this machine). X-Forwarded-For is
+ * only read when the request comes from that proxy, and only its last entry, the one the proxy
+ * appended: anything before it was written by the client.
  */
-function visitorIp(event: H3Event): string | undefined {
-  const peer = event.node.req.socket.remoteAddress;
-  if (!peer || !LOOPBACK.has(peer)) return peer;
+export function resolveVisitorIp(event: H3Event, peer: string): string {
+  if (!LOOPBACK.has(peer)) return peer;
   const forwarded = getRequestHeader(event, 'x-forwarded-for')
     ?.split(',')
     .map((part) => part.trim())
     .filter(Boolean);
   return forwarded?.at(-1) ?? peer;
 }
+
+const visitorIp = (event: H3Event) => getRequestHeader(event, VISITOR_IP_HEADER);
 
 /** One HttpOnly cookie per trip joined as a guest: it holds the guest session token. */
 export const guestCookieName = (tripId: string) => `g_${tripId}`;
@@ -68,12 +72,18 @@ export function setGuestCookie(event: H3Event, tripId: string, token: string) {
 /**
  * Whether this browser still has a working guest session for the trip. A cookie alone is not
  * enough: the session may have ended (removed, left from the app, claimed by an account).
+ * Throws when the API cannot tell (network, 5xx).
  */
 export async function hasLiveSession(event: H3Event, tripId: string): Promise<boolean> {
   const token = getCookie(event, guestCookieName(tripId));
   if (!token) return false;
-  return callApi(event, `/trips/${tripId}`, { guestToken: token }).then(
-    () => true,
-    () => false,
-  );
+  try {
+    await callApi(event, `/trips/${tripId}`, { guestToken: token });
+    return true;
+  } catch (error) {
+    // Only a definite answer ends the session; a temporary failure must not replace the cookie.
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status === 401 || status === 404) return false;
+    throw error;
+  }
 }
