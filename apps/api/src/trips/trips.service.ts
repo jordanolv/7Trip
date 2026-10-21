@@ -114,37 +114,40 @@ export class TripsService {
     return this.toDetail(trip, userId);
   }
 
+  /** Under the trip lock, so an organizer demoted meanwhile cannot still edit. */
   async update(userId: string, tripId: string, input: TripInput): Promise<TripDetail> {
-    const trip = await this.findForMember(userId, tripId);
-    this.require(trip, userId, 'editTrip');
+    const updated = await this.withTripLock(userId, tripId, async (tx, locked) => {
+      assertCan(locked.me.role, 'editTrip', locked);
+      const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId } });
 
-    // Validate the resulting date range, not just the fields sent in this request.
-    const startDate = input.startDate !== undefined ? input.startDate : toIso(trip.startDate);
-    const endDate = input.endDate !== undefined ? input.endDate : toIso(trip.endDate);
-    if (startDate && endDate && endDate < startDate) {
-      throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
-    }
+      // Validate the resulting date range, not just the fields sent in this request.
+      const startDate = input.startDate !== undefined ? input.startDate : toIso(trip.startDate);
+      const endDate = input.endDate !== undefined ? input.endDate : toIso(trip.endDate);
+      if (startDate && endDate && endDate < startDate) {
+        throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
+      }
 
-    const updated = await this.prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        ...this.toData(input),
-        // The list is replaced as a whole, in the same statement as the other fields.
-        ...(input.destinations !== undefined && {
-          destinations: { deleteMany: {}, create: toStops(input.destinations) },
-        }),
-      },
-      include: TRIP_INCLUDE,
+      return tx.trip.update({
+        where: { id: tripId },
+        data: {
+          ...this.toData(input),
+          // The list is replaced as a whole, in the same statement as the other fields.
+          ...(input.destinations !== undefined && {
+            destinations: { deleteMany: {}, create: toStops(input.destinations) },
+          }),
+        },
+        include: TRIP_INCLUDE,
+      });
     });
     return this.toDetail(updated, userId);
   }
 
-  /** Loads a trip the user belongs to. Non-members get a 404: a trip's existence is not revealed. */
   /** Deletes the trip for everyone (participants and destinations cascade). Organizers only. */
   async remove(userId: string, tripId: string): Promise<void> {
-    const trip = await this.findForMember(userId, tripId);
-    this.require(trip, userId, 'deleteTrip');
-    await this.prisma.trip.delete({ where: { id: tripId } });
+    await this.withTripLock(userId, tripId, async (tx, locked) => {
+      assertCan(locked.me.role, 'deleteTrip', locked);
+      await tx.trip.delete({ where: { id: tripId } });
+    });
   }
 
   /** The trip with its active participants, or 404 when the user is not one of them. */
@@ -156,11 +159,6 @@ export class TripsService {
     });
     if (!trip) throw notFound();
     return trip;
-  }
-
-  /** Throws 403 unless the user's role allows the action (matrix in @7trip/shared). */
-  require(trip: TripWithRelations, userId: string, action: TripAction): void {
-    assertCan(trip.participants.find((p) => p.userId === userId)?.role, action, trip);
   }
 
   /**

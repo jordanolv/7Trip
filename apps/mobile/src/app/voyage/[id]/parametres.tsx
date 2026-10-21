@@ -23,7 +23,9 @@ function Parametres({ trip }: { trip: TripDetail }) {
   const update = useUpdateTrip(trip.id);
   const confirmDelete = useConfirmDeleteTrip(trip);
   const isOrganizer = trip.myRole === 'ORGANIZER';
-  const everyoneInvites = (update.variables?.invitePolicy ?? trip.invitePolicy) === 'ALL';
+  // Optimistic only while saving; on failure the switch goes back to the saved value.
+  const shownPolicy = (update.isPending ? update.variables.invitePolicy : undefined) ?? trip.invitePolicy;
+  const everyoneInvites = shownPolicy === 'ALL';
 
   const setEveryoneInvites = (value: boolean) =>
     void update
