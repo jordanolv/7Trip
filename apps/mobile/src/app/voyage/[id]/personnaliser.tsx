@@ -173,19 +173,11 @@ const styles = StyleSheet.create({
   },
   later: { minHeight: 44, justifyContent: 'center' },
   preview: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden' },
-  previewCover: { height: 100 },
-  // Only the icon tile overlaps the cover; the text stays entirely on the white part.
-  previewBody: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    minHeight: 84,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg + 2,
-  },
+  previewCover: { height: 88 },
+  // Profile-card layout: the tile straddles the cover, the text sits under it with even padding.
+  previewBody: { gap: spacing.sm + 2, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   previewTile: { marginTop: -28 },
-  previewText: { flex: 1, gap: 2, paddingTop: spacing.sm + 2 },
+  previewText: { gap: 2 },
   group: { gap: spacing.sm + 2 },
   covers: { flexDirection: 'row', gap: spacing.sm + 2 },
   coverOption: {
