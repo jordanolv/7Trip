@@ -1,7 +1,7 @@
 import { daysBetween, formatDestinations, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -38,12 +38,19 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
           <Pressable accessibilityRole="button" accessibilityLabel="Retour à mes voyages" onPress={back} style={styles.roundButton}>
             <Icon name="back" />
           </Pressable>
-          <View style={styles.avatars}>
-            {trip.participants.slice(0, 3).map((p, index) => (
-              <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -10 }]}>
-                <Avatar name={p.displayName} size={32} />
-              </View>
-            ))}
+          <View style={styles.heroActions}>
+            <View style={styles.avatars}>
+              {trip.participants.slice(0, 3).map((p, index) => (
+                <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -10 }]}>
+                  <Avatar name={p.displayName} size={32} />
+                </View>
+              ))}
+            </View>
+            {isOrganizer ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Options du voyage" onPress={() => openTripMenu(trip.id)} style={styles.roundButton}>
+                <Icon name="more" />
+              </Pressable>
+            ) : null}
           </View>
         </View>
         <View style={styles.heroTitle}>
@@ -121,6 +128,29 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
   );
 }
 
+/** Same entries as the "Voyage" section of the Plus tab, one tap away from the dashboard. */
+function openTripMenu(tripId: string) {
+  const actions = [
+    { label: 'Nom, destination et dates', href: `/voyage/${tripId}/modifier` },
+    { label: 'Couleur et icône', href: `/voyage/${tripId}/personnaliser` },
+  ];
+  const go = (index: number) => {
+    const action = actions[index];
+    if (action) router.push(action.href as Href);
+  };
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...actions.map((a) => a.label), 'Annuler'], cancelButtonIndex: actions.length },
+      go,
+    );
+  } else {
+    Alert.alert('Modifier le voyage', undefined, [
+      ...actions.map((a, index) => ({ text: a.label, onPress: () => go(index) })),
+      { text: 'Annuler', style: 'cancel' as const },
+    ]);
+  }
+}
+
 interface Step {
   label: string;
   hint: string;
@@ -166,6 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  heroActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   avatars: { flexDirection: 'row' },
   avatarRing: { borderRadius: 18, borderWidth: 2, borderColor: colors.surface },
   heroTitle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md + 2 },
