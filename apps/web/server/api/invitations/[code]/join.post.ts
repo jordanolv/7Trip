@@ -1,4 +1,4 @@
-import { parseInvitationCode, type GuestJoinResponse } from '@7trip/shared';
+import { parseInvitationCode, type GuestJoinResponse, type InvitationPreview } from '@7trip/shared';
 
 /**
  * Joins as a guest. Posted by a plain HTML form (works without JavaScript): answers with a
@@ -11,6 +11,11 @@ export default defineEventHandler(async (event) => {
   const displayName = String(form?.displayName ?? '');
 
   try {
+    // Already in through this browser (e.g. the form submitted again from another tab): keep that
+    // participation and its cookie instead of creating a second guest.
+    const { tripId } = await callApi<InvitationPreview>(event, `/invitations/${code}`);
+    if (await hasLiveSession(event, tripId)) return sendRedirect(event, `/v/${tripId}`, 303);
+
     const { token, trip } = await callApi<GuestJoinResponse>(event, `/invitations/${code}/join-guest`, {
       method: 'POST',
       body: { displayName },

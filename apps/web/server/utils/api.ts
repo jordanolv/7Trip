@@ -64,3 +64,16 @@ export function setGuestCookie(event: H3Event, tripId: string, token: string) {
     maxAge: 60 * 60 * 24 * 365,
   });
 }
+
+/**
+ * Whether this browser still has a working guest session for the trip. A cookie alone is not
+ * enough: the session may have ended (removed, left from the app, claimed by an account).
+ */
+export async function hasLiveSession(event: H3Event, tripId: string): Promise<boolean> {
+  const token = getCookie(event, guestCookieName(tripId));
+  if (!token) return false;
+  return callApi(event, `/trips/${tripId}`, { guestToken: token }).then(
+    () => true,
+    () => false,
+  );
+}
