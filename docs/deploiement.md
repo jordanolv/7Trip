@@ -1,15 +1,32 @@
 # Déploiement (Dokploy)
 
 Le VPS fait tourner **Dokploy** : Traefik y gère les ports 80/443 et les certificats Let's Encrypt.
-7Trip y vit dans un projet « 7Trip », séparé des autres sites du serveur.
+7Trip y vit dans son propre projet, séparé des autres sites du serveur.
 
-| Élément | Type Dokploy | Domaine | Port interne |
-|---|---|---|---|
-| Postgres 17 | Database | — (réseau interne) | 5432 |
-| API | Application, Dockerfile `apps/api/Dockerfile`, build path `/` | `api.7trip.fr` | 3100 |
-| Web invité | Application, Dockerfile `apps/web/Dockerfile`, build path `/` | `7trip.fr` (+ `www`) | 3000 |
+## Environnements
 
-Les deux applications se construisent depuis le dépôt GitHub (branche `main` en production).
+| | Staging | Production |
+|---|---|---|
+| Branche | `dev` | `main` |
+| Web invité | `staging.7trip.fr` | `7trip.fr` (+ `www`) |
+| API | `api.staging.7trip.fr` | `api.7trip.fr` |
+| Base | la sienne | la sienne |
+| Build de l'app (EAS) | profil `preview` | profil `production` |
+
+Le staging sert à tester l'app et l'API ensemble avant qu'une version n'atteigne les vrais
+utilisateurs : une app installée ne se met pas à jour toute seule, une API qui casse la touche
+donc tant qu'elle n'est pas mise à jour. Seul le staging existe pour l'instant ; la production,
+avec sa propre base et son propre `JWT_SECRET`, se crée à l'identique avant la sortie publique.
+Ensuite, chaque merge `dev` → `main` est une mise en production.
+
+## Services (dans chaque environnement)
+
+| Élément | Type Dokploy | Port interne |
+|---|---|---|
+| Postgres 17 | Database (réseau interne) | 5432 |
+| API | Application, Dockerfile `apps/api/Dockerfile`, build path `/` | 3100 |
+| Web invité | Application, Dockerfile `apps/web/Dockerfile`, build path `/` | 3000 |
+
 Les images se construisent depuis la racine du dépôt : l'API et le web ont besoin des paquets
 `packages/*`. Les migrations Prisma s'appliquent au démarrage de l'API.
 
@@ -30,16 +47,17 @@ Les images se construisent depuis la racine du dépôt : l'API et le web ont bes
 | Variable | Valeur |
 |---|---|
 | `NUXT_API_URL` | URL interne de l'API, par ex. `http://<service-api>:3100/v1` |
-| `NUXT_PUBLIC_APP_LINK` | `seventrip://` (puis `https://7trip.fr/` une fois les liens universels actifs) |
+| `NUXT_PUBLIC_APP_LINK` | `seventrip://` (puis l'URL du web une fois les liens universels actifs) |
 | `NUXT_APPLE_APP_ID` | `TEAMID.<bundle id>` — active `/.well-known/apple-app-site-association` |
 | `NUXT_ANDROID_PACKAGE` / `NUXT_ANDROID_SHA256` | Paquet et empreinte de signature — activent `assetlinks.json` |
 
 Le web n'est jamais publié directement : il ne fait confiance à `X-Forwarded-For` que lorsque la
 requête vient du réseau privé (Traefik).
 
-**App mobile (build EAS)** : `EXPO_PUBLIC_API_URL=https://api.7trip.fr`,
-`EXPO_PUBLIC_INVITE_BASE_URL=https://7trip.fr`.
+**App mobile (build EAS)** : `EXPO_PUBLIC_API_URL` et `EXPO_PUBLIC_INVITE_BASE_URL`, l'API et le
+web de l'environnement visé (`https://api.staging.7trip.fr` et `https://staging.7trip.fr` en staging).
 
 ## DNS
 
-Enregistrements A vers l'IP du VPS : `7trip.fr`, `www.7trip.fr`, `api.7trip.fr`.
+Enregistrements A vers l'IP du VPS : `staging.7trip.fr` et `api.staging.7trip.fr` (en place), puis
+`7trip.fr`, `www.7trip.fr` et `api.7trip.fr` pour la production.
