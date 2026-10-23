@@ -6,6 +6,7 @@ allowBuilds:
   '@prisma/engines': true
   prisma: true
   unrs-resolver: false
+  esbuild: true
 
 # React Native / Metro resolve dependencies more reliably with a flat node_modules.
 nodeLinker: hoisted

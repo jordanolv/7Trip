@@ -1,4 +1,4 @@
-import { daysBetween, formatDestinations, localIsoDate, tripPhase, type TripDetail } from '@7trip/shared';
+import { daysBetween, formatDateRange, formatDestinations, localIsoDate, participantsLabel, tripPhase, type TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { formatDateRange, participantsLabel } from '@/trips/format';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';

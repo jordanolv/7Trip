@@ -1,8 +1,7 @@
-import { tripPhase, type TripSummary } from '@7trip/shared';
+import { tripBadge, tripPhase, type TripSummary } from '@7trip/shared';
 import { colors, fontFamily, radii } from '@7trip/ui-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { tripBadge } from './format';
 
 type Tone = 'upcoming' | 'ongoing' | 'past' | 'undated';
 

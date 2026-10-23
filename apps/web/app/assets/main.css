@@ -1,0 +1,73 @@
+:root {
+  --background: #f7f3ec;
+  --surface: #ffffff;
+  --ink: #1b2433;
+  --ink-secondary: #5e6675;
+  --ink-tertiary: #3a4352;
+  --accent: #2f7a5d;
+  --accent-tint: #e3efe8;
+  --accent-ink: #22553f;
+  --chip: #ede7dc;
+  --chip-soft: #f2ede4;
+  --danger: #a12c1c;
+  --danger-tint: #f7e1dc;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--background); }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+
+.page { max-width: 480px; margin: 0 auto; min-height: 100dvh; padding-bottom: 32px; }
+.card {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 6px 20px rgba(27, 36, 51, 0.08);
+}
+.lift { margin: -44px 16px 0; position: relative; }
+.stack { padding: 18px 24px 0; display: flex; flex-direction: column; gap: 12px; }
+.muted { color: var(--ink-secondary); font-size: 13px; line-height: 1.45; margin: 0; }
+.title { font-size: 19px; font-weight: 800; line-height: 1.2; margin: 0; }
+.display { font-size: 28px; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+.label { font-size: 13px; font-weight: 700; }
+.field {
+  height: 52px;
+  border-radius: 14px;
+  border: 2px solid var(--chip);
+  background: var(--surface);
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  width: 100%;
+  outline: none;
+}
+.field:focus { border-color: var(--accent); }
+.button {
+  height: 52px;
+  border-radius: 14px;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+}
+.button.soft { background: var(--accent-tint); color: var(--accent-ink); }
+.button.danger { background: var(--danger-tint); color: var(--danger); }
+.error { color: var(--danger); font-size: 13px; font-weight: 600; margin: 0; }
+.row { display: flex; align-items: center; gap: 12px; }

@@ -19,11 +19,12 @@ export const passwordSchema = z
   .min(PASSWORD_MIN_LENGTH, `Au moins ${PASSWORD_MIN_LENGTH} caractères`)
   .max(128, '128 caractères maximum');
 
+export const DISPLAY_NAME_MAX_LENGTH = 40;
 export const displayNameSchema = z
   .string()
   .trim()
   .min(1, 'Indique ton prénom ou un pseudo')
-  .max(40, '40 caractères maximum');
+  .max(DISPLAY_NAME_MAX_LENGTH, `${DISPLAY_NAME_MAX_LENGTH} caractères maximum`);
 
 /** One-time codes sent by email (verification, password reset). */
 export const EMAIL_CODE_LENGTH = 6;

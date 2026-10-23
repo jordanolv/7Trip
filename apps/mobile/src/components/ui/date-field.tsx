@@ -1,10 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { localIsoDate } from '@7trip/shared';
+import { formatDate, localIsoDate } from '@7trip/shared';
 import { colors, spacing } from '@7trip/ui-tokens';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { formatDate } from '@/trips/format';
 
 import { AppText } from './app-text';
 
