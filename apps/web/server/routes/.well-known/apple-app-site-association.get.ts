@@ -1,4 +1,4 @@
-/** iOS universal links: https://7trip.co/j/<code> opens the app when it is installed. */
+/** iOS universal links: https://7trip.fr/j/<code> opens the app when it is installed. */
 export default defineEventHandler((event) => {
   const { appleAppId } = useRuntimeConfig(event);
   if (!appleAppId) throw createError({ statusCode: 404 });

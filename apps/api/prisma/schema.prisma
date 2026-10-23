@@ -100,7 +100,7 @@ model Trip {
   invitations  Invitation[]
 }
 
-/// Group invitation link of a trip (7trip.app/j/<code>). One active link per trip; renewing it
+/// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
 /// revokes the old one. Joining always gives the PARTICIPANT role (docs/architecture.md §5).
 model Invitation {
   id          String    @id @default(uuid(7)) @db.Uuid

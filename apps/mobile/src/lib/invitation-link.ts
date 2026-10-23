@@ -1,9 +1,9 @@
 import * as Linking from 'expo-linking';
 
 /**
- * Link shared to invite someone. Until the 7trip.app domain and universal links exist (step 3),
+ * Link shared to invite someone. Until universal links exist on 7trip.fr (needs an EAS build),
  * it opens the app directly: an exp:// link in Expo Go, seventrip:// in a build.
- * Set EXPO_PUBLIC_INVITE_BASE_URL (e.g. https://7trip.app) to switch to web links.
+ * Set EXPO_PUBLIC_INVITE_BASE_URL (e.g. https://7trip.fr) to switch to web links.
  */
 export function invitationUrl(code: string): string {
   const base = process.env.EXPO_PUBLIC_INVITE_BASE_URL;

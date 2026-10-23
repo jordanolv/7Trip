@@ -38,15 +38,29 @@ export async function callApi<T>(event: H3Event, path: string, { method = 'GET',
 /** Set on every request by the visitor-ip middleware; internal SSR requests inherit it. */
 export const VISITOR_IP_HEADER = 'x-7trip-visitor-ip';
 
-const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+/**
+ * Our own reverse proxy reaches this server from the machine (tunnel) or the private Docker network
+ * (Traefik). The server itself is never published directly.
+ */
+function isProxy(address: string): boolean {
+  const ip = address.replace(/^::ffff:/, '');
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+    /^f[cd][0-9a-f]{2}:/i.test(ip)
+  );
+}
 
 /**
- * The visitor's address, as seen by our own reverse proxy (on this machine). X-Forwarded-For is
- * only read when the request comes from that proxy, and only its last entry, the one the proxy
- * appended: anything before it was written by the client.
+ * The visitor's address, as seen by our own reverse proxy. X-Forwarded-For is only read when the
+ * request comes from that proxy, and only its last entry, the one the proxy appended: anything
+ * before it was written by the client.
  */
 export function resolveVisitorIp(event: H3Event, peer: string): string {
-  if (!LOOPBACK.has(peer)) return peer;
+  if (!isProxy(peer)) return peer;
   const forwarded = getRequestHeader(event, 'x-forwarded-for')
     ?.split(',')
     .map((part) => part.trim())

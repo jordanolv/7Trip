@@ -69,10 +69,10 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
 - Héberge aussi les fichiers des liens universels (`apple-app-site-association`, `assetlinks.json`).
 
 ### Infrastructure
-- Docker Compose + nginx sur le serveur existant (`7trip.co`), comme avant le restart :
-  `api.7trip.co`, `7trip.co` (web), Postgres, MinIO.
+- **Dokploy** (Traefik, Let's Encrypt) sur le serveur existant, voir [deploiement.md](deploiement.md) :
+  `api.7trip.fr`, `7trip.fr` (web), Postgres, MinIO.
 - CI GitHub Actions : lint, typecheck, tests (shared, API avec base de test), build.
-- Environnements : local, `dev.7trip.co`, production.
+- Environnements : local, `dev.7trip.fr`, production.
 
 ## 3. Identité, sessions et invités
 
@@ -177,9 +177,9 @@ Règles transverses :
 
 | Lien | Cible |
 |---|---|
-| `https://7trip.co/j/{code}` | rejoindre un voyage |
-| `https://7trip.co/s/{pollId}` | ouvrir un sondage |
-| `https://7trip.co/t/{tripId}` | ouvrir un voyage (membres) |
+| `https://7trip.fr/j/{code}` | rejoindre un voyage |
+| `https://7trip.fr/s/{pollId}` | ouvrir un sondage |
+| `https://7trip.fr/t/{tripId}` | ouvrir un voyage (membres) |
 
 Les liens universels (iOS) et App Links (Android) ouvrent l'app si elle est installée, sinon la
 page web. Les droits sont identiques : un sondage partagé ne s'affiche qu'à un membre du voyage,
