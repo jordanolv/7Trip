@@ -24,11 +24,12 @@ Ensuite, chaque merge `dev` → `main` est une mise en production.
 | Élément | Type Dokploy | Port interne |
 |---|---|---|
 | Postgres 17 | Database (réseau interne) | 5432 |
-| API | Application, Dockerfile `apps/api/Dockerfile`, build path `/` | 3100 |
-| Web invité | Application, Dockerfile `apps/web/Dockerfile`, build path `/` | 3000 |
+| API | Application, Dockerfile `apps/api/Dockerfile`, contexte Docker `.` | 3100 |
+| Web invité | Application, Dockerfile `apps/web/Dockerfile`, contexte Docker `.` | 3000 |
 
 Les images se construisent depuis la racine du dépôt : l'API et le web ont besoin des paquets
-`packages/*`. Les migrations Prisma s'appliquent au démarrage de l'API.
+`packages/*`. Sans contexte `.`, Dokploy prend le dossier du Dockerfile et le build ne trouve pas
+`pnpm-lock.yaml`. Les migrations Prisma s'appliquent au démarrage de l'API.
 
 ## Variables d'environnement
 
