@@ -7,6 +7,7 @@ import { SwipeRow, type SwipeAction } from '@/components/swipe-row';
 import { AppText } from '@/components/ui/app-text';
 import { errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
+import { openMyProfile } from '@/trips/author-name';
 
 import { useRemoveParticipant, useUpdateParticipantRole } from './trips-api';
 
@@ -66,7 +67,8 @@ export function ParticipantRow({ trip, participant }: { trip: TripDetail; partic
       variant="inline"
       actions={actions}
       accessibilityLabel={`${participant.displayName}, ${organizer ? 'organisateur' : 'participant'}`}
-      onPress={manageable && !busy ? openMenu : undefined}
+      // Your own row opens your profile; organizers manage the others.
+      onPress={participant.isMe && !participant.isGuest ? openMyProfile : manageable && !busy ? openMenu : undefined}
       style={styles.row}
     >
       <Avatar name={participant.displayName} color={participant.avatarColor} size={36} />
