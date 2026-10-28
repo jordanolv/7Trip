@@ -62,7 +62,7 @@ function Join({ preview, pollId }: { preview: InvitationPreview; pollId?: string
   });
   const signIn = () => {
     // Brought back here by "Mes voyages" once signed in.
-    setPendingInvitation(preview.code);
+    setPendingInvitation({ code: preview.code, pollId });
     router.push('/auth');
   };
   const alreadyIn = signedIn ? preview.alreadyMember : preview.tripId in guestSessions;

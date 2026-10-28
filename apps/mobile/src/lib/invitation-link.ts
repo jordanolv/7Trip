@@ -10,15 +10,20 @@ export function invitationUrl(code: string): string {
   return base ? `${base.replace(/\/$/, '')}/j/${code}` : Linking.createURL(`/j/${code}`);
 }
 
-/** Code opened while signed out, to come back to once signed in. */
-let pendingCode: string | null = null;
-
-export function setPendingInvitation(code: string | null) {
-  pendingCode = code;
+/** Invitation opened while signed out (and the poll it was shared for), to come back to once signed in. */
+export interface PendingInvitation {
+  code: string;
+  pollId?: string;
 }
 
-export function takePendingInvitation(): string | null {
-  const code = pendingCode;
-  pendingCode = null;
-  return code;
+let pending: PendingInvitation | null = null;
+
+export function setPendingInvitation(invitation: PendingInvitation | null) {
+  pending = invitation;
+}
+
+export function takePendingInvitation(): PendingInvitation | null {
+  const invitation = pending;
+  pending = null;
+  return invitation;
 }
