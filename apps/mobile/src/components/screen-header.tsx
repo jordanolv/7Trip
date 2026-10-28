@@ -1,7 +1,7 @@
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from './ui/app-text';
@@ -10,10 +10,12 @@ import { Icon } from './ui/icon';
 /** Compact header for stacked screens: back (or close) button, an optional centred title and an optional action on the right. */
 export function ScreenHeader({ title, mode = 'back', right }: { title?: string; mode?: 'back' | 'close'; right?: ReactNode }) {
   const insets = useSafeAreaInsets();
+  // "close" is the header of modals: on iOS the sheet already starts below the status bar.
+  const top = mode === 'close' && Platform.OS === 'ios' ? 0 : insets.top;
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={mode === 'back' ? 'Retour' : 'Fermer'}

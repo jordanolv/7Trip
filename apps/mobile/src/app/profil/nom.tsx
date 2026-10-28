@@ -98,11 +98,13 @@ const COLOR_NAMES: Record<AvatarColor, string> = {
 const styles = StyleSheet.create({
   preview: { alignItems: 'center', paddingVertical: spacing.sm },
   colorsBlock: { gap: spacing.sm },
-  palette: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  // One even row of 8, whatever the screen width.
+  palette: { flexDirection: 'row', gap: spacing.sm },
   swatch: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    flex: 1,
+    aspectRatio: 1,
+    maxWidth: 48,
+    borderRadius: 999,
     borderWidth: 3,
     borderColor: colors.surface,
     alignItems: 'center',
