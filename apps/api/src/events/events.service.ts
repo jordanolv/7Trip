@@ -1,8 +1,10 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   ApiErrorCode,
   canEditEvent,
   scheduleError,
+  tripRangeError,
+  type ApiErrorBody,
   type EventCategory,
   type TripEvent,
   type createEventRequestSchema,
@@ -63,6 +65,7 @@ export class EventsService {
   async create(actor: Actor, tripId: string, input: CreateEventInput): Promise<TripEvent> {
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       await assertParticipants(tx, tripId, input.participantIds);
+      await assertWithinTrip(tx, tripId, input);
       if (input.ideaId) {
         const idea = await tx.idea.findFirst({ where: { id: input.ideaId, tripId }, include: { event: { select: { id: true } } } });
         if (!idea) throw apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Idée introuvable');
@@ -104,7 +107,11 @@ export class EventsService {
         endTime: input.endTime !== undefined ? input.endTime : event.endTime,
       };
       const error = scheduleError(merged);
-      if (error) throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, error.message);
+      if (error) throw validationError(error);
+      // Only a change of days is checked: an event left outside after the trip dates moved can still be edited.
+      const daysChanged =
+        merged.startDate !== toIso(event.startDate) || (merged.endDate ?? null) !== (event.endDate && toIso(event.endDate));
+      if (daysChanged) await assertWithinTrip(tx, tripId, merged);
       if (input.participantIds) {
         await assertParticipants(tx, tripId, input.participantIds, event.participants.map((p) => p.participantId));
         await tx.eventParticipant.deleteMany({ where: { eventId: event.id } });
@@ -163,6 +170,25 @@ function details(input: CreateEventInput | UpdateEventInput) {
     ...(input.description !== undefined && { description: input.description }),
     ...(input.bookingRef !== undefined && { bookingRef: input.bookingRef }),
   };
+}
+
+function validationError(error: { field: string; message: string }) {
+  const body: ApiErrorBody = { code: ApiErrorCode.ValidationFailed, message: error.message, fields: { [error.field]: error.message } };
+  return new BadRequestException(body);
+}
+
+/** When the trip has dates, its events stay within them. */
+async function assertWithinTrip(
+  tx: Prisma.TransactionClient,
+  tripId: string,
+  schedule: { startDate: string; endDate?: string | null },
+): Promise<void> {
+  const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { startDate: true, endDate: true } });
+  const error = tripRangeError(
+    { startDate: schedule.startDate, endDate: schedule.endDate && schedule.endDate !== schedule.startDate ? schedule.endDate : null },
+    { startDate: trip.startDate && toIso(trip.startDate), endDate: trip.endDate && toIso(trip.endDate) },
+  );
+  if (error) throw validationError(error);
 }
 
 /** The people of an event must be current members of its trip, or already on it (someone who left stays listed). */

@@ -18,6 +18,7 @@ export function DateField({
   value,
   onChange,
   minimumDate,
+  maximumDate,
   placeholder = 'Choisir',
   clearable = true,
 }: {
@@ -25,6 +26,7 @@ export function DateField({
   value: string | null;
   onChange: (iso: string | null) => void;
   minimumDate?: string | null;
+  maximumDate?: string | null;
   placeholder?: string;
   /** False for a required date: no "Effacer". */
   clearable?: boolean;
@@ -62,6 +64,7 @@ export function DateField({
           locale="fr-FR"
           accentColor={colors.accent}
           minimumDate={minimumDate ? toDate(minimumDate) : undefined}
+          maximumDate={maximumDate ? toDate(maximumDate) : undefined}
           onValueChange={(_, date) => {
             setOpen(false);
             onChange(localIsoDate(date));

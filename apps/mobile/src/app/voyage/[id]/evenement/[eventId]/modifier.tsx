@@ -109,6 +109,7 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
           errors={{ ...save.fieldErrors, ...errors }}
           people={tripPeople(trip.data, event)}
           warning={warning}
+          tripDates={{ startDate: trip.data?.startDate ?? null, endDate: trip.data?.endDate ?? null }}
         />
 
         <Pressable accessibilityRole="button" onPress={confirmDelete} disabled={remove.isPending} style={styles.delete}>

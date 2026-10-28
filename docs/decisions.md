@@ -31,7 +31,8 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Chevauchements | Signalés, jamais bloqués : deux événements horaires du même jour qui partagent au moins une personne. Les événements sans horaire ou sur plusieurs jours (hôtel) ne comptent pas, sinon ils chevaucheraient tout. |
 | Événement sans heure de fin | Compte pour une heure dans la détection des chevauchements. |
 | Idée planifiée | L'événement reprend titre, lieu, lien et description de l'idée, puis vit sa vie. Le retirer du planning laisse l'idée intacte ; supprimer l'idée laisse l'événement, sans lien. |
-| Jours proposés | Tous les jours du voyage quand ses dates sont fixées, plus ceux qui portent un événement. Sans dates, n'importe quel jour. |
+| Dates d'un événement | Quand le voyage a des dates, un événement doit tenir dedans (refusé sinon). Sans dates, n'importe quel jour. Si les dates du voyage changent ensuite, les événements restés en dehors sont gardés et signalés ; on peut encore les modifier sans les déplacer. |
+| Jours affichés | Tous les jours du voyage, plus ceux qui portent encore un événement hors des dates. |
 
 ## Sondages
 

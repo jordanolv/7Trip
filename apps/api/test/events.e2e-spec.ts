@@ -63,6 +63,22 @@ describe('Planning (e2e)', () => {
       .expect(400);
   });
 
+  it('keeps events within the trip dates, once they are set', async () => {
+    const { trip } = await newTrip();
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ startDate: '2026-10-17', endDate: '2026-10-24' }).expect(200);
+    const post = (body: Record<string, unknown>) => api().post(`/v1/trips/${trip.id}/events`).set(lea.auth).send({ title: 'Tapas', ...body });
+
+    const before = await post({ startDate: '2026-10-16' }).expect(400);
+    expect(before.body).toMatchObject({ code: 'VALIDATION_FAILED', fields: { startDate: 'Le voyage commence le 17 oct.' } });
+    await post({ startDate: '2026-10-23', endDate: '2026-10-25' }).expect(400);
+    const inside = (await post({ startDate: '2026-10-24' }).expect(201)).body as TripEvent;
+    await api().patch(`/v1/trips/${trip.id}/events/${inside.id}`).set(lea.auth).send({ startDate: '2026-10-25' }).expect(400);
+
+    // The trip gets shorter: the event left outside stays, and can still be edited without moving it.
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ endDate: '2026-10-20' }).expect(200);
+    await api().patch(`/v1/trips/${trip.id}/events/${inside.id}`).set(lea.auth).send({ title: 'Tapas tardives' }).expect(200);
+  });
+
   it('lets the author, the people on it and the organizers edit, and nobody else', async () => {
     const { trip, ids } = await newTrip();
     const tapas = await add(trip.id, lea.auth, { title: 'Tapas', startDate: '2026-10-20', participantIds: [ids.lea] });

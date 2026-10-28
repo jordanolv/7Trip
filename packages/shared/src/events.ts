@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { optionalText, optionalUrl } from './fields.js';
+import { formatDayMonth } from './format.js';
 import type { ContentAuthor, IdeaCategory } from './ideas.js';
 import { isoDateSchema, type ParticipantRole } from './trips.js';
 
@@ -53,6 +54,26 @@ export function scheduleError(schedule: EventSchedule): { field: 'endDate' | 'en
   const sameDay = !endDate || endDate === startDate;
   if (sameDay && startTime && endTime && endTime <= startTime) {
     return { field: 'endTime', message: 'La fin doit être après le début' };
+  }
+  return null;
+}
+
+/**
+ * Why the event falls outside the trip, when its dates are set; null when it fits. A trip
+ * without dates takes any day.
+ */
+export function tripRangeError(
+  schedule: Pick<EventSchedule, 'startDate' | 'endDate'>,
+  trip: { startDate: string | null; endDate: string | null },
+): { field: 'startDate' | 'endDate'; message: string } | null {
+  if (!trip.startDate) return null;
+  const tripEnd = trip.endDate ?? trip.startDate;
+  const last = schedule.endDate ?? schedule.startDate;
+  if (schedule.startDate < trip.startDate) {
+    return { field: 'startDate', message: `Le voyage commence le ${formatDayMonth(trip.startDate)}` };
+  }
+  if (last > tripEnd) {
+    return { field: schedule.endDate ? 'endDate' : 'startDate', message: `Le voyage se termine le ${formatDayMonth(tripEnd)}` };
   }
   return null;
 }

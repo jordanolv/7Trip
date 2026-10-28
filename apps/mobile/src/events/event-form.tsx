@@ -103,6 +103,7 @@ export function EventForm({
   errors,
   people,
   warning,
+  tripDates,
   autoFocusTitle,
 }: {
   values: EventFormValues;
@@ -112,9 +113,13 @@ export function EventForm({
   people: ContentAuthor[];
   /** Overlap notice: shown, never blocking. */
   warning: string | null;
+  /** When set, the days to choose from (an event stays within the trip). */
+  tripDates: { startDate: string | null; endDate: string | null };
   autoFocusTitle?: boolean;
 }) {
   const set = (patch: Partial<EventFormValues>) => onChange({ ...values, ...patch });
+  const firstDay = tripDates.startDate;
+  const lastDay = tripDates.startDate ? (tripDates.endDate ?? tripDates.startDate) : null;
   const toggle = (id: string) => {
     const ids = values.participantIds.includes(id) ? values.participantIds.filter((p) => p !== id) : [...values.participantIds, id];
     set({ participantIds: ids });
@@ -160,6 +165,8 @@ export function EventForm({
             <DateField
               label={values.multiDay ? 'Du' : 'Jour'}
               value={values.startDate}
+              minimumDate={firstDay}
+              maximumDate={lastDay}
               clearable={false}
               onChange={(startDate) => startDate && set({ startDate })}
             />
@@ -172,17 +179,22 @@ export function EventForm({
                 label="Au"
                 value={values.endDate}
                 minimumDate={values.startDate}
+                maximumDate={lastDay}
                 clearable={false}
                 onChange={(endDate) => set({ endDate })}
               />
             </View>
           </View>
         ) : null}
+        {errors.startDate ? <FieldError message={errors.startDate} /> : null}
         {errors.endDate ? <FieldError message={errors.endDate} /> : null}
         <SwitchRow
           label="Plusieurs jours"
           value={values.multiDay}
-          onChange={(multiDay) => set({ multiDay, endDate: multiDay ? (values.endDate ?? addDays(values.startDate, 1)) : null })}
+          onChange={(multiDay) => {
+            const next = addDays(values.startDate, 1);
+            set({ multiDay, endDate: multiDay ? (values.endDate ?? (lastDay && next > lastDay ? lastDay : next)) : null });
+          }}
         />
 
         <View style={styles.separator} />

@@ -6,6 +6,7 @@ import {
   overlapMessage,
   planningDays,
   scheduleError,
+  tripRangeError,
   weekdayShort,
 } from './events.js';
 
@@ -40,6 +41,18 @@ describe('createEventRequestSchema', () => {
 describe('scheduleError', () => {
   it('accepts a date alone', () => {
     expect(scheduleError({ startDate: '2026-10-20' })).toBeNull();
+  });
+});
+
+describe('tripRangeError', () => {
+  const trip = { startDate: '2026-10-17', endDate: '2026-10-24' };
+  it('keeps events within the trip dates, when there are some', () => {
+    expect(tripRangeError({ startDate: '2026-10-17', endDate: '2026-10-24' }, trip)).toBeNull();
+    expect(tripRangeError({ startDate: '2026-10-16' }, trip)).toEqual({ field: 'startDate', message: 'Le voyage commence le 17 oct.' });
+    expect(tripRangeError({ startDate: '2026-10-25' }, trip)).toEqual({ field: 'startDate', message: 'Le voyage se termine le 24 oct.' });
+    expect(tripRangeError({ startDate: '2026-10-23', endDate: '2026-10-26' }, trip)).toMatchObject({ field: 'endDate' });
+    expect(tripRangeError({ startDate: '2026-10-17' }, { startDate: '2026-10-17', endDate: null })).toBeNull();
+    expect(tripRangeError({ startDate: '2030-01-01' }, { startDate: null, endDate: null })).toBeNull();
   });
 });
 

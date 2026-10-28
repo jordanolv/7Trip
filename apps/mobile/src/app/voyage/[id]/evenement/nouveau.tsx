@@ -65,6 +65,7 @@ export default function NouvelEvenementScreen() {
           errors={{ ...submit.fieldErrors, ...errors }}
           people={tripPeople(trip.data)}
           warning={warning}
+          tripDates={{ startDate: trip.data?.startDate ?? null, endDate: trip.data?.endDate ?? null }}
           autoFocusTitle
         />
         {submit.error ? (

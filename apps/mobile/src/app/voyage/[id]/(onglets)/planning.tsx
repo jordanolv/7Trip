@@ -159,6 +159,13 @@ export default function PlanningScreen() {
             })}
           </ScrollView>
 
+          {day && trip.data?.startDate && (day < trip.data.startDate || day > (trip.data.endDate ?? trip.data.startDate)) ? (
+            <View style={styles.outside}>
+              <Icon name="alert" color={colors.infoInk} size={16} />
+              <Text style={styles.outsideText}>Ce jour est en dehors des dates du voyage : ses événements y sont restés quand les dates ont changé.</Text>
+            </View>
+          ) : null}
+
           <View style={styles.timeline}>
             {allDay.map((event) => (
               <AllDayRow key={event.id} event={event} onPress={() => open(event)} />
@@ -352,6 +359,8 @@ const styles = StyleSheet.create({
   },
   warningText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 17, color: '#6E2F0C' },
   pressed: { opacity: 0.7 },
+  outside: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', backgroundColor: colors.infoTint, borderRadius: 12, padding: 10 },
+  outsideText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 17, color: colors.infoInk },
   empty: { backgroundColor: colors.surface, borderRadius: 22, padding: spacing.xl, gap: spacing.sm },
   emptyIcon: {
     width: 52,

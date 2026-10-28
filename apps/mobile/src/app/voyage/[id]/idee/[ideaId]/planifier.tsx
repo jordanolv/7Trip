@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Icon } from '@/components/ui/icon';
 import { TimeField } from '@/components/ui/time-field';
-import { useCreateEvent, useEvents } from '@/events/events-api';
+import { useCreateEvent } from '@/events/events-api';
 import { useOverlapWarning } from '@/events/use-overlap-warning';
 import { CategoryTile } from '@/ideas/idea-visuals';
 import { useIdea } from '@/ideas/ideas-api';
@@ -48,9 +48,9 @@ export default function PlanifierIdeeScreen() {
  */
 function Planifier({ tripId, idea }: { tripId: string; idea: Idea }) {
   const trip = useTrip(tripId);
-  const events = useEvents(tripId).data ?? [];
   const create = useCreateEvent(tripId);
-  const days = planningDays({ startDate: trip.data?.startDate ?? null, endDate: trip.data?.endDate ?? null }, events);
+  // Only the trip's own days: an event stays within the trip.
+  const days = planningDays({ startDate: trip.data?.startDate ?? null, endDate: trip.data?.endDate ?? null }, []);
   const today = localIsoDate();
   const [picked, setDay] = useState<string | null>(null);
   // Today during the trip, otherwise its first day (the trip may still be loading).
