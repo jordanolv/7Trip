@@ -20,7 +20,10 @@ import { TripsService } from '../trips/trips.service.js';
 export type CreateIdeaInput = z.output<typeof createIdeaRequestSchema>;
 export type UpdateIdeaInput = z.output<typeof updateIdeaRequestSchema>;
 
-const IDEA_INCLUDE = { author: true } satisfies Prisma.IdeaInclude;
+const IDEA_INCLUDE = {
+  author: true,
+  event: { select: { id: true, startDate: true, startTime: true } },
+} satisfies Prisma.IdeaInclude;
 type IdeaWithAuthor = Prisma.IdeaGetPayload<{ include: typeof IDEA_INCLUDE }>;
 
 const ideaNotFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Idée introuvable');
@@ -154,5 +157,10 @@ function toIdea(idea: IdeaWithAuthor, me: Participant): Idea {
     createdAt: idea.createdAt.toISOString(),
     version: idea.version,
     canEdit: canEditContent(me, idea.authorId),
+    plannedEvent: idea.event && {
+      id: idea.event.id,
+      startDate: idea.event.startDate.toISOString().slice(0, 10),
+      startTime: idea.event.startTime,
+    },
   };
 }

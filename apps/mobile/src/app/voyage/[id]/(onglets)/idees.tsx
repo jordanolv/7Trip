@@ -1,4 +1,4 @@
-import { authorName, type Idea, type IdeaStatus } from '@7trip/shared';
+import { authorName, type Idea } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -8,12 +8,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { CategoryTile, IdeaStatusChip, ideaMeta } from '@/ideas/idea-visuals';
+import { CategoryTile, IdeaStatusChip, ideaDisplayStatus, ideaMeta, type IdeaDisplayStatus } from '@/ideas/idea-visuals';
 import { useIdeas, useMarkIdeasSeen } from '@/ideas/ideas-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
-type Filter = 'all' | IdeaStatus;
+type Filter = 'all' | IdeaDisplayStatus;
 
 /** The idea box: a simple list with filters, not a board (CDC §5). */
 export default function IdeesScreen() {
@@ -36,11 +36,12 @@ export default function IdeesScreen() {
       void refresh();
     }, [refresh]),
   );
-  const shown = filter === 'all' ? all : all.filter((idea) => idea.status === filter);
+  const shown = filter === 'all' ? all : all.filter((idea) => ideaDisplayStatus(idea) === filter);
   const filters: { key: Filter; label: string }[] = [
     { key: 'all', label: all.length ? `Toutes · ${all.length}` : 'Toutes' },
     { key: 'PROPOSED', label: 'Proposées' },
     { key: 'KEPT', label: 'Retenues' },
+    { key: 'PLANNED', label: 'Planifiées' },
   ];
   const propose = () => router.push(`/voyage/${tripId}/idee/nouvelle` as Href);
 
@@ -104,7 +105,7 @@ export default function IdeesScreen() {
         </View>
       ) : shown.length === 0 ? (
         <AppText tone="secondary" style={styles.none}>
-          {filter === 'KEPT' ? 'Aucune idée retenue pour l’instant.' : 'Aucune idée en attente.'}
+          {filter === 'KEPT' ? 'Aucune idée retenue pour l’instant.' : filter === 'PLANNED' ? 'Aucune idée au planning pour l’instant.' : 'Aucune idée en attente.'}
         </AppText>
       ) : (
         <View style={styles.list}>
@@ -132,7 +133,7 @@ function IdeaRow({ idea, onPress }: { idea: Idea; onPress: () => void }) {
           </AppText>
         ) : null}
         <View style={styles.statusLine}>
-          <IdeaStatusChip status={idea.status} />
+          <IdeaStatusChip idea={idea} />
           <Text style={styles.author} numberOfLines={1}>
             par {authorName(idea.author)}
           </Text>

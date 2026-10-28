@@ -47,6 +47,12 @@ export class GuestSessionsService {
    */
   private async merge(tx: Prisma.TransactionClient, guest: Participant, account: Participant): Promise<void> {
     await tx.idea.updateMany({ where: { authorId: guest.id }, data: { authorId: account.id } });
+    await tx.event.updateMany({ where: { authorId: guest.id }, data: { authorId: account.id } });
+    // On an event both were on, the account is already listed: drop the guest's line, move the others.
+    await tx.eventParticipant.deleteMany({
+      where: { participantId: guest.id, event: { participants: { some: { participantId: account.id } } } },
+    });
+    await tx.eventParticipant.updateMany({ where: { participantId: guest.id }, data: { participantId: account.id } });
     await tx.participant.update({
       where: { id: guest.id },
       data: { status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null },

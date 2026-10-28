@@ -38,16 +38,23 @@ export function CategoryTile({ category, size = 60 }: { category: IdeaCategory |
   );
 }
 
-const STATUS_COLORS: Record<IdeaStatus, { bg: string; fg: string }> = {
-  PROPOSED: { bg: colors.chipSoft, fg: colors.inkTertiary },
-  KEPT: { bg: colors.accentTint, fg: colors.accentInk },
+/** What the idea box shows: "Planifiée" once on the planning (derived), else its own status. */
+export type IdeaDisplayStatus = IdeaStatus | 'PLANNED';
+
+export const ideaDisplayStatus = (idea: Pick<Idea, 'status' | 'plannedEvent'>): IdeaDisplayStatus =>
+  idea.plannedEvent ? 'PLANNED' : idea.status;
+
+const STATUS_STYLES: Record<IdeaDisplayStatus, { bg: string; fg: string; label: string }> = {
+  PROPOSED: { bg: colors.chipSoft, fg: colors.inkTertiary, label: IDEA_STATUS_LABELS.PROPOSED },
+  KEPT: { bg: colors.accentTint, fg: colors.accentInk, label: IDEA_STATUS_LABELS.KEPT },
+  PLANNED: { bg: '#C8E0EA', fg: '#1F5F7A', label: 'Planifiée' },
 };
 
-export function IdeaStatusChip({ status }: { status: IdeaStatus }) {
-  const { bg, fg } = STATUS_COLORS[status];
+export function IdeaStatusChip({ idea }: { idea: Pick<Idea, 'status' | 'plannedEvent'> }) {
+  const { bg, fg, label } = STATUS_STYLES[ideaDisplayStatus(idea)];
   return (
     <View style={[styles.chip, { backgroundColor: bg }]}>
-      <Text style={[styles.chipText, { color: fg }]}>{IDEA_STATUS_LABELS[status]}</Text>
+      <Text style={[styles.chipText, { color: fg }]}>{label}</Text>
     </View>
   );
 }
