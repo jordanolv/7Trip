@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { DISPLAY_NAME_MAX_LENGTH, formatDateRange, formatDestinations, localIsoDate } from '@7trip/shared';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const route = useRoute();
 const code = String(route.params.code ?? '');
 const { appLink } = useRuntimeConfig().public;
 const { data: preview, error } = await useFetch(`/api/invitations/${code}`);
+// Opened from a shared poll (/s/<id>?j=<code>): back to that poll once joined.
+const pollId = typeof route.query.sondage === 'string' && UUID.test(route.query.sondage) ? route.query.sondage : null;
 
-// Joined from this browser already: straight to the trip.
-if (preview.value?.joined) await navigateTo(`/v/${preview.value.tripId}`, { replace: true });
+// Joined from this browser already: straight to the trip, or the poll.
+if (preview.value?.joined) await navigateTo(pollId ? `/s/${pollId}` : `/v/${preview.value.tripId}`, { replace: true });
 
 const errorMessage = computed(() => (typeof route.query.erreur === 'string' ? route.query.erreur : null));
 const name = ref(typeof route.query.nom === 'string' ? route.query.nom : '');
@@ -62,8 +66,9 @@ useHead(() => ({
           aria-describedby="pseudo-hint"
         />
         <p id="pseudo-hint" class="muted">Prénom ou pseudo, visible par le groupe.</p>
+        <input v-if="pollId" type="hidden" name="sondage" :value="pollId" />
         <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-        <button type="submit" class="button">Rejoindre le voyage</button>
+        <button type="submit" class="button">{{ pollId ? 'Rejoindre et voter' : 'Rejoindre le voyage' }}</button>
       </form>
     </section>
 
