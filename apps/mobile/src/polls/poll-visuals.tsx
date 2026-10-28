@@ -1,7 +1,9 @@
-import { formatDayMonth, localIsoDate, weekdayShort, type Poll, type PollKind } from '@7trip/shared';
+import { authorName, formatDayMonth, localIsoDate, weekdayShort, type ContentAuthor, type Poll, type PollKind } from '@7trip/shared';
 import { colors, fontFamily, radii, tripIconPaths } from '@7trip/ui-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+
+import { Avatar } from '@/components/avatar';
 
 /** Tint, ink and stroke icon of each kind, in the colours of the idea categories. */
 const KIND_STYLES: Record<PollKind, { tint: string; ink: string; path: string }> = {
@@ -63,7 +65,34 @@ export function VoteBar({ ratio, color, height = 6 }: { ratio: number; color: st
   );
 }
 
+/** Overlapping avatars of who voted for an option; past `max`, a "+N" bubble. */
+export function VoterAvatars({ voters, size = 26, max = 6 }: { voters: ContentAuthor[]; size?: number; max?: number }) {
+  const shown = voters.length > max ? voters.slice(0, max - 1) : voters;
+  const extra = voters.length - shown.length;
+  const ringStyle = { borderRadius: size / 2 + 2 };
+  return (
+    <View accessible accessibilityLabel={`Votes : ${voters.map(authorName).join(', ')}`} style={styles.voters}>
+      {shown.map((voter, index) => (
+        <View key={voter.id} style={[styles.voterRing, ringStyle, index > 0 && { marginLeft: -size * 0.3 }]}>
+          <Avatar name={voter.displayName} size={size} />
+        </View>
+      ))}
+      {extra ? (
+        <View style={[styles.voterRing, ringStyle, { marginLeft: -size * 0.3 }]}>
+          <View style={[styles.extra, { width: size, height: size, borderRadius: size / 2 }]}>
+            <Text style={[styles.extraText, { fontSize: size * 0.38 }]}>+{extra}</Text>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  voters: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  voterRing: { borderWidth: 2, borderColor: colors.surface },
+  extra: { backgroundColor: colors.chipSoft, alignItems: 'center', justifyContent: 'center' },
+  extraText: { fontFamily: fontFamily.bold, color: colors.inkSecondary },
   tile: { alignItems: 'center', justifyContent: 'center' },
   chip: { alignSelf: 'flex-start', borderRadius: radii.chip, paddingHorizontal: 10, paddingVertical: 4 },
   chipText: { fontFamily: fontFamily.bold, fontSize: 12 },

@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
-import { Chip, VoteBar, deadlineLabel } from '@/polls/poll-visuals';
+import { Chip, VoteBar, VoterAvatars, deadlineLabel } from '@/polls/poll-visuals';
 import { useApplyPoll, useClosePoll, useDeletePoll, usePoll, useVote } from '@/polls/polls-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
@@ -228,11 +228,7 @@ function OptionButton({ option, poll, selected, onPress }: { option: PollOption;
         {option.votes !== null ? (
           <>
             <VoteBar ratio={poll.eligibleCount ? option.votes / poll.eligibleCount : 0} color={option.mine ? colors.accent : '#B5AEA1'} />
-            {voters?.length ? (
-              <AppText variant="caption" tone="secondary" numberOfLines={2}>
-                {voters.map(authorName).join(', ')}
-              </AppText>
-            ) : null}
+            {voters?.length ? <VoterAvatars voters={voters} /> : null}
           </>
         ) : null}
       </View>
@@ -277,11 +273,7 @@ function Results({ tripId, poll, canApply }: { tripId: string; poll: Poll; canAp
             <Text style={styles.leaderCount}>{votesLabel(top.votes ?? 0)}</Text>
           </View>
           <VoteBar ratio={poll.eligibleCount ? (top.votes ?? 0) / poll.eligibleCount : 0} color={colors.accent} height={8} />
-          {top.voters?.length ? (
-            <AppText variant="caption" tone="secondary">
-              {top.voters.map(authorName).join(', ')}
-            </AppText>
-          ) : null}
+          {top.voters?.length ? <VoterAvatars voters={top.voters} /> : null}
         </View>
       ) : leaders.length > 1 ? (
         <View style={styles.tie}>
@@ -301,6 +293,7 @@ function Results({ tripId, poll, canApply }: { tripId: string; poll: Poll; canAp
                 <Text style={styles.optionCount}>{votesLabel(o.votes ?? 0)}</Text>
               </View>
               <VoteBar ratio={poll.eligibleCount ? (o.votes ?? 0) / poll.eligibleCount : 0} color={leaders.includes(o) ? colors.accent : '#9C958A'} />
+              {o.voters?.length ? <VoterAvatars voters={o.voters} size={22} /> : null}
             </View>
           ))}
         </View>
