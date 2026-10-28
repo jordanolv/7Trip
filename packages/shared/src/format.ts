@@ -1,4 +1,4 @@
-import { daysBetween, tripPhase, type TripSummary } from './trips.js';
+import { daysBetween, localIsoDate, tripPhase, type TripSummary } from './trips.js';
 
 // French display helpers shared by the app and the guest web.
 
@@ -48,4 +48,17 @@ export function tripBadge(trip: Pick<TripSummary, 'startDate' | 'endDate'>, toda
   if (phase === 'ongoing') return `En cours · J${daysBetween(trip.startDate, today) + 1}`;
   const days = daysBetween(today, trip.startDate);
   return days === 1 ? 'Demain' : `Dans ${days} jours`;
+}
+
+/** "à l’instant", "il y a 5 min", "il y a 3 h", "il y a 2 j", then the date: "17 oct." (with the year when it is not the current one). */
+export function formatRelativeTime(iso: string, now = new Date()): string {
+  const minutes = Math.floor((now.getTime() - Date.parse(iso)) / 60_000);
+  if (minutes < 1) return 'à l’instant';
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `il y a ${days} j`;
+  const date = localIsoDate(new Date(iso));
+  return date.slice(0, 4) === localIsoDate(now).slice(0, 4) ? formatDayMonth(date) : formatDate(date);
 }

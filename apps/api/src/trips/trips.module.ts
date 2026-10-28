@@ -12,5 +12,6 @@ import { TripsService } from './trips.service.js';
   imports: [AuthModule],
   controllers: [TripsController, ParticipantsController],
   providers: [TripsService, InvitationsService, ParticipantsService, GuestSessionsService, TripMemberGuard],
+  exports: [TripsService, TripMemberGuard],
 })
 export class TripsModule {}
