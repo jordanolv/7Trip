@@ -18,16 +18,17 @@ import { useInvitationPreview, useJoinAsGuest, useJoinTrip } from '@/trips/trips
 
 /** Opened from an invitation link (…/j/<code>) or from "Rejoindre un voyage". A sheet sized to its content. */
 export default function InvitationScreen() {
-  const params = useLocalSearchParams<{ code: string }>();
+  const params = useLocalSearchParams<{ code: string; sondage?: string }>();
   const code = parseInvitationCode(params.code ?? '');
   const { status } = useAuth();
   if (!code) return <Invalid />;
-  return status === 'loading' ? <Loading /> : <Preview code={code} />;
+  return status === 'loading' ? <Loading /> : <Preview code={code} pollId={params.sondage} />;
 }
 
-function Preview({ code }: { code: string }) {
+/** `pollId`: opened from a shared poll link, which is where joining leads. */
+function Preview({ code, pollId }: { code: string; pollId?: string }) {
   const preview = useInvitationPreview(code);
-  if (preview.data) return <Join preview={preview.data} />;
+  if (preview.data) return <Join preview={preview.data} pollId={pollId} />;
   if (preview.isPending) return <Loading />;
   if (preview.error instanceof ApiError && preview.error.status === 404) return <Invalid />;
   return (
@@ -46,13 +47,13 @@ function Loading() {
   );
 }
 
-function Join({ preview }: { preview: InvitationPreview }) {
+function Join({ preview, pollId }: { preview: InvitationPreview; pollId?: string }) {
   const { status, guestSessions } = useAuth();
   const signedIn = status === 'signedIn';
   const join = useJoinTrip(preview.code);
   const joinAsGuest = useJoinAsGuest(preview.code);
   const [name, setName] = useState('');
-  const open = () => router.replace(`/voyage/${preview.tripId}` as Href);
+  const open = () => router.replace((pollId ? `/voyage/${preview.tripId}/sondage/${pollId}` : `/voyage/${preview.tripId}`) as Href);
   const run = useAction(async () => {
     if (signedIn) await join.mutateAsync();
     else await joinAsGuest.mutateAsync(name);

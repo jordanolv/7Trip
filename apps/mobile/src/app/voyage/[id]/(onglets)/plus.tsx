@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionRow } from '@/components/action-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { usePolls } from '@/polls/polls-api';
 import { ParticipantRow } from '@/trips/participant-row';
 import { amGuest, can } from '@/trips/permissions';
 import { TripQueryState } from '@/trips/trip-query-state';
@@ -28,6 +29,10 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const canInvite = can('invite', trip);
   const guest = amGuest(trip);
   const confirmLeave = useConfirmLeaveTrip(trip);
+  const polls = usePolls(trip.id);
+  const toVote = polls.data?.filter((poll) => !poll.closed && !poll.hasVoted).length ?? 0;
+  const open = polls.data?.filter((poll) => !poll.closed).length ?? 0;
+  const pollsDetail = toVote ? `${toVote} à voter` : open ? `${open} en cours` : 'Décider ensemble';
   const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
 
   return (
@@ -60,7 +65,7 @@ function PlusContent({ trip }: { trip: TripDetail }) {
       ) : null}
 
       <View style={styles.grid}>
-        <Tile icon="poll" title="Sondages" detail="Bientôt" onPress={soon('Les sondages')} />
+        <Tile icon="poll" title="Sondages" detail={pollsDetail} onPress={() => router.push(`/voyage/${trip.id}/sondages` as Href)} />
         <Tile icon="folder" title="Documents" detail="Bientôt" onPress={soon('Les documents')} />
       </View>
 

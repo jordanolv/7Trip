@@ -53,6 +53,13 @@ export class GuestSessionsService {
       where: { participantId: guest.id, event: { participants: { some: { participantId: account.id } } } },
     });
     await tx.eventParticipant.updateMany({ where: { participantId: guest.id }, data: { participantId: account.id } });
+    await tx.poll.updateMany({ where: { authorId: guest.id }, data: { authorId: account.id } });
+    await tx.poll.updateMany({ where: { closedById: guest.id }, data: { closedById: account.id } });
+    // On a poll both voted in, the account's vote stands: the guest's is dropped, the others move.
+    await tx.vote.deleteMany({
+      where: { participantId: guest.id, option: { poll: { options: { some: { votes: { some: { participantId: account.id } } } } } } },
+    });
+    await tx.vote.updateMany({ where: { participantId: guest.id }, data: { participantId: account.id } });
     await tx.participant.update({
       where: { id: guest.id },
       data: { status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null },

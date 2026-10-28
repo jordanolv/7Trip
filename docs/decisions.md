@@ -42,7 +42,10 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Résultats avant clôture | Visibles après avoir voté (comme dans les maquettes). |
 | Clôture | Manuelle par un organisateur, ou automatique à l'échéance si elle est définie. |
 | Égalité | Aucune décision automatique : l'organisateur choisit, ou relance un sondage entre les ex æquo. |
-| Modifier les options après des votes | Ajout possible. Suppression d'une option : demande confirmation et efface les votes sur cette option. |
+| Modifier les options après des votes | Ajout possible. Suppression d'une option : demande confirmation et efface les votes sur cette option. Pas encore dans l'app : un sondage se supprime et se recrée. |
+| Participation | « 4 sur 7 ont voté » compte les participants actifs ; qui a voté est toujours visible, pas ce qu'il a voté. Les votes de quelqu'un qui part restent dans les résultats. |
+| Suite d'un sondage clos | Proposée à l'organisateur, jamais appliquée seule : destination (remplace la liste), dates du voyage, idée « retenue » (puis « Ajouter au planning »). Sur une égalité, chaque ex æquo est proposé. « Plus tard » laisse la carte pour la prochaine visite. |
+| Lien partagé | `7trip.fr/s/{pollId}`, plus `?j={code}` quand celui qui partage peut inviter : un non-membre rejoint le voyage puis arrive sur le sondage. Sans code, le lien ne s'ouvre que pour les membres. |
 
 ## Documents
 

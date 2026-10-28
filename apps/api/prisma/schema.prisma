@@ -100,6 +100,7 @@ model Trip {
   invitations  Invitation[]
   ideas        Idea[]
   events       Event[]
+  polls        Poll[]
 }
 
 /// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
@@ -162,6 +163,9 @@ model Participant {
   ideas            Idea[]
   events           Event[]
   eventMemberships EventParticipant[]
+  polls            Poll[]             @relation("PollAuthor")
+  closedPolls      Poll[]             @relation("PollCloser")
+  votes            Vote[]
 
   @@unique([tripId, userId])
   @@index([userId])
@@ -205,7 +209,8 @@ model Idea {
   /// Participants are only ever deleted with their trip.
   author Participant @relation(fields: [authorId], references: [id], onDelete: Cascade)
   /// Set once the idea is on the planning ("Planifiée" is derived from it).
-  event  Event?
+  event       Event?
+  pollOptions PollOption[]
 
   @@index([tripId, createdAt])
   @@index([authorId])
@@ -261,5 +266,74 @@ model EventParticipant {
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
   @@id([eventId, participantId])
+  @@index([participantId])
+}
+
+enum PollKind {
+  DESTINATION
+  DATES
+  LODGING
+  FOOD
+  ACTIVITY
+  YES_NO
+  OTHER
+}
+
+/// A poll of the trip (CDC §6). Closed once `closedAt` is set or `closesAt` is past; nothing is
+/// decided from the results until an organizer applies an option.
+model Poll {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  tripId          String    @db.Uuid
+  authorId        String    @db.Uuid
+  kind            PollKind
+  question        String
+  multiple        Boolean   @default(false)
+  closesAt        DateTime?
+  closedAt        DateTime?
+  /// Null when it closed on its own at the deadline.
+  closedById      String?   @db.Uuid
+  /// The option an organizer applied (destination set, idea kept…).
+  appliedOptionId String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+
+  trip     Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  author   Participant  @relation("PollAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  closedBy Participant? @relation("PollCloser", fields: [closedById], references: [id], onDelete: SetNull)
+  options  PollOption[]
+
+  @@index([tripId, createdAt])
+  @@index([authorId])
+  @@index([closedById])
+}
+
+model PollOption {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  pollId    String    @db.Uuid
+  label     String
+  position  Int
+  /// Options of a DATES poll: the range they propose.
+  startDate DateTime? @db.Date
+  endDate   DateTime? @db.Date
+  /// The idea it stands for; the option keeps its label if the idea is deleted.
+  ideaId    String?   @db.Uuid
+
+  poll  Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  idea  Idea?  @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  votes Vote[]
+
+  @@index([pollId, position])
+  @@index([ideaId])
+}
+
+/// One line per chosen option: a single-choice poll has at most one per participant.
+model Vote {
+  optionId      String   @db.Uuid
+  participantId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  option      PollOption  @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([optionId, participantId])
   @@index([participantId])
 }
