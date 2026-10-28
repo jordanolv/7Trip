@@ -1,7 +1,7 @@
 import { PASSWORD_MIN_LENGTH, registerRequestSchema, type AuthResponse } from '@7trip/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { View, type TextInput } from 'react-native';
+import { View, type TextInputInstance } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { FormScreen } from '@/components/form-screen';
@@ -18,7 +18,7 @@ export default function CreerCompteScreen() {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
-  const passwordInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInputInstance>(null);
 
   const action = useAction(async () => {
     const parsed = registerRequestSchema.safeParse({ email, displayName, password });
