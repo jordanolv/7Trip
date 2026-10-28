@@ -133,6 +133,8 @@ describe('Expenses (e2e)', () => {
 
     await settle(thomas.auth).expect(403);
     const settlement = (await settle(lea.auth).expect(201)).body as { id: string };
+    // Confirmed again from Jordan's phone, before it refreshed: not counted twice.
+    await settle(jordan.auth).expect(409);
     let b = await balances(trip.id, jordan.auth);
     expect(balanceOf(b, ids.lea).balanceMinor).toBe(0);
     expect(b.transfers).toEqual([]);
@@ -150,18 +152,22 @@ describe('Expenses (e2e)', () => {
     const detail = (await api().get(`/v1/trips/${trip.id}`).set(jordan.auth).expect(200)).body as TripDetail;
     const guestId = detail.participants.find((p) => p.displayName === 'Léa invitée')!.id;
     const both = await add(trip.id, jordan.auth, { amountMinor: 3000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.lea, guestId] } });
+    // The guest owes Jordan 10 €, repays half, then pays the paella.
+    await api().post(`/v1/trips/${trip.id}/settlements`).set(asGuest(token)).send({ fromId: guestId, toId: ids.jordan, amountMinor: 500 }).expect(201);
     await add(trip.id, asGuest(token), { label: 'Paella', amountMinor: 2000, payerId: guestId, split: { mode: 'EQUAL', participantIds: [guestId, ids.jordan] } });
-    await api().post(`/v1/trips/${trip.id}/settlements`).set(asGuest(token)).send({ fromId: guestId, toId: ids.lea, amountMinor: 500 }).expect(201);
 
     await api().post('/v1/me/guest-sessions/claim').set(lea.auth).send({ tokens: [token] }).expect(204);
 
     const merged = (await api().get(`/v1/trips/${trip.id}/expenses/${both.id}`).set(lea.auth).expect(200)).body as Expense;
     expect(merged.shares.map((s) => [s.participant.displayName, s.amountMinor])).toEqual([['Jordan', 1000], ['Léa', 2000]]);
+    // No longer equal parts: an edit must keep them as they are.
+    expect(merged.splitMode).toBe('CUSTOM');
     const b = await balances(trip.id, lea.auth);
-    expect(b.settlements).toEqual([]);
+    expect(b.settlements).toEqual([expect.objectContaining({ amountMinor: 500, from: expect.objectContaining({ displayName: 'Léa' }) })]);
     expect(b.people.some((p) => p.participant.id === guestId)).toBe(false);
-    // Léa now: paid 20 (the paella), costs 20 (both her shares of the first one) + 10 (paella) → owes 10.
-    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3000, balanceMinor: -1000 });
+    // Léa now: paid 20 (the paella), costs 20 (both her shares of the first one) + 10 (paella),
+    // repaid 5 → owes 5.
+    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3000, balanceMinor: -500 });
     expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
   });
 });

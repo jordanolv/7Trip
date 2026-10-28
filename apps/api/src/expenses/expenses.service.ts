@@ -172,6 +172,12 @@ export class ExpensesService {
       }
       const found = await tx.participant.count({ where: { tripId, id: { in: [input.fromId, input.toId] } } });
       if (found !== 2) throw validationError('toId', 'Participant inconnu');
+      // Checked again under the lock: the same reimbursement confirmed twice (both people, two
+      // devices) must not be counted twice. `from` must still owe it, and `to` still be owed it.
+      const balances = await this.currentBalances(tx, tripId);
+      if ((balances.get(input.fromId) ?? 0) > -input.amountMinor || (balances.get(input.toId) ?? 0) < input.amountMinor) {
+        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'Les soldes ont changé entre-temps : ce remboursement est peut-être déjà enregistré.');
+      }
       const settlement = await tx.settlement.create({
         data: { tripId, fromId: input.fromId, toId: input.toId, amountMinor: input.amountMinor, createdById: me.id },
         include: SETTLEMENT_INCLUDE,
@@ -190,6 +196,16 @@ export class ExpensesService {
       if (!canDeleteSettlement(me, settlement)) throw forbidden();
       await tx.settlement.delete({ where: { id: settlement.id } });
     });
+  }
+
+  /** Balances from the shared expenses and the reimbursements, read inside the transaction. */
+  private async currentBalances(tx: Prisma.TransactionClient, tripId: string): Promise<Map<string, number>> {
+    const expenses = await tx.expense.findMany({ where: { tripId, personal: false }, include: { shares: true } });
+    const settlements = await tx.settlement.findMany({ where: { tripId } });
+    return computeBalances(
+      expenses.map((e) => ({ payerId: e.payerId, amountMinor: e.amountMinor, shares: e.shares })),
+      settlements,
+    );
   }
 
   private fields(me: Participant, input: ExpenseInput) {
