@@ -1,13 +1,14 @@
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from './ui/app-text';
 import { Icon } from './ui/icon';
 
-/** Compact header for stacked screens: back (or close) button and an optional centred title. */
-export function ScreenHeader({ title, mode = 'back' }: { title?: string; mode?: 'back' | 'close' }) {
+/** Compact header for stacked screens: back (or close) button, an optional centred title and an optional action on the right. */
+export function ScreenHeader({ title, mode = 'back', right }: { title?: string; mode?: 'back' | 'close'; right?: ReactNode }) {
   const insets = useSafeAreaInsets();
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -26,7 +27,7 @@ export function ScreenHeader({ title, mode = 'back' }: { title?: string; mode?: 
           {title}
         </AppText>
       ) : null}
-      <View style={styles.button} />
+      <View style={styles.button}>{right}</View>
     </View>
   );
 }

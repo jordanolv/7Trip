@@ -119,6 +119,8 @@ export const ApiErrorCode = {
   EditConflict: 'EDIT_CONFLICT',
   /** The idea already has its event on the planning. */
   IdeaAlreadyPlanned: 'IDEA_ALREADY_PLANNED',
+  /** The poll is closed (by an organizer or at its deadline): votes are final. */
+  PollClosed: 'POLL_CLOSED',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
 

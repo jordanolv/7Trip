@@ -118,8 +118,8 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Idea` | tripId, authorId, title, category?, place?, url?, description?, cost? (texte libre : « Gratuit », « ~25 € / pers. »), status (proposed/kept), version — photo avec les documents (étape 7) |
 | `Event` | tripId, ideaId?, title, category, startDate, endDate?, startTime?, endTime?, allDay, place?, url?, description?, bookingRef? |
 | `EventParticipant` | eventId, participantId (vide = tout le groupe) |
-| `Poll` | tripId, authorId, question, kind (destination/dates/…/generic), multiple, closesAt?, closedAt?, closedBy?, followUp? |
-| `PollOption` | pollId, label, imageUrl?, position |
+| `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
+| `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
 | `Expense` | tripId, label, amountMinor, currency, rateToBase, payerId, category?, eventId?, isPersonal, createdBy, date |
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage) |

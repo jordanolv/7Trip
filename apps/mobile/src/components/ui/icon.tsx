@@ -97,6 +97,7 @@ const icons = {
   ),
   alert: <Path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />,
   ticket: <Path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4zM14 7v10" />,
+  lock: <Path d="M5 11h14v10H5zM8 11V8a4 4 0 0 1 8 0v3" />,
   undo: <Path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />,
 } as const;
 

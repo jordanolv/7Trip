@@ -117,8 +117,11 @@ function SignedInContent({
   // Invitation link opened while signed out: resume it once back here, signed in.
   useFocusEffect(
     useCallback(() => {
-      const code = takePendingInvitation();
-      if (code) router.push({ pathname: '/j/[code]', params: { code } });
+      const invitation = takePendingInvitation();
+      if (invitation) {
+        const { code, pollId } = invitation;
+        router.push({ pathname: '/j/[code]', params: pollId ? { code, sondage: pollId } : { code } });
+      }
     }, []),
   );
 
