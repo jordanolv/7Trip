@@ -72,7 +72,7 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
 - **Dokploy** (Traefik, Let's Encrypt) sur le serveur existant, voir [deploiement.md](deploiement.md) :
   `api.7trip.fr`, `7trip.fr` (web), Postgres, MinIO.
 - CI GitHub Actions : lint, typecheck, tests (shared, API avec base de test), build.
-- Environnements : local, `dev.7trip.fr`, production.
+- Environnements : local, staging (`staging.7trip.fr`, branche `dev`), production (`7trip.fr`, branche `main`).
 
 ## 3. Identité, sessions et invités
 
