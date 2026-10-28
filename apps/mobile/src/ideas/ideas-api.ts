@@ -33,8 +33,12 @@ function useStoreIdea(tripId: string) {
   const client = useQueryClient();
   return (idea: Idea) => {
     client.setQueryData(ideaKeys.detail(tripId, idea.id), idea);
-    client.setQueryData<Idea[]>(ideaKeys.list(tripId), (ideas) =>
-      ideas ? (ideas.some((i) => i.id === idea.id) ? ideas.map((i) => (i.id === idea.id ? idea : i)) : [idea, ...ideas]) : ideas,
+    const ideas = client.getQueryData<Idea[]>(ideaKeys.list(tripId));
+    // No list loaded yet (or it failed to load): fetch it rather than leave it stale.
+    if (!ideas) return void client.invalidateQueries({ queryKey: ideaKeys.list(tripId), exact: true });
+    client.setQueryData(
+      ideaKeys.list(tripId),
+      ideas.some((i) => i.id === idea.id) ? ideas.map((i) => (i.id === idea.id ? idea : i)) : [idea, ...ideas],
     );
   };
 }

@@ -21,9 +21,10 @@ export default function IdeeScreen() {
   const { ideaId } = useLocalSearchParams<{ ideaId: string }>();
   const idea = useIdea(tripId, ideaId);
 
-  if (idea.data) return <IdeeDetail tripId={tripId} idea={idea.data} />;
-
+  // A 404 wins over cached data: the idea was deleted by someone else since it was loaded.
   const notFound = idea.error instanceof ApiError && idea.error.status === 404;
+  if (idea.data && !notFound) return <IdeeDetail tripId={tripId} idea={idea.data} />;
+
   return (
     <>
       <ScreenHeader />
