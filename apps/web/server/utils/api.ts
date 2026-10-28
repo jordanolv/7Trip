@@ -1,8 +1,8 @@
-import { GUEST_TOKEN_HEADER, type ApiErrorBody } from '@7trip/shared';
+import { GUEST_TOKEN_HEADER, type ApiErrorBody, type Poll } from '@7trip/shared';
 import type { H3Event } from 'h3';
 
 interface ApiOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT';
   body?: Record<string, unknown>;
   guestToken?: string;
 }
@@ -100,4 +100,33 @@ export async function hasLiveSession(event: H3Event, tripId: string): Promise<bo
     if (status === 401 || status === 404) return false;
     throw error;
   }
+}
+
+/** Opens the app with this guest session, so creating an account there keeps everything. */
+export function handoffLink(event: H3Event, tripId: string, token: string) {
+  const { appLink } = useRuntimeConfig(event).public;
+  return `${appLink}reprendre?${new URLSearchParams({ voyage: tripId, jeton: token }).toString()}`;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isUuid = (value: unknown): value is string => typeof value === 'string' && UUID.test(value);
+
+/**
+ * A poll link carries no trip: each guest session of this browser is tried in turn (one cookie per
+ * trip). Null when none of them is in the poll's trip. Throws when the API cannot tell.
+ */
+export async function findPollSession(event: H3Event, pollId: string): Promise<{ poll: Poll; token: string } | null> {
+  if (!isUuid(pollId)) return null;
+  const tokens = Object.entries(parseCookies(event))
+    .filter(([name]) => name.startsWith('g_'))
+    .map(([, token]) => token);
+  for (const token of tokens) {
+    try {
+      return { poll: await callApi<Poll>(event, `/polls/${pollId}`, { guestToken: token }), token };
+    } catch (error) {
+      const status = (error as { statusCode?: number }).statusCode;
+      if (status !== 401 && status !== 404) throw error;
+    }
+  }
+  return null;
 }

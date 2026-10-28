@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatDateRange, formatDestinations, localIsoDate } from '@7trip/shared';
+import { formatDateRange, formatDestinations, localIsoDate, type Poll } from '@7trip/shared';
 
 const route = useRoute();
 const tripId = String(route.params.tripId ?? '');
@@ -8,6 +8,9 @@ const today = localIsoDate();
 const leaveError = computed(() => (typeof route.query.erreur === 'string' ? route.query.erreur : null));
 
 const trip = computed(() => data.value?.trip ?? null);
+// To vote on first, then voted, then closed (same order as the app).
+const rank = (poll: Poll) => (poll.closed ? 2 : poll.hasVoted ? 1 : 0);
+const polls = computed(() => [...(data.value?.polls ?? [])].sort((a, b) => rank(a) - rank(b)));
 const me = computed(() => trip.value?.participants.find((p) => p.isMe));
 const subtitle = computed(() =>
   trip.value
@@ -51,7 +54,18 @@ useHead(() => ({ title: trip.value ? `${trip.value.title} · 7Trip` : 'Voyage ·
 
       <section class="card block">
         <h2 class="label">Sondages</h2>
-        <p class="muted">Les votes du groupe arriveront ici : tu pourras voter depuis cette page, sans compte.</p>
+        <p v-if="!polls.length" class="muted">Aucun sondage pour l’instant. Quand le groupe en lance un, tu pourras voter ici, sans compte.</p>
+        <ul v-else class="polls">
+          <li v-for="poll in polls" :key="poll.id">
+            <NuxtLink :to="`/s/${poll.id}`" class="poll">
+              <span class="pollText">
+                <span class="pollQuestion">{{ poll.question }}</span>
+                <span class="muted">{{ poll.voterCount }} sur {{ poll.eligibleCount }} ont voté{{ !poll.closed && poll.closesAt ? ` · jusqu’au ${deadlineLabel(poll.closesAt)}` : '' }}</span>
+              </span>
+              <span class="chip" :class="{ todo: !poll.closed && !poll.hasVoted }">{{ pollStatus(poll) }}</span>
+            </NuxtLink>
+          </li>
+        </ul>
       </section>
 
       <div class="stack">
@@ -78,4 +92,9 @@ useHead(() => ({ title: trip.value ? `${trip.value.title} · 7Trip` : 'Voyage ·
 .person { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; }
 .chip { border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 700; background: var(--chip); color: var(--ink-tertiary); }
 .chip.dark { background: var(--ink); color: var(--surface); }
+.chip.todo { background: #fbe6d8; color: #8a3d12; }
+.polls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.poll { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.pollText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pollQuestion { font-weight: 700; }
 </style>

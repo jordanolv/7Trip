@@ -7,24 +7,26 @@ import { parseInvitationCode, type GuestJoinResponse, type InvitationPreview } f
 export default defineEventHandler(async (event) => {
   const code = parseInvitationCode(getRouterParam(event, 'code') ?? '');
   if (!code) return sendRedirect(event, '/', 303);
-  const form = await readBody<{ displayName?: string }>(event);
+  const form = await readBody<{ displayName?: string; sondage?: string }>(event);
   const displayName = String(form?.displayName ?? '');
+  // Joined from a shared poll: lands on it (the poll page checks it belongs to this trip).
+  const pollId = isUuid(form?.sondage) ? form.sondage : null;
 
   try {
     // Already in through this browser (e.g. the form submitted again from another tab): keep that
     // participation and its cookie instead of creating a second guest.
     const { tripId } = await callApi<InvitationPreview>(event, `/invitations/${code}`);
-    if (await hasLiveSession(event, tripId)) return sendRedirect(event, `/v/${tripId}`, 303);
+    if (await hasLiveSession(event, tripId)) return sendRedirect(event, pollId ? `/s/${pollId}` : `/v/${tripId}`, 303);
 
     const { token, trip } = await callApi<GuestJoinResponse>(event, `/invitations/${code}/join-guest`, {
       method: 'POST',
       body: { displayName },
     });
     setGuestCookie(event, trip.id, token);
-    return sendRedirect(event, `/v/${trip.id}`, 303);
+    return sendRedirect(event, pollId ? `/s/${pollId}` : `/v/${trip.id}`, 303);
   } catch (error) {
     const message = (error as { message?: string }).message ?? 'Réessaie dans un instant.';
-    const query = new URLSearchParams({ erreur: message, nom: displayName });
+    const query = new URLSearchParams({ erreur: message, nom: displayName, ...(pollId ? { sondage: pollId } : {}) });
     return sendRedirect(event, `/j/${code}?${query.toString()}`, 303);
   }
 });

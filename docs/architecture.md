@@ -178,12 +178,14 @@ Règles transverses :
 | Lien | Cible |
 |---|---|
 | `https://7trip.fr/j/{code}` | rejoindre un voyage |
-| `https://7trip.fr/s/{pollId}` | ouvrir un sondage |
+| `https://7trip.fr/s/{pollId}?j={code}` | ouvrir un sondage ; `j`, ajouté quand celui qui partage peut inviter, fait d'abord rejoindre le voyage |
 | `https://7trip.fr/t/{tripId}` | ouvrir un voyage (membres) |
 
 Les liens universels (iOS) et App Links (Android) ouvrent l'app si elle est installée, sinon la
 page web. Les droits sont identiques : un sondage partagé ne s'affiche qu'à un membre du voyage,
-ou à quelqu'un qui le rejoint via une invitation valide. Le message de partage est prérempli et
+ou à quelqu'un qui le rejoint via une invitation valide. Sur le web, le lien d'un sondage ne porte
+pas de voyage : chaque session invitée du navigateur (un cookie par voyage) est essayée. Le vote
+passe par un formulaire HTML classique, qui marche sans JavaScript. Le message de partage est prérempli et
 envoyé via le partage natif. Les pages ont des métadonnées Open Graph : titre et image du voyage
 ou des options du sondage.
 
