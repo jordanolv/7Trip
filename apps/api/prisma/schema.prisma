@@ -99,6 +99,7 @@ model Trip {
   destinations TripDestination[]
   invitations  Invitation[]
   ideas        Idea[]
+  events       Event[]
 }
 
 /// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
@@ -156,9 +157,11 @@ model Participant {
   /// Ideas created after this, by others, are new to the participant (red badge on the Ideas tab).
   ideasSeenAt    DateTime?
 
-  trip  Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  ideas Idea[]
+  trip             Trip               @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ideas            Idea[]
+  events           Event[]
+  eventMemberships EventParticipant[]
 
   @@unique([tripId, userId])
   @@index([userId])
@@ -201,7 +204,62 @@ model Idea {
   trip   Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
   /// Participants are only ever deleted with their trip.
   author Participant @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// Set once the idea is on the planning ("Planifiée" is derived from it).
+  event  Event?
 
   @@index([tripId, createdAt])
   @@index([authorId])
+}
+
+enum EventCategory {
+  ACTIVITY
+  FOOD
+  TRANSPORT
+  LODGING
+  OTHER
+}
+
+/// An item of the planning (CDC §7). Dates and times are the trip's local ones, without timezone.
+model Event {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  tripId      String        @db.Uuid
+  authorId    String        @db.Uuid
+  /// The idea it was planned from: deleting the event keeps the idea, deleting the idea keeps the event.
+  ideaId      String?       @unique @db.Uuid
+  title       String
+  category    EventCategory
+  startDate   DateTime      @db.Date
+  /// Last day of a multi-day event; null for a single day.
+  endDate     DateTime?     @db.Date
+  /// "18:00"; null for an event of the whole day.
+  startTime   String?
+  endTime     String?
+  place       String?
+  url         String?
+  description String?
+  bookingRef  String?
+  /// Bumped on every change; a PATCH made on an older version is refused (409).
+  version     Int           @default(1)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  trip         Trip               @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  author       Participant        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  idea         Idea?              @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  /// None: the whole group.
+  participants EventParticipant[]
+
+  @@index([tripId, startDate])
+  @@index([authorId])
+}
+
+model EventParticipant {
+  eventId       String @db.Uuid
+  participantId String @db.Uuid
+
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, participantId])
+  @@index([participantId])
 }

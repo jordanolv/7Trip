@@ -117,6 +117,8 @@ export const ApiErrorCode = {
   InvitationInvalid: 'INVITATION_INVALID',
   /** Someone else changed the item since it was loaded: reload it before editing again. */
   EditConflict: 'EDIT_CONFLICT',
+  /** The idea already has its event on the planning. */
+  IdeaAlreadyPlanned: 'IDEA_ALREADY_PLANNED',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
 
