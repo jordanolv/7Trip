@@ -89,7 +89,7 @@ export default function IdeesScreen() {
         <View style={styles.empty}>
           <AppText variant="heading">Impossible de charger les idées</AppText>
           <AppText tone="secondary">{ideas.error.message}</AppText>
-          <Button title="Réessayer" variant="soft" onPress={() => void ideas.refetch()} />
+          <Button title="Réessayer" variant="soft" onPress={() => void refresh()} />
         </View>
       ) : all.length === 0 ? (
         <View style={styles.empty}>
