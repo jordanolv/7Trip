@@ -100,3 +100,12 @@ documents sur le web en V1.
 - Si le compte était déjà dans le voyage, la participation invitée est fermée et fusionnée dans
   celle du compte. Chaque étape qui ajoute du contenu lié aux participants (votes, idées,
   dépenses…) complète `GuestSessionsService.merge` pour le déplacer.
+
+## Profil et avatars
+
+- Les avatars montrent les initiales sur une couleur. Dans le profil, chacun choisit sa couleur
+  (palette d'environ 8 teintes) et son prénom affiché. Un invité reçoit une couleur tirée de son
+  identifiant.
+- La photo de profil arrive avec l'upload de fichiers (étape 7). Elle remplace alors les initiales.
+- Qui a voté pour une option s'affiche en avatars ; la liste « En attente » garde les prénoms,
+  pour savoir qui relancer.
