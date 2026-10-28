@@ -121,7 +121,7 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
 | `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
-| `Expense` | tripId, authorId, payerId, label, amountMinor, currency, date, category?, personal, splitMode (equal/custom) — rateToBase et eventId avec l'étape 6B |
+| `Expense` | tripId, authorId, payerId, label, amountMinor, currency, date, category?, personal, splitMode (equal/custom), version — rateToBase et eventId avec l'étape 6B |
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage) |
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId, totalMinor, perCategory (json) |

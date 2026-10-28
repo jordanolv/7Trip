@@ -10,7 +10,7 @@ import {
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import type { Actor } from '../trips/actor.js';
 import { CurrentActor, TripMemberGuard } from '../trips/trip-member.guard.js';
-import { ExpensesService, type ExpenseInput, type SettlementInput } from './expenses.service.js';
+import { ExpensesService, type ExpenseInput, type SettlementInput, type UpdateExpenseInput } from './expenses.service.js';
 
 /** Open to every member of the trip, guests included (docs/architecture.md §5). */
 @Controller('trips/:tripId')
@@ -42,7 +42,7 @@ export class ExpensesController {
     @CurrentActor() actor: Actor,
     @Param('tripId') tripId: string,
     @Param('expenseId') expenseId: string,
-    @Body(new ZodValidationPipe(updateExpenseRequestSchema)) body: ExpenseInput,
+    @Body(new ZodValidationPipe(updateExpenseRequestSchema)) body: UpdateExpenseInput,
   ): Promise<Expense> {
     return this.expenses.update(actor, tripId, expenseId, body);
   }

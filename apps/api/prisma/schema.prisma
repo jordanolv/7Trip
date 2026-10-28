@@ -390,6 +390,7 @@ model Expense {
   /// Only its author sees it; it counts in their budget, never in the balances.
   personal    Boolean          @default(false)
   splitMode   SplitMode        @default(EQUAL)
+  version     Int              @default(1)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 

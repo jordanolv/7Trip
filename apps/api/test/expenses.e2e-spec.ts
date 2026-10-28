@@ -7,6 +7,7 @@ import {
   type TripBalances,
   type TripDetail,
   type TripInvitation,
+  type UpdateExpenseRequest,
 } from '@7trip/shared';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
@@ -111,13 +112,15 @@ describe('Expenses (e2e)', () => {
     const { trip, ids } = await newTrip();
     const split = { mode: 'EQUAL' as const, participantIds: [ids.lea, ids.thomas] };
     const expense = await add(trip.id, lea.auth, { label: 'Taxi', amountMinor: 3000, payerId: ids.thomas, split });
-    const edit = (headers: Record<string, string>, body: Partial<CreateExpenseRequest>) =>
+    const edit = (headers: Record<string, string>, body: Partial<UpdateExpenseRequest>) =>
       api().put(`/v1/trips/${trip.id}/expenses/${expense.id}`).set(headers).send({ label: 'Taxi', date: '2027-07-12', amountMinor: 3000, payerId: ids.thomas, split, ...body });
 
     await edit(camille.auth, { amountMinor: 1 }).expect(403);
     await api().delete(`/v1/trips/${trip.id}/expenses/${expense.id}`).set(camille.auth).expect(403);
     expect(((await edit(thomas.auth, { amountMinor: 3200 }).expect(200)).body as Expense).shares.map((s) => s.amountMinor)).toEqual([1600, 1600]);
-    await edit(jordan.auth, { label: 'Taxi aéroport' }).expect(200);
+    await edit(jordan.auth, { label: 'Taxi aéroport', version: 2 }).expect(200);
+    // Saved from a form opened before Jordan's change: refused rather than undoing it.
+    await edit(thomas.auth, { amountMinor: 9900, version: 2 }).expect(409);
     // Making it personal changes who sees it: its author's call only.
     await edit(thomas.auth, { personal: true, payerId: ids.thomas }).expect(403);
     const listed = ((await api().get(`/v1/trips/${trip.id}/expenses`).set(camille.auth).expect(200)).body as Expense[])[0]!;

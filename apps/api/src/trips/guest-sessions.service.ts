@@ -71,7 +71,7 @@ export class GuestSessionsService {
         await tx.expenseShare.update({ where: accountKey, data: { amountMinor: { increment: amountMinor } } });
         await tx.expenseShare.delete({ where: guestKey });
         // The parts are no longer equal: kept as amounts, so a later edit does not split it again.
-        await tx.expense.update({ where: { id: expenseId }, data: { splitMode: 'CUSTOM' } });
+        await tx.expense.update({ where: { id: expenseId }, data: { splitMode: 'CUSTOM', version: { increment: 1 } } });
       } else {
         await tx.expenseShare.update({ where: guestKey, data: { participantId: account.id } });
       }

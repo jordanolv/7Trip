@@ -1,4 +1,4 @@
-import type { CreateExpenseRequest, CreateSettlementRequest, Expense, Settlement, TripBalances } from '@7trip/shared';
+import type { CreateExpenseRequest, CreateSettlementRequest, Expense, Settlement, TripBalances, UpdateExpenseRequest } from '@7trip/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
@@ -52,13 +52,17 @@ export function useSaveExpense(tripId: string, expenseId?: string) {
   const client = useQueryClient();
   const refresh = useRefreshFinances(tripId);
   return useMutation({
-    mutationFn: (body: CreateExpenseRequest) =>
+    mutationFn: (body: CreateExpenseRequest | UpdateExpenseRequest) =>
       expenseId
         ? tripRequest<Expense>(tripId, `/trips/${tripId}/expenses/${expenseId}`, { method: 'PUT', body })
         : tripRequest<Expense>(tripId, `/trips/${tripId}/expenses`, { method: 'POST', body }),
     onSuccess: (expense) => {
       client.setQueryData(financeKeys.expense(tripId, expense.id), expense);
       refresh();
+    },
+    // Edited by someone else meanwhile (409): what is shown behind the form is fetched again.
+    onError: () => {
+      if (expenseId) void client.invalidateQueries({ queryKey: financeKeys.expense(tripId, expenseId) });
     },
   });
 }

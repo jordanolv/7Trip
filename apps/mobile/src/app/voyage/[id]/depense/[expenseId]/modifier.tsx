@@ -1,8 +1,8 @@
-import type { Expense, TripDetail } from '@7trip/shared';
+import { ApiErrorCode, type Expense, type TripDetail } from '@7trip/shared';
 import { colors } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { FormScreen } from '@/components/form-screen';
 import { ScreenHeader } from '@/components/screen-header';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ExpenseForm, expenseFormErrors, expenseFormValues, expenseRequest, type ExpenseFormValues } from '@/finances/expense-form';
 import { expensePeople, myParticipantId } from '@/finances/expense-people';
 import { useExpense, useSaveExpense } from '@/finances/finances-api';
+import { ApiError } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useAction } from '@/lib/use-action';
 import { useTrip } from '@/trips/trips-api';
@@ -44,15 +45,23 @@ function ModifierDepense({ trip, expense }: { trip: TripDetail; expense: Expense
   const save = useSaveExpense(trip.id, expense.id);
   const people = expensePeople(trip, expense);
   const meId = myParticipantId(trip);
-  // The form keeps what was loaded when it opened.
+  // The form keeps what was loaded when it opened: that is the version the changes are made on.
   const [values, setValues] = useState<ExpenseFormValues>(() => expenseFormValues(expense));
+  const [version] = useState(expense.version);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = useAction(async () => {
     const found = expenseFormErrors(values);
     setErrors(found);
     if (Object.keys(found).length) return;
-    await save.mutateAsync(expenseRequest(values));
+    try {
+      await save.mutateAsync({ ...expenseRequest(values), version });
+    } catch (error) {
+      if (!(error instanceof ApiError && error.code === ApiErrorCode.EditConflict)) throw error;
+      // The expense refreshes behind this screen: going back shows the other person's changes.
+      Alert.alert('Dépense modifiée entre-temps', error.message, [{ text: 'Voir la dépense', onPress: () => router.back() }]);
+      return;
+    }
     haptics.success();
     router.back();
   });

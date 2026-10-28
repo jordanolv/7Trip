@@ -71,9 +71,9 @@ function checkSplit(body: z.output<typeof expenseFields>, ctx: z.RefinementCtx) 
 export const createExpenseRequestSchema = expenseFields.superRefine(checkSplit);
 export type CreateExpenseRequest = z.input<typeof createExpenseRequestSchema>;
 
-/** Same body as creation: the form always sends the whole expense. */
-export const updateExpenseRequestSchema = createExpenseRequestSchema;
-export type UpdateExpenseRequest = CreateExpenseRequest;
+/** The whole expense again, plus the version the change was made on: a newer one means someone else edited it (409). */
+export const updateExpenseRequestSchema = expenseFields.extend({ version: z.int().positive().optional() }).superRefine(checkSplit);
+export type UpdateExpenseRequest = z.input<typeof updateExpenseRequestSchema>;
 
 export const createSettlementRequestSchema = z
   .object({ fromId: z.uuid(), toId: z.uuid(), amountMinor: amountMinorSchema })
@@ -104,6 +104,8 @@ export interface Expense {
   /** Author, payer or organizer (docs/decisions.md, "Permissions fines"). */
   canEdit: boolean;
   createdAt: string;
+  /** Bumped on each change: sent back with an edit (docs/architecture.md, conflits). */
+  version: number;
 }
 
 export interface Settlement {

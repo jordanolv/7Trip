@@ -12,6 +12,7 @@ import {
   type TripBalances,
   type createExpenseRequestSchema,
   type createSettlementRequestSchema,
+  type updateExpenseRequestSchema,
 } from '@7trip/shared';
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
@@ -24,6 +25,7 @@ import { TripsService } from '../trips/trips.service.js';
 
 /** Validated request bodies. */
 export type ExpenseInput = z.output<typeof createExpenseRequestSchema>;
+export type UpdateExpenseInput = z.output<typeof updateExpenseRequestSchema>;
 export type SettlementInput = z.output<typeof createSettlementRequestSchema>;
 
 const EXPENSE_INCLUDE = {
@@ -99,10 +101,14 @@ export class ExpensesService {
   }
 
   /** The whole expense is sent again; its shares are recomputed. */
-  async update(actor: Actor, tripId: string, expenseId: string, input: ExpenseInput): Promise<Expense> {
+  async update(actor: Actor, tripId: string, expenseId: string, input: UpdateExpenseInput): Promise<Expense> {
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const current = await this.find(tx, tripId, expenseId, me);
       if (!canEditExpense(me, current)) throw forbidden();
+      // Writes of a trip are serialised by the lock: comparing here is enough.
+      if (input.version !== undefined && input.version !== current.version) {
+        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'Quelqu’un a modifié cette dépense entre-temps. Recharge-la avant de la modifier.');
+      }
       // Making it personal (or shared again) is only for its author: it changes who sees it.
       if (input.personal !== current.personal && current.authorId !== me.id) throw forbidden();
       // People who have left since may stay on it, but nobody who left can be added.
@@ -111,7 +117,7 @@ export class ExpensesService {
       await tx.expenseShare.deleteMany({ where: { expenseId } });
       const expense = await tx.expense.update({
         where: { id: expenseId },
-        data: { ...this.fields(me, input), shares: { create: shares } },
+        data: { ...this.fields(me, input), version: { increment: 1 }, shares: { create: shares } },
         include: EXPENSE_INCLUDE,
       });
       return toExpense(expense, me);
@@ -281,6 +287,7 @@ function toExpense(expense: ExpenseWithRelations, me: Participant): Expense {
     myShareMinor: expense.shares.find((s) => s.participantId === me.id)?.amountMinor ?? 0,
     canEdit: canEditExpense(me, expense),
     createdAt: expense.createdAt.toISOString(),
+    version: expense.version,
   };
 }
 
