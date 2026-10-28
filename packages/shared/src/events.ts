@@ -254,8 +254,8 @@ export function addDays(iso: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Longest stretch of trip days the day strip lists; event days outside it are still added. */
-const MAX_TRIP_DAYS = 62;
+/** Safety bound on the days listed for one trip or event (a year and a day): the strip scrolls. */
+const MAX_TRIP_DAYS = 367;
 
 /**
  * Days the planning offers: every day of the trip when its dates are set, plus any day holding

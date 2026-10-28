@@ -113,6 +113,8 @@ describe('planningDays', () => {
       '2026-10-21',
     ]);
     expect(weekdayShort('2026-10-20')).toBe('mar');
+    // A long trip offers all its days, up to its last one.
+    expect(planningDays({ startDate: '2027-01-01', endDate: '2027-03-31' }, []).at(-1)).toBe('2027-03-31');
   });
 });
 
