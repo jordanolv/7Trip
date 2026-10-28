@@ -1,6 +1,6 @@
 import { colors, fontFamily, radii } from '@7trip/ui-tokens';
 import { forwardRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
 import { AppText } from './app-text';
 
@@ -10,7 +10,7 @@ export interface TextFieldProps extends TextInputProps {
   hint?: string;
 }
 
-export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
+export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function TextField(
   { label, error, hint, secureTextEntry, style, onFocus, onBlur, ...props },
   ref,
 ) {

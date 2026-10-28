@@ -1,7 +1,7 @@
 import { EMAIL_CODE_LENGTH } from '@7trip/shared';
 import { colors, fontFamily, radii } from '@7trip/ui-tokens';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 
 /** Six boxes backed by one hidden input, so paste and SMS / email autofill work. */
 export function CodeInput({
@@ -15,7 +15,7 @@ export function CodeInput({
   hasError?: boolean;
   autoFocus?: boolean;
 }) {
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
   const digits = value.padEnd(EMAIL_CODE_LENGTH, ' ').slice(0, EMAIL_CODE_LENGTH).split('');
 

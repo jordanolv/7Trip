@@ -16,7 +16,7 @@ export function tabIcon(name: IconName) {
 }
 
 /** Tab bar from the mockups: each tab is a full-height pill, tinted when active. */
-export function TabBar({ state, descriptors, navigation, insets }: TabBarProps) {
+export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: TabBarProps) {
   const compact = state.routes.length > 3;
   return (
     // The home indicator only needs part of the bottom inset: give back the rest so the pills sit
@@ -35,8 +35,8 @@ export function TabBar({ state, descriptors, navigation, insets }: TabBarProps) 
         const label = options.title ?? route.name;
 
         const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+          const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!focused && !event.defaultPrevented) navigateToTab(route.key);
         };
 
         return (
