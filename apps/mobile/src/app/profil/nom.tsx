@@ -7,8 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { Avatar } from '@/components/avatar';
-import { FormScreen } from '@/components/form-screen';
-import { ScreenHeader } from '@/components/screen-header';
+import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -38,49 +37,45 @@ export default function ModifierProfilScreen() {
   });
 
   return (
-    <>
-      <ScreenHeader mode="close" title="Mon profil" />
-      <FormScreen footer={<Button title="Enregistrer" loading={save.loading} onPress={() => void save.run()} />}>
-        <View style={styles.preview}>
-          <Avatar name={displayName.trim() || '?'} color={avatarColor} size={88} />
+    <Sheet title="Mon profil">
+      <View style={styles.identity}>
+        <Avatar name={displayName.trim() || '?'} color={avatarColor} size={64} />
+        <AppText tone="secondary" style={styles.flex}>
+          Ton nom et ta couleur sont visibles par les personnes de tes voyages.
+        </AppText>
+      </View>
+      <TextField
+        label="Prénom ou pseudo"
+        value={displayName}
+        onChangeText={setDisplayName}
+        error={localError ?? save.fieldErrors.displayName ?? save.error}
+        returnKeyType="done"
+        onSubmitEditing={() => void save.run()}
+      />
+      <View style={styles.colorsBlock}>
+        <AppText variant="label" tone="secondary">
+          Couleur de ton avatar
+        </AppText>
+        <View style={styles.palette}>
+          {AVATAR_COLORS.map((key) => {
+            const selected = key === avatarColor;
+            return (
+              <Pressable
+                key={key}
+                accessibilityRole="radio"
+                accessibilityLabel={`Couleur ${COLOR_NAMES[key]}`}
+                accessibilityState={{ selected }}
+                onPress={() => setAvatarColor(key)}
+                style={[styles.swatch, { backgroundColor: avatarColors[key].bg }, selected && { borderColor: avatarColors[key].ink }]}
+              >
+                {selected ? <Icon name="check" color={avatarColors[key].ink} size={20} /> : null}
+              </Pressable>
+            );
+          })}
         </View>
-        <View>
-          <AppText variant="title">Comment t’appelle-t-on ?</AppText>
-          <AppText tone="secondary">Ton nom et ta couleur sont visibles par les personnes de tes voyages.</AppText>
-        </View>
-        <TextField
-          label="Prénom ou pseudo"
-          value={displayName}
-          onChangeText={setDisplayName}
-          error={localError ?? save.fieldErrors.displayName ?? save.error}
-          autoFocus
-          returnKeyType="done"
-          onSubmitEditing={() => void save.run()}
-        />
-        <View style={styles.colorsBlock}>
-          <AppText variant="label" tone="secondary">
-            Couleur de ton avatar
-          </AppText>
-          <View style={styles.palette}>
-            {AVATAR_COLORS.map((key) => {
-              const selected = key === avatarColor;
-              return (
-                <Pressable
-                  key={key}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`Couleur ${COLOR_NAMES[key]}`}
-                  accessibilityState={{ selected }}
-                  onPress={() => setAvatarColor(key)}
-                  style={[styles.swatch, { backgroundColor: avatarColors[key].bg }, selected && { borderColor: avatarColors[key].ink }]}
-                >
-                  {selected ? <Icon name="check" color={avatarColors[key].ink} size={20} /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </FormScreen>
-    </>
+      </View>
+      <Button title="Enregistrer" loading={save.loading} onPress={() => void save.run()} />
+    </Sheet>
   );
 }
 
@@ -96,7 +91,8 @@ const COLOR_NAMES: Record<AvatarColor, string> = {
 };
 
 const styles = StyleSheet.create({
-  preview: { alignItems: 'center', paddingVertical: spacing.sm },
+  flex: { flex: 1 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   colorsBlock: { gap: spacing.sm },
   // One even row of 8, whatever the screen width.
   palette: { flexDirection: 'row', gap: spacing.sm },
