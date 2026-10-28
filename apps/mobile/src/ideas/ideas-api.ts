@@ -1,4 +1,4 @@
-import type { CreateIdeaRequest, Idea, UpdateIdeaRequest } from '@7trip/shared';
+import type { CreateIdeaRequest, Idea, UnseenIdeas, UpdateIdeaRequest } from '@7trip/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/auth-context';
 export const ideaKeys = {
   list: (tripId: string) => ['ideas', tripId] as const,
   detail: (tripId: string, ideaId: string) => ['ideas', tripId, ideaId] as const,
+  unseen: (tripId: string) => ['ideas', tripId, 'unseen'] as const,
 };
 
 export function useIdeas(tripId: string) {
@@ -13,6 +14,27 @@ export function useIdeas(tripId: string) {
   return useQuery({
     queryKey: ideaKeys.list(tripId),
     queryFn: () => tripRequest<Idea[]>(tripId, `/trips/${tripId}/ideas`),
+  });
+}
+
+/** The red badge on the Ideas tab: checked again every minute while the trip is open. */
+export function useUnseenIdeas(tripId: string) {
+  const { tripRequest } = useAuth();
+  return useQuery({
+    queryKey: ideaKeys.unseen(tripId),
+    queryFn: () => tripRequest<UnseenIdeas>(tripId, `/trips/${tripId}/ideas/unseen`),
+    refetchInterval: 60_000,
+  });
+}
+
+/** Up to the newest idea shown: one proposed meanwhile stays new. Clears the badge right away. */
+export function useMarkIdeasSeen(tripId: string) {
+  const { tripRequest } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (until: string) => tripRequest<void>(tripId, `/trips/${tripId}/ideas/seen`, { method: 'POST', body: { until } }),
+    onMutate: () => client.setQueryData<UnseenIdeas>(ideaKeys.unseen(tripId), { count: 0 }),
+    onSettled: () => void client.invalidateQueries({ queryKey: ideaKeys.unseen(tripId) }),
   });
 }
 

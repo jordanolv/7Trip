@@ -153,6 +153,8 @@ model Participant {
   leftAt         DateTime?
   /// Guest participants (userId null): SHA-256 of their session token. Cleared when they leave or sign up.
   guestTokenHash String?           @unique
+  /// Ideas created after this, by others, are new to the participant (red badge on the Ideas tab).
+  ideasSeenAt    DateTime?
 
   trip  Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)

@@ -1,7 +1,7 @@
 import { authorName, type Idea, type IdeaStatus } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
-import { router, type Href } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { CategoryTile, IdeaStatusChip, ideaMeta } from '@/ideas/idea-visuals';
-import { useIdeas } from '@/ideas/ideas-api';
+import { useIdeas, useMarkIdeasSeen } from '@/ideas/ideas-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
@@ -22,8 +22,20 @@ export default function IdeesScreen() {
   const trip = useTrip(tripId);
   const ideas = useIdeas(tripId);
   const [filter, setFilter] = useState<Filter>('all');
+  const { mutate: markSeen } = useMarkIdeasSeen(tripId);
 
   const all = ideas.data ?? [];
+  // The tab stays mounted: each visit fetches the list again, then marks what it shows as seen.
+  const { refetch } = ideas;
+  const refresh = useCallback(async () => {
+    const newest = (await refetch({ cancelRefetch: false })).data?.[0]?.createdAt;
+    if (newest) markSeen(newest);
+  }, [refetch, markSeen]);
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
   const shown = filter === 'all' ? all : all.filter((idea) => idea.status === filter);
   const filters: { key: Filter; label: string }[] = [
     { key: 'all', label: all.length ? `Toutes · ${all.length}` : 'Toutes' },
@@ -36,7 +48,7 @@ export default function IdeesScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={ideas.isRefetching} onRefresh={() => void ideas.refetch()} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={ideas.isRefetching} onRefresh={() => void refresh()} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
@@ -77,7 +89,7 @@ export default function IdeesScreen() {
         <View style={styles.empty}>
           <AppText variant="heading">Impossible de charger les idées</AppText>
           <AppText tone="secondary">{ideas.error.message}</AppText>
-          <Button title="Réessayer" variant="soft" onPress={() => void ideas.refetch()} />
+          <Button title="Réessayer" variant="soft" onPress={() => void refresh()} />
         </View>
       ) : all.length === 0 ? (
         <View style={styles.empty}>

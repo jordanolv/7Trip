@@ -66,6 +66,15 @@ export const updateIdeaRequestSchema = z.object({
 });
 export type UpdateIdeaRequest = z.input<typeof updateIdeaRequestSchema>;
 
+/** Marks the ideas up to `until` (the newest one shown) as seen, so later ones still count as new. */
+export const markIdeasSeenRequestSchema = z.object({ until: z.iso.datetime() });
+export type MarkIdeasSeenRequest = z.input<typeof markIdeasSeenRequestSchema>;
+
+/** Ideas proposed by others since the participant last opened the idea box. */
+export interface UnseenIdeas {
+  count: number;
+}
+
 export interface ContentAuthor {
   id: string;
   displayName: string;
