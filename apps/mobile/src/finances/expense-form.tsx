@@ -75,9 +75,12 @@ export function expenseRequest(values: ExpenseFormValues): CreateExpenseRequest 
     category: values.category,
     personal: values.personal,
     payerId: values.payerId,
-    split: values.custom
-      ? { mode: 'CUSTOM', shares: values.included.map((id) => ({ participantId: id, amountMinor: parseAmount(values.customAmounts[id] || '0') ?? Number.NaN })) }
-      : { mode: 'EQUAL', participantIds: values.included },
+    // A personal expense has no split: the hidden shared-expense choices must not block it.
+    split: values.personal
+      ? undefined
+      : values.custom
+        ? { mode: 'CUSTOM', shares: values.included.map((id) => ({ participantId: id, amountMinor: parseAmount(values.customAmounts[id] || '0') ?? Number.NaN })) }
+        : { mode: 'EQUAL', participantIds: values.included },
   };
 }
 
