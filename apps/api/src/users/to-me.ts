@@ -1,4 +1,4 @@
-import type { Me } from '@7trip/shared';
+import { defaultAvatarColor, type Me } from '@7trip/shared';
 import type { User } from '../generated/prisma/client.js';
 
 export function toMe(user: User): Me {
@@ -6,6 +6,7 @@ export function toMe(user: User): Me {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    avatarColor: user.avatarColor ?? defaultAvatarColor(user.id),
     emailVerified: user.emailVerifiedAt !== null,
     createdAt: user.createdAt.toISOString(),
   };

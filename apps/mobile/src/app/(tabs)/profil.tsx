@@ -38,7 +38,7 @@ export default function ProfilScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xl }]}>
       <View style={styles.identity}>
-        <Avatar name={user.displayName} size={68} />
+        <Avatar name={user.displayName} color={user.avatarColor} size={68} />
         <View style={styles.flex}>
           <AppText variant="title">{user.displayName}</AppText>
           <AppText variant="caption" tone="secondary">

@@ -21,6 +21,13 @@ export class MeController {
     @CurrentUserId() userId: string,
     @Body(new ZodValidationPipe(updateMeRequestSchema)) body: z.output<typeof updateMeRequestSchema>,
   ): Promise<Me> {
-    return toMe(await this.prisma.user.update({ where: { id: userId }, data: { displayName: body.displayName } }));
+    const data = { displayName: body.displayName, avatarColor: body.avatarColor };
+    // Each trip keeps a copy of the name and colour (they stay readable once the account is gone):
+    // the profile updates all of them.
+    const [user] = await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data }),
+      this.prisma.participant.updateMany({ where: { userId }, data }),
+    ]);
+    return toMe(user);
   }
 }

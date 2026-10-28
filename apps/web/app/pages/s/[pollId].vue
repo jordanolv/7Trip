@@ -76,7 +76,9 @@ useHead(() => ({ title: poll.value ? `${poll.value.question} · 7Trip` : 'Sondag
           <div class="track">
             <div class="fill" :class="{ lead: leaders.includes(option) }" :style="{ width: `${poll.eligibleCount ? ((option.votes ?? 0) / poll.eligibleCount) * 100 : 0}%` }" />
           </div>
-          <AvatarStack v-if="option.voters?.length" :names="option.voters.map((v) => v.displayName)" :total="option.voters.length" />
+          <AvatarStack v-if="option.voters?.length" :names="option.voters.map((v) => v.displayName)"
+            :colors="option.voters.map((v) => v.avatarColor)"
+            :total="option.voters.length" />
         </div>
         <p v-if="applied" class="applied">Retenu par l’organisateur : {{ applied.label }}</p>
       </section>

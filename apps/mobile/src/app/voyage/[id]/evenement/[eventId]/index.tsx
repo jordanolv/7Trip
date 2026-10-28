@@ -160,7 +160,7 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
                 <View style={styles.avatars}>
                   {event.participants.slice(0, 3).map((p, i) => (
                     <View key={p.id} style={[styles.avatar, i > 0 && styles.avatarOverlap]}>
-                      <Avatar name={p.displayName} size={28} />
+                      <Avatar name={p.displayName} color={p.avatarColor} size={28} />
                     </View>
                   ))}
                 </View>

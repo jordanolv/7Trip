@@ -60,7 +60,7 @@ export default function VoyagesScreen() {
                 <Icon name="bell" size={24} strokeWidth={1.9} />
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Profil" onPress={() => router.navigate('/profil')}>
-                <Avatar name={user.displayName} />
+                <Avatar name={user.displayName} color={user.avatarColor} />
               </Pressable>
             </View>
           ) : (

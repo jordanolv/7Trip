@@ -34,7 +34,7 @@ export class GuestSessionsService {
         if (account) await tx.participant.update({ where: { id: account.id }, data: { userId: null } });
         await tx.participant.update({
           where: { id: current.id },
-          data: { userId, displayName: user.displayName, guestTokenHash: null },
+          data: { userId, displayName: user.displayName, avatarColor: user.avatarColor, guestTokenHash: null },
         });
       });
     }

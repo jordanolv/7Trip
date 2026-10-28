@@ -60,6 +60,20 @@ export const tripIconPaths = {
   food: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 3-3 6s1 4 3 4v8',
 } as const;
 
+/** Avatar colours (keys of AVATAR_COLORS in @7trip/shared): background and initials. */
+export const avatarColors = {
+  sage: { bg: '#D9E8DF', ink: '#22553F' },
+  sky: { bg: '#C8E0EA', ink: '#1F5F7A' },
+  sand: { bg: '#F1E2B8', ink: '#7A5A08' },
+  peach: { bg: '#F6D3BF', ink: '#8A3D12' },
+  lilac: { bg: '#DCD6EC', ink: '#4A3C75' },
+  rose: { bg: '#F1CFDE', ink: '#8E2A57' },
+  periwinkle: { bg: '#E4E6F7', ink: '#3E46A0' },
+  stone: { bg: '#E4DFD5', ink: '#3A4352' },
+} as const;
+
+export type AvatarColorKey = keyof typeof avatarColors;
+
 export const radii = {
   chip: 999,
   button: 16,

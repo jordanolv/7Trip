@@ -101,11 +101,12 @@ export class InvitationsService {
       if (existing?.status === ParticipantStatus.ACTIVE) return false;
       await tx.participant.upsert({
         where: { tripId_userId: { tripId, userId } },
-        create: { tripId, userId, displayName: user.displayName, role: ParticipantRole.PARTICIPANT },
+        create: { tripId, userId, displayName: user.displayName, avatarColor: user.avatarColor, role: ParticipantRole.PARTICIPANT },
         update: {
           status: ParticipantStatus.ACTIVE,
           role: ParticipantRole.PARTICIPANT,
           displayName: user.displayName,
+          avatarColor: user.avatarColor,
           joinedAt: new Date(),
           leftAt: null,
         },

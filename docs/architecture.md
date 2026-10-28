@@ -113,7 +113,7 @@ User ─┬─< AuthIdentity (email | apple | google)
 | Table | Champs clés |
 |---|---|
 | `Trip` | titre, destination?, startDate?, endDate?, kind (solo/group), coverType (pattern/photo), coverUrl?, color, icon, baseCurrency, invitePolicy (all/organizers), createdAt |
-| `Participant` | tripId, userId?, displayName, role (organizer/participant), status (active/left), guestTokenHash?, notifPrefs (json), joinedAt |
+| `Participant` | tripId, userId?, displayName, avatarColor? (copies du compte, mises à jour avec le profil), role (organizer/participant), status (active/left), guestTokenHash?, notifPrefs (json), joinedAt |
 | `Invitation` | tripId, code (court, unique), createdBy, revokedAt?, expiresAt?, usesCount |
 | `Idea` | tripId, authorId, title, category?, place?, url?, description?, cost? (texte libre : « Gratuit », « ~25 € / pers. »), status (proposed/kept), version — photo avec les documents (étape 7) |
 | `Event` | tripId, ideaId?, title, category, startDate, endDate?, startTime?, endTime?, allDay, place?, url?, description?, bookingRef? |

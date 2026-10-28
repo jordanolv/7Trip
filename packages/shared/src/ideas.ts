@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { optionalText, optionalUrl } from './fields.js';
+import type { AvatarColor } from './avatars.js';
 import type { ParticipantRole } from './trips.js';
 
 /** Kinds of idea, with the labels the apps show (CDC §5: the category is optional). */
@@ -61,6 +62,7 @@ export interface UnseenIdeas {
 export interface ContentAuthor {
   id: string;
   displayName: string;
+  avatarColor: AvatarColor;
   /** Left or was removed: their content stays, shown as "Prénom (parti)". */
   hasLeft: boolean;
 }

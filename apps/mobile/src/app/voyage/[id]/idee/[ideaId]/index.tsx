@@ -106,7 +106,7 @@ function IdeeDetail({ tripId, idea }: { tripId: string; idea: Idea }) {
           <View>
             <AppText variant="title">{idea.title}</AppText>
             <View style={styles.byline}>
-              <Avatar name={idea.author.displayName} size={24} />
+              <Avatar name={idea.author.displayName} color={idea.author.avatarColor} size={24} />
               <AppText variant="caption" tone="secondary" style={styles.flex}>
                 Proposée par {authorName(idea.author)} · {formatRelativeTime(idea.createdAt)}
               </AppText>

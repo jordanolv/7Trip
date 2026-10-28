@@ -104,8 +104,10 @@ documents sur le web en V1.
 ## Profil et avatars
 
 - Les avatars montrent les initiales sur une couleur. Dans le profil, chacun choisit sa couleur
-  (palette d'environ 8 teintes) et son prénom affiché. Un invité reçoit une couleur tirée de son
-  identifiant.
+  (8 teintes) et son prénom affiché. Sans choix, la couleur est tirée de l'identifiant du compte,
+  ou de celui de la participation pour un invité : toujours la même pour une personne.
+- Chaque voyage garde une copie du nom et de la couleur ; modifier son profil les met à jour dans
+  tous ses voyages, y compris sur ce qu'on y a déjà ajouté.
 - La photo de profil arrive avec l'upload de fichiers (étape 7). Elle remplace alors les initiales.
 - Qui a voté pour une option s'affiche en avatars ; la liste « En attente » garde les prénoms,
   pour savoir qui relancer.
