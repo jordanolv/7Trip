@@ -45,7 +45,8 @@ export class GuestSessionsService {
    * Each step that adds content owned by participants (votes, ideas, expenses…) moves it here
    * from `guest` to `account`, so nothing is lost.
    */
-  private async merge(tx: Prisma.TransactionClient, guest: Participant, _account: Participant): Promise<void> {
+  private async merge(tx: Prisma.TransactionClient, guest: Participant, account: Participant): Promise<void> {
+    await tx.idea.updateMany({ where: { authorId: guest.id }, data: { authorId: account.id } });
     await tx.participant.update({
       where: { id: guest.id },
       data: { status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null },

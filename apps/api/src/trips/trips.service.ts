@@ -163,6 +163,14 @@ export class TripsService {
     return trip;
   }
 
+  /** The caller's active participation in the trip, or 404 (same answer as an unknown trip). */
+  async member(actor: Actor, tripId: string): Promise<Participant> {
+    if (!z.uuid().safeParse(tripId).success) throw notFound();
+    const me = await this.prisma.participant.findFirst({ where: { tripId, ...actorWhere(actor), status: ParticipantStatus.ACTIVE } });
+    if (!me) throw notFound();
+    return me;
+  }
+
   /**
    * Runs `fn` in a transaction holding a lock on the trip row, with the caller's membership read
    * inside it. Every membership or invitation change goes through here, so concurrent requests

@@ -115,6 +115,8 @@ export const ApiErrorCode = {
   TooManyRequests: 'TOO_MANY_REQUESTS',
   LastOrganizer: 'LAST_ORGANIZER',
   InvitationInvalid: 'INVITATION_INVALID',
+  /** Someone else changed the item since it was loaded: reload it before editing again. */
+  EditConflict: 'EDIT_CONFLICT',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
 

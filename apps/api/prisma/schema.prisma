@@ -98,6 +98,7 @@ model Trip {
   participants Participant[]
   destinations TripDestination[]
   invitations  Invitation[]
+  ideas        Idea[]
 }
 
 /// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
@@ -153,9 +154,52 @@ model Participant {
   /// Guest participants (userId null): SHA-256 of their session token. Cleared when they leave or sign up.
   guestTokenHash String?           @unique
 
-  trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  trip  Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ideas Idea[]
 
   @@unique([tripId, userId])
   @@index([userId])
+}
+
+enum IdeaCategory {
+  ACTIVITY
+  FOOD
+  WALK
+  BEACH
+  CULTURE
+  NIGHTLIFE
+  OTHER
+}
+
+/// Indicative status (CDC §5). "Planned" is derived from a linked event, never stored.
+enum IdeaStatus {
+  PROPOSED
+  KEPT
+}
+
+/// An entry of the trip's idea box. Only the title is required.
+model Idea {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  tripId      String        @db.Uuid
+  authorId    String        @db.Uuid
+  title       String
+  category    IdeaCategory?
+  place       String?
+  url         String?
+  description String?
+  /// Free text: "Gratuit", "~25 € / pers.".
+  cost        String?
+  status      IdeaStatus    @default(PROPOSED)
+  /// Bumped on every change; a PATCH made on an older version is refused (409).
+  version     Int           @default(1)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  trip   Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  /// Participants are only ever deleted with their trip.
+  author Participant @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
+  @@index([authorId])
 }
