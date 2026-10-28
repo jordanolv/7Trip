@@ -25,12 +25,16 @@ export default function IdeesScreen() {
   const { mutate: markSeen } = useMarkIdeasSeen(tripId);
 
   const all = ideas.data ?? [];
-  // Seeing the list clears the badge, again whenever a newer idea shows up while it is open.
-  const newest = all[0]?.createdAt;
+  // The tab stays mounted: each visit fetches the list again, then marks what it shows as seen.
+  const { refetch } = ideas;
+  const refresh = useCallback(async () => {
+    const newest = (await refetch({ cancelRefetch: false })).data?.[0]?.createdAt;
+    if (newest) markSeen(newest);
+  }, [refetch, markSeen]);
   useFocusEffect(
     useCallback(() => {
-      if (newest) markSeen(newest);
-    }, [newest, markSeen]),
+      void refresh();
+    }, [refresh]),
   );
   const shown = filter === 'all' ? all : all.filter((idea) => idea.status === filter);
   const filters: { key: Filter; label: string }[] = [
@@ -44,7 +48,7 @@ export default function IdeesScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={ideas.isRefetching} onRefresh={() => void ideas.refetch()} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={ideas.isRefetching} onRefresh={() => void refresh()} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
