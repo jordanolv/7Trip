@@ -1,7 +1,7 @@
 import { authorName, type Idea, type IdeaStatus } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
-import { router, type Href } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { CategoryTile, IdeaStatusChip, ideaMeta } from '@/ideas/idea-visuals';
-import { useIdeas } from '@/ideas/ideas-api';
+import { useIdeas, useMarkIdeasSeen } from '@/ideas/ideas-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
@@ -22,8 +22,16 @@ export default function IdeesScreen() {
   const trip = useTrip(tripId);
   const ideas = useIdeas(tripId);
   const [filter, setFilter] = useState<Filter>('all');
+  const { mutate: markSeen } = useMarkIdeasSeen(tripId);
 
   const all = ideas.data ?? [];
+  // Seeing the list clears the badge, again whenever a newer idea shows up while it is open.
+  const newest = all[0]?.createdAt;
+  useFocusEffect(
+    useCallback(() => {
+      if (newest) markSeen(newest);
+    }, [newest, markSeen]),
+  );
   const shown = filter === 'all' ? all : all.filter((idea) => idea.status === filter);
   const filters: { key: Filter; label: string }[] = [
     { key: 'all', label: all.length ? `Toutes · ${all.length}` : 'Toutes' },

@@ -3,6 +3,7 @@ import {
   ApiErrorCode,
   canEditContent,
   type Idea,
+  type UnseenIdeas,
   type IdeaCategory,
   type createIdeaRequestSchema,
   type updateIdeaRequestSchema,
@@ -41,6 +42,24 @@ export class IdeasService {
     const me = await this.trips.member(actor, tripId);
     const ideas = await this.prisma.idea.findMany({ where: { tripId }, include: IDEA_INCLUDE, orderBy: { createdAt: 'desc' } });
     return ideas.map((idea) => toIdea(idea, me));
+  }
+
+  async unseen(actor: Actor, tripId: string): Promise<UnseenIdeas> {
+    const me = await this.trips.member(actor, tripId);
+    const count = await this.prisma.idea.count({
+      where: { tripId, authorId: { not: me.id }, ...(me.ideasSeenAt && { createdAt: { gt: me.ideasSeenAt } }) },
+    });
+    return { count };
+  }
+
+  /** Never moves back, nor past now: a stale or skewed `until` cannot hide newer ideas. */
+  async markSeen(actor: Actor, tripId: string, until: Date): Promise<void> {
+    const me = await this.trips.member(actor, tripId);
+    const seenAt = new Date(Math.min(until.getTime(), Date.now()));
+    await this.prisma.participant.updateMany({
+      where: { id: me.id, OR: [{ ideasSeenAt: null }, { ideasSeenAt: { lt: seenAt } }] },
+      data: { ideasSeenAt: seenAt },
+    });
   }
 
   async get(actor: Actor, tripId: string, ideaId: string): Promise<Idea> {

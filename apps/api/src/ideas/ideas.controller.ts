@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { createIdeaRequestSchema, updateIdeaRequestSchema, type Idea } from '@7trip/shared';
+import { createIdeaRequestSchema, markIdeasSeenRequestSchema, updateIdeaRequestSchema, type Idea, type UnseenIdeas } from '@7trip/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import type { Actor } from '../trips/actor.js';
 import { CurrentActor, TripMemberGuard } from '../trips/trip-member.guard.js';
@@ -23,6 +23,22 @@ export class IdeasController {
     @Body(new ZodValidationPipe(createIdeaRequestSchema)) body: CreateIdeaInput,
   ): Promise<Idea> {
     return this.ideas.create(actor, tripId, body);
+  }
+
+  // Before ':ideaId', which would otherwise match them.
+  @Get('unseen')
+  unseen(@CurrentActor() actor: Actor, @Param('tripId') tripId: string): Promise<UnseenIdeas> {
+    return this.ideas.unseen(actor, tripId);
+  }
+
+  @Post('seen')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  markSeen(
+    @CurrentActor() actor: Actor,
+    @Param('tripId') tripId: string,
+    @Body(new ZodValidationPipe(markIdeasSeenRequestSchema)) body: { until: string },
+  ): Promise<void> {
+    return this.ideas.markSeen(actor, tripId, new Date(body.until));
   }
 
   @Get(':ideaId')

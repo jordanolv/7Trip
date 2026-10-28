@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { GUEST_TOKEN_HEADER, type GuestJoinResponse, type Idea, type TripDetail, type TripInvitation } from '@7trip/shared';
+import { GUEST_TOKEN_HEADER, type GuestJoinResponse, type Idea, type TripDetail, type TripInvitation, type UnseenIdeas } from '@7trip/shared';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { createTestApp } from './create-test-app.js';
@@ -134,6 +134,28 @@ describe('Ideas (e2e)', () => {
     await api().post('/v1/me/guest-sessions/claim').set(lea.auth).send({ tokens: [token] }).expect(204);
     const [kept] = await ideasOf(trip.id, lea.auth);
     expect(kept).toMatchObject({ id: idea.id, author: { displayName: 'Léa', hasLeft: false }, canEdit: true });
+  });
+
+  it('counts the ideas proposed by others since the idea box was last opened', async () => {
+    const { trip } = await newTrip();
+    const unseen = async (headers: Record<string, string>) =>
+      ((await api().get(`/v1/trips/${trip.id}/ideas/unseen`).set(headers).expect(200)).body as UnseenIdeas).count;
+    const markSeen = (headers: Record<string, string>, until: string) =>
+      api().post(`/v1/trips/${trip.id}/ideas/seen`).set(headers).send({ until }).expect(204);
+
+    const first = await propose(trip.id, lea.auth, { title: 'Plage de Bolonia' });
+    await propose(trip.id, jordan.auth, { title: 'Tapas à Triana' });
+    expect(await unseen(jordan.auth)).toBe(1); // His own idea is not news to him.
+    expect(await unseen(lea.auth)).toBe(1);
+
+    await markSeen(jordan.auth, first.createdAt);
+    expect(await unseen(jordan.auth)).toBe(0);
+    // An idea proposed after the list was shown stays new, and an older `until` changes nothing.
+    await propose(trip.id, lea.auth, { title: 'Flamenco' });
+    await markSeen(jordan.auth, '2020-01-01T00:00:00Z');
+    expect(await unseen(jordan.auth)).toBe(1);
+
+    await api().post(`/v1/trips/${trip.id}/ideas/seen`).set(jordan.auth).send({ until: 'hier' }).expect(400);
   });
 
   it('deletes the ideas with their trip', async () => {

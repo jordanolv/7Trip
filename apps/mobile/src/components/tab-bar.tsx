@@ -33,6 +33,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: T
         const focused = state.index === index;
         const color = focused ? colors.accent : colors.inkSecondary;
         const label = options.title ?? route.name;
+        const badge = options.tabBarBadge;
 
         const onPress = () => {
           const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -44,11 +45,18 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: T
             key={route.key}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
-            accessibilityLabel={label}
+            accessibilityLabel={badge ? `${label}, ${badge} nouveau${badge === 1 ? '' : 'x'}` : label}
             onPress={onPress}
             style={[styles.item, focused && styles.itemActive]}
           >
-            {options.tabBarIcon?.({ focused, color, size: 24 })}
+            <View>
+              {options.tabBarIcon?.({ focused, color, size: 24 })}
+              {badge ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{typeof badge === 'number' && badge > 9 ? '9+' : badge}</Text>
+                </View>
+              ) : null}
+            </View>
             <Text numberOfLines={1} style={[styles.label, compact && styles.labelCompact, { color }, focused && styles.labelActive]}>
               {label}
             </Text>
@@ -76,4 +84,19 @@ const styles = StyleSheet.create({
   label: { fontFamily: fontFamily.medium, fontSize: 12 },
   labelCompact: { fontSize: 11 },
   labelActive: { fontFamily: fontFamily.bold },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    left: 15,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontFamily: fontFamily.bold, fontSize: 10, lineHeight: 12, color: colors.surface },
 });
