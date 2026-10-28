@@ -1,5 +1,6 @@
 import { AVATAR_COLORS, updateMeRequestSchema, type AvatarColor, type Me } from '@7trip/shared';
 import { avatarColors, colors, spacing } from '@7trip/ui-tokens';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -17,6 +18,7 @@ import { useAction } from '@/lib/use-action';
 /** Name and avatar colour, both shown to the people of your trips. */
 export default function ModifierProfilScreen() {
   const { user, authedRequest, setUser } = useAuth();
+  const client = useQueryClient();
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [avatarColor, setAvatarColor] = useState<AvatarColor>(user?.avatarColor ?? 'sage');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -29,6 +31,9 @@ export default function ModifierProfilScreen() {
     }
     setLocalError(null);
     setUser(await authedRequest<Me>('/me', { method: 'PATCH', body: parsed.data }));
+    // The name and colour are copied into every trip, its ideas, events and polls: all of it is
+    // refetched, starting with the screen this modal was opened from.
+    void client.invalidateQueries();
     router.back();
   });
 
