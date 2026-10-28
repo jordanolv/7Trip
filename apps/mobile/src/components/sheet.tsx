@@ -29,7 +29,7 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
           {title}
         </AppText>
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} style={styles.close}>
-          <Icon name="close" size={20} />
+          <Icon name="close" size={22} />
         </Pressable>
       </View>
       <View style={styles.content}>{children}</View>
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
   side: { width: 36 },
   title: { flex: 1, textAlign: 'center' },
-  close: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.chip, alignItems: 'center', justifyContent: 'center' },
+  close: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   content: { padding: spacing.lg, gap: spacing.lg },
 });
