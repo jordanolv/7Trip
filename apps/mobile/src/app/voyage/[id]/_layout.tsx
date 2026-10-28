@@ -20,6 +20,11 @@ export default function VoyageLayout() {
         <Stack.Screen name="idee/nouvelle" options={{ presentation: 'modal' }} />
         <Stack.Screen name="idee/[ideaId]/index" />
         <Stack.Screen name="idee/[ideaId]/modifier" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="idee/[ideaId]/planifier" options={sheetOptions} />
+        <Stack.Screen name="evenement/nouveau" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="evenement/depuis-idee" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="evenement/[eventId]/index" />
+        <Stack.Screen name="evenement/[eventId]/modifier" options={{ presentation: 'modal' }} />
       </Stack>
     </TripIdProvider>
   );

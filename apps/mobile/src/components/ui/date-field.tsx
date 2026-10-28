@@ -19,12 +19,15 @@ export function DateField({
   onChange,
   minimumDate,
   placeholder = 'Choisir',
+  clearable = true,
 }: {
   label: string;
   value: string | null;
   onChange: (iso: string | null) => void;
   minimumDate?: string | null;
   placeholder?: string;
+  /** False for a required date: no "Effacer". */
+  clearable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const initial = value ?? minimumDate ?? localIsoDate();
@@ -43,7 +46,7 @@ export function DateField({
             {value ? formatDate(value) : placeholder}
           </AppText>
         </Pressable>
-        {value ? (
+        {value && clearable ? (
           <Pressable accessibilityRole="button" accessibilityLabel={`Effacer ${label}`} onPress={() => onChange(null)} style={styles.clear}>
             <AppText variant="label" tone="secondary">
               Effacer

@@ -1,4 +1,4 @@
-import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, authorName, formatRelativeTime, placeMapsUrl, type Idea, type IdeaStatus } from '@7trip/shared';
+import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, authorName, formatDayMonth, formatRelativeTime, placeMapsUrl, weekday, type Idea, type IdeaStatus } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
@@ -132,8 +132,33 @@ function IdeeDetail({ tripId, idea }: { tripId: string; idea: Idea }) {
             </View>
           ) : (
             <View style={styles.statusChip}>
-              <IdeaStatusChip status={idea.status} />
+              <IdeaStatusChip idea={idea} />
             </View>
+          )}
+
+          {idea.plannedEvent ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Ouvre l’événement du planning"
+              onPress={() => router.push(`/voyage/${tripId}/evenement/${idea.plannedEvent!.id}` as Href)}
+              style={({ pressed }) => [styles.planned, pressed && styles.pressed]}
+            >
+              <Icon name="calendar" color={PLANNED_INK} size={20} />
+              <View style={styles.flex}>
+                <Text style={styles.plannedLabel}>Au planning</Text>
+                <AppText variant="bodyStrong">
+                  {weekday(idea.plannedEvent.startDate)} {formatDayMonth(idea.plannedEvent.startDate)}
+                  {idea.plannedEvent.startTime ? ` · ${idea.plannedEvent.startTime}` : ''}
+                </AppText>
+              </View>
+              <Icon name="chevronRight" color={PLANNED_INK} size={18} />
+            </Pressable>
+          ) : (
+            <Button
+              title="Ajouter au planning"
+              icon={<Icon name="calendar" color={colors.surface} size={20} />}
+              onPress={() => router.push(`/voyage/${tripId}/idee/${idea.id}/planifier` as Href)}
+            />
           )}
 
           {idea.description ? <AppText style={styles.description}>{idea.description}</AppText> : null}
@@ -177,6 +202,8 @@ function hostname(url: string): string {
   return match?.[1] ?? url;
 }
 
+const PLANNED_INK = '#1F5F7A';
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
@@ -212,6 +239,8 @@ const styles = StyleSheet.create({
   statusTextActive: { color: colors.ink },
   statusChip: { flexDirection: 'row' },
   description: { color: '#2C3443', lineHeight: 23 },
+  planned: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: '#C8E0EA', borderRadius: 16, padding: 14 },
+  plannedLabel: { fontFamily: fontFamily.semibold, fontSize: 12, color: PLANNED_INK },
   card: { backgroundColor: colors.surface, borderRadius: 20 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, paddingVertical: spacing.md, paddingHorizontal: 14 },
   pressed: { opacity: 0.6 },

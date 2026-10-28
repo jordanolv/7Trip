@@ -22,7 +22,7 @@ export type UpdateEventInput = z.output<typeof updateEventRequestSchema>;
 
 const EVENT_INCLUDE = {
   author: true,
-  participants: { select: { participantId: true } },
+  participants: { include: { participant: true }, orderBy: { participant: { joinedAt: 'asc' } } },
   idea: { include: { author: true } },
 } satisfies Prisma.EventInclude;
 type EventWithRelations = Prisma.EventGetPayload<{ include: typeof EVENT_INCLUDE }>;
@@ -210,6 +210,7 @@ function toTripEvent(event: EventWithRelations, me: Participant): TripEvent {
     description: event.description,
     bookingRef: event.bookingRef,
     participantIds,
+    participants: event.participants.map((p) => author(p.participant)),
     author: author(event.author),
     idea: event.idea && { id: event.idea.id, author: author(event.idea.author) },
     createdAt: event.createdAt.toISOString(),

@@ -125,6 +125,8 @@ export interface TripEvent {
   bookingRef: string | null;
   /** Empty: the whole group. */
   participantIds: string[];
+  /** The same people, with their names (someone who left stays listed, as "(parti)"). */
+  participants: ContentAuthor[];
   author: ContentAuthor;
   /** The idea it was planned from, still in the idea box. */
   idea: { id: string; author: ContentAuthor } | null;
