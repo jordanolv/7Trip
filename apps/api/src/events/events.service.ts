@@ -16,6 +16,7 @@ import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
+import { toContentAuthor } from '../common/content-author.js';
 import { TripsService } from '../trips/trips.service.js';
 
 /** Validated request bodies (blank fields already turned into null). */
@@ -215,11 +216,7 @@ function assertCanEdit(me: Participant, event: EventWithRelations): void {
   }
 }
 
-const author = (participant: Participant) => ({
-  id: participant.id,
-  displayName: participant.displayName,
-  hasLeft: participant.status === ParticipantStatus.LEFT,
-});
+const author = toContentAuthor;
 
 function toTripEvent(event: EventWithRelations, me: Participant): TripEvent {
   const participantIds = event.participants.map((p) => p.participantId);

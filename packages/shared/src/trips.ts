@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { AvatarColor } from './avatars.js';
+
 /** Identity colours a trip can use (keys of `tripColors` in @7trip/ui-tokens). */
 export const TRIP_COLORS = ['orange', 'forest', 'lagoon', 'raspberry', 'lavender', 'mustard'] as const;
 export type TripColorKey = (typeof TRIP_COLORS)[number];
@@ -75,6 +77,7 @@ export type UpdateTripRequest = z.input<typeof updateTripRequestSchema>;
 export interface TripParticipant {
   id: string;
   displayName: string;
+  avatarColor: AvatarColor;
   role: ParticipantRole;
   /** True for the participant row of the signed-in user (or of this guest session). */
   isMe: boolean;

@@ -15,6 +15,7 @@ import { EventCategoryChip, EventIcon, eventDays, eventStyle } from '@/events/ev
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTripId } from '@/trips/use-trip-id';
+import { AuthorName } from '@/trips/author-name';
 
 export default function EvenementScreen() {
   const tripId = useTripId();
@@ -121,7 +122,7 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
               </Pressable>
             ) : (
               <AppText variant="caption" tone="secondary" style={styles.byline}>
-                Ajouté par {authorName(event.author)}
+                Ajouté par <AuthorName tripId={tripId} author={event.author} />
               </AppText>
             )}
           </View>
@@ -160,7 +161,7 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
                 <View style={styles.avatars}>
                   {event.participants.slice(0, 3).map((p, i) => (
                     <View key={p.id} style={[styles.avatar, i > 0 && styles.avatarOverlap]}>
-                      <Avatar name={p.displayName} size={28} />
+                      <Avatar name={p.displayName} color={p.avatarColor} size={28} />
                     </View>
                   ))}
                 </View>

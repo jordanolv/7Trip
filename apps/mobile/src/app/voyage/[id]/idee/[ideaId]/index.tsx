@@ -1,4 +1,4 @@
-import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, authorName, formatDayMonth, formatRelativeTime, placeMapsUrl, weekday, type Idea, type IdeaStatus } from '@7trip/shared';
+import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, formatDayMonth, formatRelativeTime, placeMapsUrl, weekday, type Idea, type IdeaStatus } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
@@ -15,6 +15,7 @@ import { useIdea, useUpdateIdea } from '@/ideas/ideas-api';
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTripId } from '@/trips/use-trip-id';
+import { AuthorName } from '@/trips/author-name';
 
 export default function IdeeScreen() {
   const tripId = useTripId();
@@ -106,9 +107,9 @@ function IdeeDetail({ tripId, idea }: { tripId: string; idea: Idea }) {
           <View>
             <AppText variant="title">{idea.title}</AppText>
             <View style={styles.byline}>
-              <Avatar name={idea.author.displayName} size={24} />
+              <Avatar name={idea.author.displayName} color={idea.author.avatarColor} size={24} />
               <AppText variant="caption" tone="secondary" style={styles.flex}>
-                Proposée par {authorName(idea.author)} · {formatRelativeTime(idea.createdAt)}
+                Proposée par <AuthorName tripId={tripId} author={idea.author} /> · {formatRelativeTime(idea.createdAt)}
               </AppText>
             </View>
           </View>

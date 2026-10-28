@@ -15,7 +15,7 @@ export const sheetOptions = {
   sheetCornerRadius: 28,
 } as const;
 
-/** Layout of a sheet screen: title and close button on top, then the content. Never flex: the sheet sizes to it. */
+/** Layout of a sheet screen: centred title with the close button on its right, then the content. Never flex: the sheet sizes to it. */
 export function Sheet({ title, children }: { title: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -23,11 +23,13 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
   return (
     <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
       <View style={styles.header}>
+        {/* Same width as the close button, so the title stays centred. */}
+        <View style={styles.side} />
         <AppText variant="heading" style={styles.title}>
           {title}
         </AppText>
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} style={styles.close}>
-          <Icon name="close" size={20} />
+          <Icon name="close" size={22} />
         </Pressable>
       </View>
       <View style={styles.content}>{children}</View>
@@ -37,8 +39,9 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
 
 const styles = StyleSheet.create({
   sheet: { backgroundColor: colors.background, paddingTop: spacing.xl },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingLeft: spacing.lg, paddingRight: spacing.md },
-  title: { flex: 1 },
-  close: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.chip, alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
+  side: { width: 36 },
+  title: { flex: 1, textAlign: 'center' },
+  close: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   content: { padding: spacing.lg, gap: spacing.lg },
 });

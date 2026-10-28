@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { AVATAR_COLORS, type AvatarColor } from './avatars.js';
+
 /** Emails are compared case-insensitively: always store and look them up normalised. */
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -68,13 +70,17 @@ export const resetPasswordRequestSchema = z.object({
 });
 export type ResetPasswordRequest = z.input<typeof resetPasswordRequestSchema>;
 
-export const updateMeRequestSchema = z.object({ displayName: displayNameSchema });
+export const updateMeRequestSchema = z
+  .object({ displayName: displayNameSchema.optional(), avatarColor: z.enum(AVATAR_COLORS).optional() })
+  .refine((body) => body.displayName !== undefined || body.avatarColor !== undefined, 'Rien à modifier');
 export type UpdateMeRequest = z.input<typeof updateMeRequestSchema>;
 
 export interface Me {
   id: string;
   email: string;
   displayName: string;
+  /** Chosen in the profile, or the default colour of the account. */
+  avatarColor: AvatarColor;
   emailVerified: boolean;
   createdAt: string;
 }

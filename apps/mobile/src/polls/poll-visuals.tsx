@@ -74,7 +74,7 @@ export function VoterAvatars({ voters, size = 26, max = 6 }: { voters: ContentAu
     <View accessible accessibilityLabel={`Votes : ${voters.map(authorName).join(', ')}`} style={styles.voters}>
       {shown.map((voter, index) => (
         <View key={voter.id} style={[styles.voterRing, ringStyle, index > 0 && { marginLeft: -size * 0.3 }]}>
-          <Avatar name={voter.displayName} size={size} />
+          <Avatar name={voter.displayName} color={voter.avatarColor} size={size} />
         </View>
       ))}
       {extra ? (

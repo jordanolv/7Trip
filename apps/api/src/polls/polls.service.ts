@@ -7,7 +7,6 @@ import {
   pollFollowUp,
   pollResultsVisible,
   type ApiErrorBody,
-  type ContentAuthor,
   type Poll,
   type PollKind,
   type createPollRequestSchema,
@@ -18,6 +17,7 @@ import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
+import { toContentAuthor } from '../common/content-author.js';
 import { TripsService } from '../trips/trips.service.js';
 
 /** Validated request body. */
@@ -201,7 +201,7 @@ function validationError(field: string, message: string) {
   return new BadRequestException(body);
 }
 
-const toAuthor = (p: Participant): ContentAuthor => ({ id: p.id, displayName: p.displayName, hasLeft: p.status === ParticipantStatus.LEFT });
+const toAuthor = toContentAuthor;
 
 function toPoll(poll: PollWithRelations, me: Participant, active: Participant[]): Poll {
   const closed = isPollClosed(poll);

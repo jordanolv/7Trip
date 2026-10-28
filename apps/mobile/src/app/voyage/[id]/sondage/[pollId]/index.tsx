@@ -26,6 +26,7 @@ import { Chip, VoteBar, VoterAvatars, deadlineLabel } from '@/polls/poll-visuals
 import { useApplyPoll, useClosePoll, useDeletePoll, usePoll, useVote } from '@/polls/polls-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
+import { AuthorName } from '@/trips/author-name';
 
 export default function SondageScreen() {
   const tripId = useTripId();
@@ -161,7 +162,7 @@ function SondageDetail({ tripId, poll, refreshing, refetch }: { tripId: string; 
             {poll.question}
           </Text>
           <AppText variant="caption" tone="secondary">
-            Proposé par {authorName(poll.author)}
+            Proposé par <AuthorName tripId={tripId} author={poll.author} />
           </AppText>
         </View>
 

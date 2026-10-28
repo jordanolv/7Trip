@@ -14,11 +14,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AvatarColor {
+  sage
+  sky
+  sand
+  peach
+  lilac
+  rose
+  periwinkle
+  stone
+}
+
 model User {
   id              String    @id @default(uuid(7)) @db.Uuid
   /// Always stored normalised (trimmed, lower case).
   email           String    @unique
   displayName     String
+  /// Chosen in the profile; null: a colour derived from the id (defaultAvatarColor in @7trip/shared).
+  avatarColor     AvatarColor?
   /// Argon2id hash. Null for accounts that only use Apple / Google sign-in.
   passwordHash    String?
   emailVerifiedAt DateTime?
@@ -149,6 +162,8 @@ model Participant {
   tripId         String            @db.Uuid
   userId         String?           @db.Uuid
   displayName    String
+  /// Copied from the account, like displayName, and kept in sync when the profile changes.
+  avatarColor    AvatarColor?
   role           ParticipantRole   @default(PARTICIPANT)
   status         ParticipantStatus @default(ACTIVE)
   joinedAt       DateTime          @default(now())

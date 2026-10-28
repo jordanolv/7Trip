@@ -57,7 +57,7 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
               {trip.participants.slice(0, 3).map((p, index) => (
                 <View key={p.id} style={[styles.avatarRing, index > 0 && { marginLeft: -12 }]}>
                   {/* 40 + 2×2 ring = 44, the size of the round buttons beside it. */}
-                  <Avatar name={p.displayName} size={40} />
+                  <Avatar name={p.displayName} color={p.avatarColor} size={40} />
                 </View>
               ))}
             </Pressable>

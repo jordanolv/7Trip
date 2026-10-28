@@ -3,6 +3,7 @@ import {
   ApiErrorCode,
   TRIP_COLORS,
   canDo,
+  participantAvatarColor,
   type InvitePolicy,
   type TripAction,
   type TripColorKey,
@@ -93,7 +94,7 @@ export class TripsService {
         icon: input.icon ?? 'suitcase',
         createdById: userId,
         participants: {
-          create: { userId, displayName: user.displayName, role: ParticipantRole.ORGANIZER },
+          create: { userId, displayName: user.displayName, avatarColor: user.avatarColor, role: ParticipantRole.ORGANIZER },
         },
         destinations: { create: toStops(input.destinations ?? []) },
       },
@@ -223,7 +224,14 @@ export class TripsService {
       createdAt: trip.createdAt.toISOString(),
       participants: trip.participants
         .toSorted((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
-        .map((p) => ({ id: p.id, displayName: p.displayName, role: p.role, isMe: isActor(p, actor), isGuest: p.userId === null })),
+        .map((p) => ({
+          id: p.id,
+          displayName: p.displayName,
+          avatarColor: participantAvatarColor(p),
+          role: p.role,
+          isMe: isActor(p, actor),
+          isGuest: p.userId === null,
+        })),
     };
   }
 }

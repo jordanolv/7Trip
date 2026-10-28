@@ -45,7 +45,7 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="profil/nom" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="profil/nom" options={sheetOptions} />
       <Stack.Screen name="voyage/nouveau" options={{ presentation: 'modal' }} />
       <Stack.Screen name="voyage/[id]" />
       <Stack.Screen name="j/[code]" options={sheetOptions} />

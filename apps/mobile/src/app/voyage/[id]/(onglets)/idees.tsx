@@ -1,4 +1,4 @@
-import { authorName, type Idea } from '@7trip/shared';
+import type { Idea } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -12,6 +12,7 @@ import { CategoryTile, IdeaStatusChip, ideaDisplayStatus, ideaMeta, type IdeaDis
 import { useIdeas, useMarkIdeasSeen } from '@/ideas/ideas-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
+import { AuthorName } from '@/trips/author-name';
 
 type Filter = 'all' | IdeaDisplayStatus;
 
@@ -110,7 +111,7 @@ export default function IdeesScreen() {
       ) : (
         <View style={styles.list}>
           {shown.map((idea) => (
-            <IdeaRow key={idea.id} idea={idea} onPress={() => router.push(`/voyage/${tripId}/idee/${idea.id}` as Href)} />
+            <IdeaRow key={idea.id} tripId={tripId} idea={idea} onPress={() => router.push(`/voyage/${tripId}/idee/${idea.id}` as Href)} />
           ))}
         </View>
       )}
@@ -118,7 +119,7 @@ export default function IdeesScreen() {
   );
 }
 
-function IdeaRow({ idea, onPress }: { idea: Idea; onPress: () => void }) {
+function IdeaRow({ tripId, idea, onPress }: { tripId: string; idea: Idea; onPress: () => void }) {
   const meta = ideaMeta(idea);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -135,7 +136,7 @@ function IdeaRow({ idea, onPress }: { idea: Idea; onPress: () => void }) {
         <View style={styles.statusLine}>
           <IdeaStatusChip idea={idea} />
           <Text style={styles.author} numberOfLines={1}>
-            par {authorName(idea.author)}
+            par <AuthorName tripId={tripId} author={idea.author} />
           </Text>
         </View>
       </View>

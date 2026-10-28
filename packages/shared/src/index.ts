@@ -6,3 +6,4 @@ export * from './ideas.js';
 export * from './format.js';
 export * from './events.js';
 export * from './polls.js';
+export * from './avatars.js';

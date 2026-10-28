@@ -11,9 +11,9 @@ import {
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
-import { ParticipantStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
+import { toContentAuthor } from '../common/content-author.js';
 import { TripsService } from '../trips/trips.service.js';
 
 /** Validated request bodies (blank fields already turned into null). */
@@ -149,11 +149,7 @@ function toIdea(idea: IdeaWithAuthor, me: Participant): Idea {
     description: idea.description,
     cost: idea.cost,
     status: idea.status,
-    author: {
-      id: idea.author.id,
-      displayName: idea.author.displayName,
-      hasLeft: idea.author.status === ParticipantStatus.LEFT,
-    },
+    author: toContentAuthor(idea.author),
     createdAt: idea.createdAt.toISOString(),
     version: idea.version,
     canEdit: canEditContent(me, idea.authorId),
