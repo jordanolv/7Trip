@@ -31,6 +31,11 @@ Les images se construisent depuis la racine du dépôt : l'API et le web ont bes
 `packages/*`. Sans contexte `.`, Dokploy prend le dossier du Dockerfile et le build ne trouve pas
 `pnpm-lock.yaml`. Les migrations Prisma s'appliquent au démarrage de l'API.
 
+Chaque push sur la branche de l'environnement (`dev` pour le staging) redéploie l'API et le web.
+Les push arrivent par le webhook de la GitHub App Dokploy, dont l'URL doit être l'adresse publique
+`https://vps.jordanolv.dev/api/deploy/github` : le port 3000 du VPS n'est pas joignable depuis
+GitHub.
+
 ## Variables d'environnement
 
 **API**
