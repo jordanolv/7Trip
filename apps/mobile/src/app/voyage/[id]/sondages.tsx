@@ -25,7 +25,7 @@ export default function SondagesScreen() {
       void refetch({ cancelRefetch: false });
     }, [refetch]),
   );
-  const all = (polls.data ?? []).toSorted((a, b) => order(a) - order(b));
+  const all = [...(polls.data ?? [])].sort((a, b) => order(a) - order(b));
   const create = () => router.push(`/voyage/${tripId}/sondage/nouveau` as Href);
 
   return (

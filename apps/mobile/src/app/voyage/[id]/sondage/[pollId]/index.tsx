@@ -79,7 +79,7 @@ function SondageDetail({ tripId, poll, refreshing, refetch }: { tripId: string; 
     setShownKey(savedKey);
     setPicked(mine);
   }
-  const changed = picked.toSorted().join(',') !== mine.toSorted().join(',');
+  const changed = [...picked].sort().join(',') !== [...mine].sort().join(',');
 
   const toggle = (id: string) => {
     haptics.tick();
@@ -249,7 +249,7 @@ function Results({ tripId, poll, canApply }: { tripId: string; poll: Poll; canAp
   const [later, setLater] = useState(false);
   const today = localIsoDate();
   const leaders = pollLeaders(poll.options);
-  const sorted = poll.options.toSorted((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
+  const sorted = [...poll.options].sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
   const top = leaders.length === 1 ? leaders[0]! : null;
   const rest = top ? sorted.filter((o) => o.id !== top.id) : sorted;
   const applied = poll.options.find((o) => o.id === poll.appliedOptionId) ?? null;
