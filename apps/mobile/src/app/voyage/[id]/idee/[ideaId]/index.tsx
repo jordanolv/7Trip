@@ -1,4 +1,4 @@
-import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, authorName, formatRelativeTime, type Idea, type IdeaStatus } from '@7trip/shared';
+import { ApiErrorCode, IDEA_CATEGORY_LABELS, IDEA_STATUSES, IDEA_STATUS_LABELS, authorName, formatRelativeTime, ideaMapsUrl, type Idea, type IdeaStatus } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
@@ -69,16 +69,11 @@ function IdeeDetail({ tripId, idea }: { tripId: string; idea: Idea }) {
   if (idea.category || idea.cost) {
     rows.push({ icon: null, label: idea.category ? IDEA_CATEGORY_LABELS[idea.category] : 'Coût estimé', detail: idea.cost });
   }
-  if (idea.place) {
-    const place = idea.place;
-    rows.push({ icon: 'pin', label: place });
-    rows.push({
-      icon: 'map',
-      label: 'Voir sur Google Maps',
-      onPress: () => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`),
-    });
-  }
-  if (idea.url) {
+  if (idea.place) rows.push({ icon: 'pin', label: idea.place });
+  // A Google Maps link is the idea's location: it backs "Voir sur Google Maps" rather than showing twice.
+  const mapsUrl = ideaMapsUrl(idea);
+  if (mapsUrl) rows.push({ icon: 'map', label: 'Voir sur Google Maps', onPress: () => void Linking.openURL(mapsUrl) });
+  if (idea.url && idea.url !== mapsUrl) {
     const url = idea.url;
     rows.push({ icon: 'link', label: hostname(url), onPress: () => void Linking.openURL(url) });
   }

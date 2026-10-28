@@ -96,3 +96,14 @@ export function canEditContent(me: { id: string; role: ParticipantRole }, author
 
 /** "Camille", or "Camille (parti)" once they left the trip. */
 export const authorName = (author: ContentAuthor) => (author.hasLeft ? `${author.displayName} (parti)` : author.displayName);
+
+/** A Google Maps link (short maps.app.goo.gl or full google.com/maps): it already is the idea's location. */
+export function isMapsUrl(url: string): boolean {
+  return /^https?:\/\/(maps\.app\.goo\.gl\/|goo\.gl\/maps\/|maps\.google\.[a-z.]+\/|(www\.)?google\.[a-z.]+\/maps)/i.test(url);
+}
+
+/** Where "Voir sur Google Maps" leads: the idea's own Maps link, otherwise a search for its place. */
+export function ideaMapsUrl(idea: Pick<Idea, 'place' | 'url'>): string | null {
+  if (idea.url && isMapsUrl(idea.url)) return idea.url;
+  return idea.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(idea.place)}` : null;
+}

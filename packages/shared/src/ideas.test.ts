@@ -1,5 +1,5 @@
 import { formatRelativeTime } from './format.js';
-import { canEditContent, createIdeaRequestSchema, updateIdeaRequestSchema } from './ideas.js';
+import { canEditContent, createIdeaRequestSchema, ideaMapsUrl, updateIdeaRequestSchema } from './ideas.js';
 
 describe('createIdeaRequestSchema', () => {
   it('accepts a title alone (CDC §5: everything else is optional)', () => {
@@ -31,6 +31,17 @@ describe('updateIdeaRequestSchema', () => {
   it('accepts a status change alone, with the version it was made on', () => {
     expect(updateIdeaRequestSchema.parse({ status: 'KEPT', version: 3 })).toEqual({ status: 'KEPT', version: 3 });
     expect(updateIdeaRequestSchema.safeParse({ status: 'PLANNED' }).success).toBe(false);
+  });
+});
+
+describe('ideaMapsUrl', () => {
+  it('uses the idea’s own Google Maps link, else searches its place', () => {
+    expect(ideaMapsUrl({ place: 'Séville', url: 'https://maps.app.goo.gl/abc123' })).toBe('https://maps.app.goo.gl/abc123');
+    expect(ideaMapsUrl({ place: null, url: 'https://www.google.fr/maps/place/Alcázar' })).toBe('https://www.google.fr/maps/place/Alcázar');
+    expect(ideaMapsUrl({ place: 'Plaza de España', url: 'https://www.alcazarsevilla.org' })).toBe(
+      'https://www.google.com/maps/search/?api=1&query=Plaza%20de%20Espa%C3%B1a',
+    );
+    expect(ideaMapsUrl({ place: null, url: 'https://www.alcazarsevilla.org' })).toBeNull();
   });
 });
 
