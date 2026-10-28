@@ -3,11 +3,15 @@ import { Tabs } from 'expo-router';
 
 import { TabBar, tabIcon } from '@/components/tab-bar';
 import { useUnseenIdeas } from '@/ideas/ideas-api';
+import { usePollsToVote } from '@/polls/polls-api';
 import { useTripId } from '@/trips/use-trip-id';
 
 /** In-trip navigation (CDC §3.2): opening a trip always lands on its dashboard. */
 export default function VoyageTabsLayout() {
-  const unseenIdeas = useUnseenIdeas(useTripId()).data?.count ?? 0;
+  const tripId = useTripId();
+  const unseenIdeas = useUnseenIdeas(tripId).data?.count ?? 0;
+  // Polls live in Plus: the badge says one is waiting for your vote.
+  const pollsToVote = usePollsToVote(tripId);
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
@@ -17,7 +21,7 @@ export default function VoyageTabsLayout() {
       <Tabs.Screen name="planning" options={{ title: 'Planning', tabBarIcon: tabIcon('calendar') }} />
       <Tabs.Screen name="idees" options={{ title: 'Idées', tabBarIcon: tabIcon('idea'), tabBarBadge: unseenIdeas || undefined }} />
       <Tabs.Screen name="finances" options={{ title: 'Finances', tabBarIcon: tabIcon('coins') }} />
-      <Tabs.Screen name="plus" options={{ title: 'Plus', tabBarIcon: tabIcon('more') }} />
+      <Tabs.Screen name="plus" options={{ title: 'Plus', tabBarIcon: tabIcon('more'), tabBarBadge: pollsToVote || undefined }} />
     </Tabs>
   );
 }

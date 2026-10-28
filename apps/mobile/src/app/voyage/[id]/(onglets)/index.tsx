@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { OpenPollsCard } from '@/polls/open-polls-card';
+import { usePolls } from '@/polls/polls-api';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
@@ -15,7 +17,14 @@ import { useTripId } from '@/trips/use-trip-id';
 export default function TripDashboardScreen() {
   const id = useTripId();
   const query = useTrip(id);
-  return <TripQueryState query={query}>{(trip) => <Dashboard trip={trip} refreshing={query.isRefetching} onRefresh={() => void query.refetch()} />}</TripQueryState>;
+  // The polls card shows on the dashboard: pulling to refresh reloads it too.
+  const polls = usePolls(id);
+  const refresh = () => void Promise.all([query.refetch(), polls.refetch()]);
+  return (
+    <TripQueryState query={query}>
+      {(trip) => <Dashboard trip={trip} refreshing={query.isRefetching || polls.isRefetching} onRefresh={refresh} />}
+    </TripQueryState>
+  );
 }
 
 function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshing: boolean; onRefresh: () => void }) {
@@ -77,6 +86,8 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
 
       <View style={styles.body}>
         <PhaseCard trip={trip} today={today} />
+
+        <OpenPollsCard tripId={trip.id} />
 
         {steps.length > 0 ? (
           <View style={styles.card}>

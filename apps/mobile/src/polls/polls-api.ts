@@ -19,6 +19,11 @@ export function usePolls(tripId: string) {
   });
 }
 
+/** Open polls the caller has not voted on yet: the badge on the Plus tab. */
+export function usePollsToVote(tripId: string): number {
+  return usePolls(tripId).data?.filter((poll) => !poll.closed && !poll.hasVoted).length ?? 0;
+}
+
 /** Opens instantly from the list, then refreshes: others may have voted meanwhile. */
 export function usePoll(tripId: string, pollId: string) {
   const { tripRequest } = useAuth();
