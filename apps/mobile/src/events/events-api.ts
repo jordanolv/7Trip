@@ -54,13 +54,17 @@ export function useCreateEvent(tripId: string) {
 /** Sends the version the change was made on: the API refuses it (EDIT_CONFLICT) if someone saved in between. */
 export function useUpdateEvent(tripId: string, eventId: string) {
   const { tripRequest } = useAuth();
+  const client = useQueryClient();
   const refresh = useRefreshPlanning(tripId);
   return useMutation({
     mutationFn: (input: UpdateEventRequest) =>
       tripRequest<TripEvent>(tripId, `/trips/${tripId}/events/${eventId}`, { method: 'PATCH', body: input }),
     onSuccess: refresh,
     // A conflict or a deletion elsewhere: show what the server has now.
-    onError: () => refresh(),
+    onError: () => {
+      void client.invalidateQueries({ queryKey: eventKeys.detail(tripId, eventId) });
+      refresh();
+    },
   });
 }
 

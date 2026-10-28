@@ -11,7 +11,7 @@ import {
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
@@ -89,7 +89,8 @@ function Planifier({ tripId, idea }: { tripId: string; idea: Idea }) {
       <View style={styles.section}>
         <AppText variant="bodyStrong">Quel jour ?</AppText>
         {trip.data?.startDate ? (
-          <View style={styles.days}>
+          // One scrolling row: a long trip must not push the button off the sheet.
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.days}>
             {days.map((d) => {
               const active = d === day;
               return (
@@ -106,7 +107,7 @@ function Planifier({ tripId, idea }: { tripId: string; idea: Idea }) {
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         ) : (
           // No trip dates yet: any day.
           <View style={styles.dateCard}>
@@ -190,9 +191,9 @@ const styles = StyleSheet.create({
   idea: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   section: { gap: 10 },
   optional: { fontFamily: fontFamily.medium, color: colors.inkSecondary },
-  days: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  days: { gap: spacing.sm },
   day: {
-    width: '22.5%',
+    width: 56,
     height: 60,
     borderRadius: 14,
     borderWidth: 1.5,
