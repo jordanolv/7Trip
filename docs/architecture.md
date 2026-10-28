@@ -121,9 +121,9 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
 | `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
-| `Expense` | tripId, label, amountMinor, currency, rateToBase, payerId, category?, eventId?, isPersonal, createdBy, date |
+| `Expense` | tripId, authorId, payerId, label, amountMinor, currency, date, category?, personal, splitMode (equal/custom) — rateToBase et eventId avec l'étape 6B |
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage) |
-| `Settlement` | tripId, fromId, toId, amountMinor, settledAt, createdBy |
+| `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId, totalMinor, perCategory (json) |
 | `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
 | `Notification` | participantId, type, payload, scheduledAt, sentAt? |
@@ -219,7 +219,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Idées | `GET/POST …/ideas`, `GET/PATCH/DELETE …/ideas/{iid}`, `POST …/ideas/{iid}/schedule` |
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
-| Finances | `GET/POST …/expenses`, `PATCH/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `GET/PUT …/budget` |
+| Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (6B) |
 | Documents | `GET/POST …/documents`, `PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 

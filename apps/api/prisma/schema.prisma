@@ -114,6 +114,8 @@ model Trip {
   ideas        Idea[]
   events       Event[]
   polls        Poll[]
+  expenses     Expense[]
+  settlements  Settlement[]
 }
 
 /// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
@@ -181,6 +183,12 @@ model Participant {
   polls            Poll[]             @relation("PollAuthor")
   closedPolls      Poll[]             @relation("PollCloser")
   votes            Vote[]
+  expenses         Expense[]          @relation("ExpenseAuthor")
+  paidExpenses     Expense[]          @relation("ExpensePayer")
+  expenseShares    ExpenseShare[]
+  settlementsPaid  Settlement[]       @relation("SettlementFrom")
+  settlementsGot   Settlement[]       @relation("SettlementTo")
+  settlementsMade  Settlement[]       @relation("SettlementCreator")
 
   @@unique([tripId, userId])
   @@index([userId])
@@ -351,4 +359,80 @@ model Vote {
 
   @@id([optionId, participantId])
   @@index([participantId])
+}
+
+enum ExpenseCategory {
+  FOOD
+  ACTIVITY
+  TRANSPORT
+  LODGING
+  GROCERIES
+  SHOPPING
+  OTHER
+}
+
+enum SplitMode {
+  EQUAL
+  CUSTOM
+}
+
+/// Amounts in integer minor units (cents) of `currency`, the trip's currency (docs/architecture.md §6).
+model Expense {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  tripId      String           @db.Uuid
+  authorId    String           @db.Uuid
+  payerId     String           @db.Uuid
+  label       String
+  amountMinor Int
+  currency    String
+  date        DateTime         @db.Date
+  category    ExpenseCategory?
+  /// Only its author sees it; it counts in their budget, never in the balances.
+  personal    Boolean          @default(false)
+  splitMode   SplitMode        @default(EQUAL)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  trip   Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  author Participant    @relation("ExpenseAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  payer  Participant    @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Cascade)
+  shares ExpenseShare[]
+
+  @@index([tripId, date])
+  @@index([authorId])
+  @@index([payerId])
+}
+
+/// Real share of an expense: what it costs this participant. The shares add up to the amount.
+model ExpenseShare {
+  expenseId     String @db.Uuid
+  participantId String @db.Uuid
+  amountMinor   Int
+
+  expense     Expense     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, participantId])
+  @@index([participantId])
+}
+
+/// A reimbursement marked "C'est réglé": `from` paid `to`.
+model Settlement {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  tripId      String   @db.Uuid
+  fromId      String   @db.Uuid
+  toId        String   @db.Uuid
+  amountMinor Int
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  trip      Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  from      Participant @relation("SettlementFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        Participant @relation("SettlementTo", fields: [toId], references: [id], onDelete: Cascade)
+  createdBy Participant @relation("SettlementCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
+  @@index([fromId])
+  @@index([toId])
+  @@index([createdById])
 }

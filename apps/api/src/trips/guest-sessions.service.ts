@@ -60,6 +60,27 @@ export class GuestSessionsService {
       where: { participantId: guest.id, option: { poll: { options: { some: { votes: { some: { participantId: account.id } } } } } } },
     });
     await tx.vote.updateMany({ where: { participantId: guest.id }, data: { participantId: account.id } });
+    await tx.expense.updateMany({ where: { authorId: guest.id }, data: { authorId: account.id } });
+    await tx.expense.updateMany({ where: { payerId: guest.id }, data: { payerId: account.id } });
+    // On an expense both were in, the guest's share joins the account's: the total stays the same.
+    const guestShares = await tx.expenseShare.findMany({ where: { participantId: guest.id } });
+    for (const { expenseId, amountMinor } of guestShares) {
+      const guestKey = { expenseId_participantId: { expenseId, participantId: guest.id } };
+      const accountKey = { expenseId_participantId: { expenseId, participantId: account.id } };
+      if (await tx.expenseShare.findUnique({ where: accountKey })) {
+        await tx.expenseShare.update({ where: accountKey, data: { amountMinor: { increment: amountMinor } } });
+        await tx.expenseShare.delete({ where: guestKey });
+      } else {
+        await tx.expenseShare.update({ where: guestKey, data: { participantId: account.id } });
+      }
+    }
+    // A reimbursement between the two is now from someone to themselves: it no longer means anything.
+    await tx.settlement.deleteMany({
+      where: { OR: [{ fromId: guest.id, toId: account.id }, { fromId: account.id, toId: guest.id }] },
+    });
+    await tx.settlement.updateMany({ where: { fromId: guest.id }, data: { fromId: account.id } });
+    await tx.settlement.updateMany({ where: { toId: guest.id }, data: { toId: account.id } });
+    await tx.settlement.updateMany({ where: { createdById: guest.id }, data: { createdById: account.id } });
     await tx.participant.update({
       where: { id: guest.id },
       data: { status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null },

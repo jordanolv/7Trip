@@ -13,6 +13,9 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Répartition inégale | V1 : parts égales avec exclusions, ou montants personnalisés par personne. Pourcentages / « parts » (×2) reportés en V1.5. |
 | Participant qui part | Ses dépenses et parts restent. Il apparaît « parti » et peut encore régler ses soldes. Il ne peut pas partir avec un solde non nul sans avertissement. |
 | Participant ajouté en cours de route | Il n'est pas ajouté aux dépenses passées. Les nouvelles dépenses partagées l'incluent par défaut. |
+| Dépense personnelle | Toujours payée par son auteur, qui seul la voit et la modifie. Elle compte dans son coût réel (et son budget), jamais dans les soldes. Seul l'auteur peut rendre une dépense personnelle ou partagée. |
+| « C'est réglé » | Enregistre un remboursement du montant suggéré. Les deux personnes concernées ou un organisateur peuvent le marquer, et l'annuler en cas d'erreur. Les suggestions sont recalculées ensuite. |
+| Quitter avec un solde | L'app affiche le montant dû (ou à recevoir) dans la confirmation ; partir reste possible. |
 
 ## Permissions fines
 
