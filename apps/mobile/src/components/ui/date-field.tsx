@@ -63,6 +63,8 @@ export function DateField({
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           locale="fr-FR"
           accentColor={colors.accent}
+          // The app is light only: without this, a phone in dark mode draws white text on our white cards.
+          themeVariant="light"
           minimumDate={minimumDate ? toDate(minimumDate) : undefined}
           maximumDate={maximumDate ? toDate(maximumDate) : undefined}
           onValueChange={(_, date) => {
