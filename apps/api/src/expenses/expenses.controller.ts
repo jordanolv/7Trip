@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
 import {
+  chooseTransferPlanRequestSchema,
   createExpenseRequestSchema,
   createSettlementRequestSchema,
   updateExpenseRequestSchema,
@@ -10,7 +11,7 @@ import {
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import type { Actor } from '../trips/actor.js';
 import { CurrentActor, TripMemberGuard } from '../trips/trip-member.guard.js';
-import { ExpensesService, type ExpenseInput, type SettlementInput, type UpdateExpenseInput } from './expenses.service.js';
+import { ExpensesService, type ExpenseInput, type SettlementInput, type TransferPlanInput, type UpdateExpenseInput } from './expenses.service.js';
 
 /** Open to every member of the trip, guests included (docs/architecture.md §5). */
 @Controller('trips/:tripId')
@@ -56,6 +57,15 @@ export class ExpensesController {
   @Get('balances')
   balances(@CurrentActor() actor: Actor, @Param('tripId') tripId: string): Promise<TripBalances> {
     return this.expenses.balances(actor, tripId);
+  }
+
+  @Put('balances/plan')
+  choosePlan(
+    @CurrentActor() actor: Actor,
+    @Param('tripId') tripId: string,
+    @Body(new ZodValidationPipe(chooseTransferPlanRequestSchema)) body: TransferPlanInput,
+  ): Promise<TripBalances> {
+    return this.expenses.choosePlan(actor, tripId, body);
   }
 
   @Post('settlements')

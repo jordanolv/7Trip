@@ -3,21 +3,24 @@ import {
   ApiErrorCode,
   computeBalances,
   expenseShares,
-  suggestTransfers,
+  isBestTransferPlan,
+  transferPlans,
   type ApiErrorBody,
   type ContentAuthor,
   type Expense,
   type ExpenseCategory,
+  type SuggestedTransfer,
   type Settlement,
   type TripBalances,
   type createExpenseRequestSchema,
+  type chooseTransferPlanRequestSchema,
   type createSettlementRequestSchema,
   type updateExpenseRequestSchema,
 } from '@7trip/shared';
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import { toContentAuthor } from '../common/content-author.js';
-import type { Participant, Prisma } from '../generated/prisma/client.js';
+import { Prisma, type Participant } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
@@ -27,6 +30,7 @@ import { TripsService } from '../trips/trips.service.js';
 export type ExpenseInput = z.output<typeof createExpenseRequestSchema>;
 export type UpdateExpenseInput = z.output<typeof updateExpenseRequestSchema>;
 export type SettlementInput = z.output<typeof createSettlementRequestSchema>;
+export type TransferPlanInput = z.output<typeof chooseTransferPlanRequestSchema>;
 
 const EXPENSE_INCLUDE = {
   author: true,
@@ -136,7 +140,7 @@ export class ExpensesService {
   async balances(actor: Actor, tripId: string): Promise<TripBalances> {
     const me = await this.trips.member(actor, tripId);
     // One after the other: the pool connection is shared with the rest of the request.
-    const trip = await this.prisma.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+    const trip = await this.prisma.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true, transferPlan: true } });
     const participants = await this.prisma.participant.findMany({ where: { tripId }, orderBy: { joinedAt: 'asc' } });
     const expenses = await this.prisma.expense.findMany({ where: { tripId, ...visibleTo(me) }, include: { shares: true } });
     const settlements = await this.prisma.settlement.findMany({
@@ -157,6 +161,9 @@ export class ExpensesService {
     const people = participants
       .filter((p) => p.status === ParticipantStatus.ACTIVE || paid(p.id) || cost(p.id) || balances.get(p.id))
       .map((p) => ({ participant: toContentAuthor(p), paidMinor: paid(p.id), costMinor: cost(p.id), balanceMinor: balances.get(p.id) ?? 0 }));
+    const { plans, planIndex } = currentPlans(balances, storedPlan(trip.transferPlan));
+    const toView = (plan: Transfer[]): SuggestedTransfer[] =>
+      plan.map((t) => ({ from: author(t.fromId), to: author(t.toId), amountMinor: t.amountMinor }));
     const personal = expenses.filter((e) => e.personal && e.authorId === me.id).reduce((sum, e) => sum + e.amountMinor, 0);
 
     return {
@@ -164,7 +171,9 @@ export class ExpensesService {
       groupTotalMinor: shared.reduce((sum, e) => sum + e.amountMinor, 0),
       sharedCount: shared.length,
       people,
-      transfers: suggestTransfers(balances).map((t) => ({ from: author(t.fromId), to: author(t.toId), amountMinor: t.amountMinor })),
+      transfers: toView(plans[planIndex]!),
+      plans: plans.map(toView),
+      planIndex,
       settlements: settlements.map((s) => toSettlement(s, me)),
       me: { paidMinor: paid(me.id), costMinor: cost(me.id) + personal, balanceMinor: balances.get(me.id) ?? 0 },
     };
@@ -188,8 +197,31 @@ export class ExpensesService {
         data: { tripId, fromId: input.fromId, toId: input.toId, amountMinor: input.amountMinor, createdById: me.id },
         include: SETTLEMENT_INCLUDE,
       });
+      // One transfer of the chosen plan done: the rest of it still squares everyone in the fewest
+      // transfers, so it stays the plan shown.
+      const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { transferPlan: true } });
+      const plan = storedPlan(trip.transferPlan);
+      const done = plan?.findIndex((t) => t.fromId === input.fromId && t.toId === input.toId && t.amountMinor === input.amountMinor) ?? -1;
+      if (plan && done >= 0) {
+        plan.splice(done, 1);
+        await tx.trip.update({ where: { id: tripId }, data: { transferPlan: plan.length ? plan : Prisma.DbNull } });
+      }
       return toSettlement(settlement, me);
     });
+  }
+
+  /**
+   * "Autre répartition": any member picks, for the whole group, another plan as short as the
+   * suggestion. Refused (409) once the balances have moved and it no longer squares everyone.
+   */
+  async choosePlan(actor: Actor, tripId: string, input: TransferPlanInput): Promise<TripBalances> {
+    await this.trips.withTripLock(actor, tripId, async (tx) => {
+      if (!isBestTransferPlan(await this.currentBalances(tx, tripId), input.transfers)) {
+        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'Les soldes ont changé entre-temps : choisis à nouveau une répartition.');
+      }
+      await tx.trip.update({ where: { id: tripId }, data: { transferPlan: input.transfers } });
+    });
+    return this.balances(actor, tripId);
   }
 
   /** Cancels a reimbursement marked by mistake. */
@@ -252,6 +284,34 @@ export class ExpensesService {
     if (!expense) throw expenseNotFound();
     return expense;
   }
+}
+
+type Transfer = { fromId: string; toId: string; amountMinor: number };
+
+/** The plan saved on the trip, or null when there is none or it is not one. */
+function storedPlan(value: Prisma.JsonValue): Transfer[] | null {
+  if (!Array.isArray(value)) return null;
+  const plan = value.filter(
+    (t): t is Transfer =>
+      typeof t === 'object' && t !== null && !Array.isArray(t) && typeof t.fromId === 'string' && typeof t.toId === 'string' && typeof t.amountMinor === 'number',
+  );
+  return plan.length === value.length ? plan.map(({ fromId, toId, amountMinor }) => ({ fromId, toId, amountMinor })) : null;
+}
+
+const samePlan = (a: Transfer[], b: Transfer[]) => {
+  const key = (plan: Transfer[]) => plan.map((t) => `${t.fromId}>${t.toId}:${t.amountMinor}`).sort().join('|');
+  return key(a) === key(b);
+};
+
+/**
+ * The plans to offer, and which one is shown: the chosen one while it still squares everyone in
+ * the fewest transfers, else the suggestion (plans[0]).
+ */
+function currentPlans(balances: Map<string, number>, chosen: Transfer[] | null): { plans: Transfer[][]; planIndex: number } {
+  const plans = transferPlans(balances);
+  if (!chosen || !isBestTransferPlan(balances, chosen)) return { plans, planIndex: 0 };
+  const index = plans.findIndex((plan) => samePlan(plan, chosen));
+  return index >= 0 ? { plans, planIndex: index } : { plans: [...plans, chosen], planIndex: plans.length };
 }
 
 const canDeleteSettlement = (me: Participant, s: { fromId: string; toId: string }) =>

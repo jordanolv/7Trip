@@ -103,6 +103,9 @@ model Trip {
   icon         String
   invitePolicy InvitePolicy @default(ALL)
   baseCurrency String       @default("EUR")
+  /// "Autre répartition": the reimbursements the group chose, [{ fromId, toId, amountMinor }].
+  /// Only used while it still settles the balances in the fewest transfers (docs/decisions.md).
+  transferPlan Json?
   createdById  String       @db.Uuid
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

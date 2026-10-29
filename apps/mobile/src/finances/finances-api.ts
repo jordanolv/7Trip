@@ -1,4 +1,12 @@
-import type { CreateExpenseRequest, CreateSettlementRequest, Expense, Settlement, TripBalances, UpdateExpenseRequest } from '@7trip/shared';
+import type {
+  ChooseTransferPlanRequest,
+  CreateExpenseRequest,
+  CreateSettlementRequest,
+  Expense,
+  Settlement,
+  TripBalances,
+  UpdateExpenseRequest,
+} from '@7trip/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
@@ -86,6 +94,17 @@ export function useSettle(tripId: string) {
   return useMutation({
     mutationFn: (body: CreateSettlementRequest) => tripRequest<Settlement>(tripId, `/trips/${tripId}/settlements`, { method: 'POST', body }),
     onSettled: refresh,
+  });
+}
+
+/** "Autre répartition": the plan shown to the whole group. Balances moved meanwhile (409): fetched again. */
+export function useChoosePlan(tripId: string) {
+  const { tripRequest } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ChooseTransferPlanRequest) => tripRequest<TripBalances>(tripId, `/trips/${tripId}/balances/plan`, { method: 'PUT', body }),
+    onSuccess: (balances) => client.setQueryData(financeKeys.balances(tripId), balances),
+    onError: () => void client.invalidateQueries({ queryKey: financeKeys.balances(tripId) }),
   });
 }
 

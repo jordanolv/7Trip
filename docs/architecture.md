@@ -166,8 +166,15 @@ Règles transverses :
   égale toujours le montant.
 - **Solde d'un participant** = Σ avancé − Σ parts réelles + Σ remboursements versés
   − Σ remboursements reçus (rembourser quelqu'un rapproche son propre solde de zéro).
-- **Suggestions de remboursement** : algorithme glouton (plus gros débiteur → plus gros créancier),
-  au plus *n − 1* virements. Recalculées à la demande, jamais stockées.
+- **Suggestions de remboursement** : le **moins de virements possible**. Les personnes sont
+  découpées en un maximum de groupes dont les soldes s'annulent (programmation dynamique sur les
+  sous-ensembles, exacte jusqu'à 16 personnes avec un solde). Chaque groupe se règle ensuite en
+  glouton (plus gros débiteur → plus gros créancier). Au-delà de 16 : paires exactes, puis glouton.
+  Chaque virement va d'un débiteur à un créancier. Recalculées à la demande.
+- **« Autre répartition »** : les autres plans de même longueur minimale (`transferPlans`, 8 au
+  plus) sont proposés. Le plan choisi est stocké sur le voyage (`Trip.transferPlan`) et affiché
+  tant qu'il règle encore tout le monde en ce minimum (`isBestTransferPlan`). Un virement réglé
+  en est retiré. Si une dépense change les soldes, on revient à la suggestion.
 - **Budget personnel** : Σ des parts du participant par catégorie, hors avances. C'est l'exemple
   du cahier des charges : 120 € partagés à 4 → 30 € dans le budget.
 - Toute la logique est dans `packages/shared/finance` avec des tests unitaires, dont les cas

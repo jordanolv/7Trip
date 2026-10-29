@@ -8,15 +8,17 @@ import { Icon } from '@/components/ui/icon';
 import { errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 
-import { useSettle, useUnsettle } from './finances-api';
+import { useChoosePlan, useSettle, useUnsettle } from './finances-api';
 
 /**
  * Who pays whom to be square, then the detail per person (CDC §8.2). "C'est réglé" is for the two
- * people concerned and the organizers, like the API.
+ * people concerned and the organizers, like the API. "Autre répartition" moves to the next plan as
+ * short as the suggestion, for the whole group.
  */
 export function BalancesView({ tripId, balances, meId, organizer }: { tripId: string; balances: TripBalances; meId: string; organizer: boolean }) {
   const settle = useSettle(tripId);
   const unsettle = useUnsettle(tripId);
+  const choosePlan = useChoosePlan(tripId);
   const { currency } = balances;
   const name = (p: ContentAuthor) => (p.id === meId ? 'toi' : p.displayName);
   const money = (minor: number) => formatMoney(minor, currency);
@@ -43,6 +45,15 @@ export function BalancesView({ tripId, balances, meId, organizer }: { tripId: st
           ),
       },
     ]);
+  };
+
+  const nextPlan = () => {
+    const plan = balances.plans[(balances.planIndex + 1) % balances.plans.length]!;
+    haptics.tick();
+    choosePlan.mutate(
+      { transfers: plan.map((t) => ({ fromId: t.from.id, toId: t.to.id, amountMinor: t.amountMinor })) },
+      { onError: (error) => Alert.alert('Impossible de changer la répartition', errorMessage(error)) },
+    );
   };
 
   const confirmUnsettle = (id: string) =>
@@ -88,6 +99,17 @@ export function BalancesView({ tripId, balances, meId, organizer }: { tripId: st
             );
           })
         )}
+        {balances.plans.length > 1 ? (
+          <View style={styles.plans}>
+            <AppText variant="caption" tone="secondary" style={styles.flex}>
+              Répartition {balances.planIndex + 1} sur {balances.plans.length}, la même pour tout le groupe.
+            </AppText>
+            <Pressable accessibilityRole="button" disabled={choosePlan.isPending} onPress={nextPlan} hitSlop={8} style={styles.otherPlan}>
+              {choosePlan.isPending ? <ActivityIndicator color={colors.accentInk} /> : <Icon name="refresh" color={colors.accentInk} size={16} />}
+              <Text style={styles.settleText}>Autre répartition</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       {balances.settlements.length ? (
@@ -157,6 +179,8 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   transferAmount: { fontFamily: fontFamily.extrabold, fontSize: 17, color: colors.ink, marginTop: 2 },
   settle: { minHeight: 40, paddingHorizontal: 12, borderRadius: radii.chip, backgroundColor: colors.accentTint, justifyContent: 'center' },
+  plans: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: 4 },
+  otherPlan: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40 },
   settleText: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.accentInk },
   card: { backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: spacing.md },
   settled: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingVertical: 8 },

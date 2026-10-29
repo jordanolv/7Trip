@@ -149,6 +149,46 @@ describe('Expenses (e2e)', () => {
     expect(b.transfers).toEqual([expect.objectContaining({ amountMinor: 2000, from: expect.objectContaining({ id: ids.lea }) })]);
   });
 
+  it('lets the group pick another plan as short as the suggestion, until the balances move', async () => {
+    const { trip, ids } = await newTrip();
+    // Léa and Camille owe 30 € each, Jordan is owed 20 € and Thomas 40 €: several 3-transfer plans.
+    const custom = (lea: number, camille: number) => ({ mode: 'CUSTOM' as const, shares: [{ participantId: ids.lea, amountMinor: lea }, { participantId: ids.camille, amountMinor: camille }] });
+    await add(trip.id, jordan.auth, { amountMinor: 2000, payerId: ids.jordan, split: custom(1000, 1000) });
+    await add(trip.id, thomas.auth, { amountMinor: 4000, payerId: ids.thomas, split: custom(2000, 2000) });
+    const choose = (headers: Record<string, string>, plan: TripBalances['transfers']) =>
+      api()
+        .put(`/v1/trips/${trip.id}/balances/plan`)
+        .set(headers)
+        .send({ transfers: plan.map((t) => ({ fromId: t.from.id, toId: t.to.id, amountMinor: t.amountMinor })) });
+
+    let b = await balances(trip.id, camille.auth);
+    expect(b.plans.length).toBeGreaterThan(1);
+    expect(b.planIndex).toBe(0);
+    expect(b.transfers).toEqual(b.plans[0]);
+    expect(b.plans.every((plan) => plan.length === 3)).toBe(true);
+
+    // Any member chooses it, for everyone.
+    const other = b.plans[1]!;
+    b = (await choose(camille.auth, other).expect(200)).body as TripBalances;
+    expect(b).toMatchObject({ planIndex: 1, transfers: other });
+    expect((await balances(trip.id, jordan.auth)).transfers).toEqual(other);
+    // A plan that does not square everyone, or a longer one, is refused.
+    await choose(camille.auth, [{ ...other[0]!, amountMinor: other[0]!.amountMinor + 1 }, ...other.slice(1)]).expect(409);
+
+    // One of its transfers done: the rest of the chosen plan is still what is shown.
+    const [first, ...rest] = other;
+    await api().post(`/v1/trips/${trip.id}/settlements`).set(jordan.auth).send({ fromId: first!.from.id, toId: first!.to.id, amountMinor: first!.amountMinor }).expect(201);
+    b = await balances(trip.id, jordan.auth);
+    expect(b.transfers).toEqual(expect.arrayContaining(rest));
+    expect(b.transfers).toHaveLength(rest.length);
+
+    // A new expense moves the balances: back to the suggestion.
+    await add(trip.id, jordan.auth, { amountMinor: 900, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.lea, ids.thomas, ids.camille] } });
+    b = await balances(trip.id, jordan.auth);
+    expect(b.planIndex).toBe(0);
+    expect(b.transfers).toEqual(b.plans[0]);
+  });
+
   it('moves a guest’s expenses to the account, adding up their shares on an expense both were in', async () => {
     const { trip, code, ids } = await newTrip();
     const { token } = (await api().post(`/v1/invitations/${code}/join-guest`).send({ displayName: 'Léa invitée' }).expect(201)).body as GuestJoinResponse;

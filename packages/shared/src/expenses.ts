@@ -80,6 +80,12 @@ export const createSettlementRequestSchema = z
   .refine((body) => body.fromId !== body.toId, 'On ne se rembourse pas soi-même');
 export type CreateSettlementRequest = z.input<typeof createSettlementRequestSchema>;
 
+/** "Autre répartition": the plan the group picks among `TripBalances.plans`, for everyone. */
+export const chooseTransferPlanRequestSchema = z.object({
+  transfers: z.array(z.object({ fromId: z.uuid(), toId: z.uuid(), amountMinor: amountMinorSchema })).max(100),
+});
+export type ChooseTransferPlanRequest = z.input<typeof chooseTransferPlanRequestSchema>;
+
 export interface ExpenseShareView {
   participant: ContentAuthor;
   amountMinor: number;
@@ -140,7 +146,11 @@ export interface TripBalances {
   groupTotalMinor: number;
   sharedCount: number;
   people: PersonBalance[];
+  /** Who pays whom to be square: the plan the group chose while it still holds, else the suggestion. */
   transfers: SuggestedTransfer[];
+  /** Every plan as short as `transfers`, in a stable order; `transfers` is plans[planIndex]. */
+  plans: SuggestedTransfer[][];
+  planIndex: number;
   settlements: Settlement[];
   me: {
     /** Advanced for the group. */
