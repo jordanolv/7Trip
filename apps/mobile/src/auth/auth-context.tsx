@@ -156,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async () => {
         await updateGuests((sessions) => Object.fromEntries(Object.entries(sessions).filter(([tripId]) => !tokens.some(([id]) => id === tripId))));
         void queryClient.invalidateQueries({ queryKey: ['trips'] });
+        // Now seen as the account, which got the guest's expenses and votes: fetched again.
+        void queryClient.invalidateQueries({ predicate: (query) => tokens.some(([tripId]) => query.queryKey[1] === tripId) });
       })
       // Offline or failing: kept, and tried again on the next sign-in or launch.
       .catch(() => undefined)

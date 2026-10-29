@@ -8,7 +8,7 @@ import { financeKeys } from '@/finances/finances-api';
 import { errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 
-import { tripKeys, useLeaveTrip } from './trips-api';
+import { forgetTripContent, tripKeys, useLeaveTrip } from './trips-api';
 
 /**
  * Asks for confirmation, leaves, then goes back to "Mes voyages". With money still owed either way,
@@ -24,6 +24,7 @@ export function useConfirmLeaveTrip(trip: Pick<TripDetail, 'id' | 'title'>) {
       await leave.mutateAsync();
       router.dismissTo('/');
       client.removeQueries({ queryKey: tripKeys.detail(trip.id) });
+      forgetTripContent(client, trip.id);
     } catch (error) {
       Alert.alert('Impossible de quitter', errorMessage(error));
     }
