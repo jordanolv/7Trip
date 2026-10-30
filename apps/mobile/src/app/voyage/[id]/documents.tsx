@@ -1,18 +1,30 @@
-import { DOCUMENT_CATEGORIES, DOCUMENT_CATEGORY_LABELS, formatDayMonth, weekday, type DocumentCategory, type TripDocument } from '@7trip/shared';
+import { DOCUMENT_CATEGORIES, DOCUMENT_CATEGORY_LABELS, formatDayMonth, localIsoDate, weekday, type DocumentCategory, type TripDocument } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { DocumentTile, VisibilityLabel, documentMeta } from '@/documents/document-visuals';
-import { useDocuments } from '@/documents/documents-api';
+import { useDocuments, useToggleOffline } from '@/documents/documents-api';
+import { useOfflineDocuments } from '@/documents/offline-documents';
+import { errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
+import { useIsOnline } from '@/lib/online';
 import { useTripId } from '@/trips/use-trip-id';
 
 type Filter = 'all' | DocumentCategory;
+
+const today = () => localIsoDate();
+/** The local day `days` from today. */
+const inDays = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return localIsoDate(date);
+};
 
 /** By date, a section per day; "Sans date" at the end (CDC §9). The API sends them in that order. */
 function groups(docs: TripDocument[]): { label: string; docs: TripDocument[] }[] {
@@ -40,6 +52,19 @@ export default function DocumentsScreen() {
   const add = () => router.push(`/voyage/${tripId}/document/nouveau` as Href);
   const all = documents.data ?? [];
   const shown = all.filter((doc) => filter === 'all' || doc.category === filter);
+  const saved = useOfflineDocuments(tripId).data ?? [];
+  const toggleOffline = useToggleOffline(tripId);
+  const online = useIsOnline();
+  // docs/decisions.md: the tickets of the next 48 h are offered for offline use.
+  const soon = all.filter((doc) => doc.kind === 'FILE' && doc.event && doc.date && doc.date >= today() && doc.date <= inDays(2) && !saved.includes(doc.id));
+  const keepSoon = async () => {
+    try {
+      for (const doc of soon) await toggleOffline.mutateAsync({ doc, keep: true });
+      haptics.success();
+    } catch (error) {
+      Alert.alert('Impossible d’enregistrer sur l’appareil', errorMessage(error));
+    }
+  };
 
   return (
     <>
@@ -85,6 +110,23 @@ export default function DocumentsScreen() {
               })}
             </ScrollView>
 
+            {soon.length && online ? (
+              <View style={styles.suggestion}>
+                <Icon name="download" color={colors.accentInk} size={20} />
+                <View style={styles.flex}>
+                  <AppText variant="bodyStrong">
+                    {soon.length === 1 ? '1 billet pour les prochaines 48 h' : `${soon.length} billets pour les prochaines 48 h`}
+                  </AppText>
+                  <AppText variant="caption" tone="secondary">
+                    Garde-les sur l’appareil pour les ouvrir sans réseau.
+                  </AppText>
+                </View>
+                <Pressable accessibilityRole="button" disabled={toggleOffline.isPending} onPress={() => void keepSoon()} style={styles.keep}>
+                  {toggleOffline.isPending ? <ActivityIndicator color={colors.accentInk} /> : <Text style={styles.keepText}>Garder</Text>}
+                </Pressable>
+              </View>
+            ) : null}
+
             {shown.length === 0 ? <AppText tone="secondary">Aucun document dans cette catégorie.</AppText> : null}
             {groups(shown).map((group) => (
               <View key={group.label} style={styles.group}>
@@ -111,6 +153,11 @@ export default function DocumentsScreen() {
                           </AppText>
                         </View>
                       </View>
+                      {saved.includes(doc.id) ? (
+                        <View accessibilityLabel="Disponible hors ligne" style={styles.saved}>
+                          <Icon name="download" color={colors.accentInk} size={14} />
+                        </View>
+                      ) : null}
                       <Icon name="chevronRight" color={colors.inkSecondary} size={16} />
                     </Pressable>
                   ))}
@@ -184,6 +231,10 @@ const styles = StyleSheet.create({
   rowBorder: { borderTopWidth: 1, borderTopColor: colors.separator },
   pressed: { opacity: 0.6 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  saved: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' },
+  suggestion: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: 18, backgroundColor: colors.accentTint },
+  keep: { minHeight: 40, paddingHorizontal: 14, borderRadius: radii.chip, backgroundColor: colors.surface, justifyContent: 'center' },
+  keepText: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.accentInk },
   fab: {
     position: 'absolute',
     right: spacing.lg,

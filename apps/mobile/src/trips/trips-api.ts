@@ -11,6 +11,7 @@ import type {
 import { useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
+import { pruneOfflineTrips } from '@/documents/offline-documents';
 import { apiRequest } from '@/lib/api';
 
 export const tripKeys = {
@@ -21,10 +22,15 @@ export const tripKeys = {
 };
 
 export function useMyTrips() {
-  const { authedRequest, status } = useAuth();
+  const { authedRequest, status, guestSessions } = useAuth();
   return useQuery({
     queryKey: tripKeys.mine,
-    queryFn: () => authedRequest<TripSummary[]>('/me/trips'),
+    queryFn: async () => {
+      const trips = await authedRequest<TripSummary[]>('/me/trips');
+      // Documents saved for a trip left or deleted no longer stay on the device.
+      pruneOfflineTrips([...trips.map((trip) => trip.id), ...Object.keys(guestSessions)]);
+      return trips;
+    },
     enabled: status === 'signedIn',
   });
 }

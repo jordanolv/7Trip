@@ -210,12 +210,20 @@ ou des options du sondage.
 
 ## 8. Hors ligne (V1 : lecture seule)
 
-- Le cache TanStack Query est persisté pour les voyages déjà consultés : tableau de bord, planning,
-  idées, finances, participants.
-- Les documents marqués « disponible hors ligne » sont téléchargés via `expo-file-system`. Le
-  fichier local est supprimé si l'accès est révoqué, constaté à la prochaine synchro.
-- L'app affiche un bandeau « Hors ligne · données du … » et désactive les actions d'écriture.
-  Aucune édition hors ligne n'est promise en V1.
+- Le cache TanStack Query est persisté sur l'appareil (AsyncStorage, 7 jours) : tout écran déjà
+  ouvert se relit sans réseau. Il est vidé à la déconnexion, avec les documents enregistrés.
+- Le profil est gardé avec le jeton de rafraîchissement : sans réseau, l'app s'ouvre sur le compte
+  et le jeton est renouvelé à la première requête en ligne.
+- L'état du réseau vient de NetInfo (`onlineManager`) : hors ligne, les lectures attendent le
+  réseau et affichent le cache ; toute écriture est refusée tout de suite avec un message.
+- Bandeau « Hors ligne · lecture seule · Données du … » au-dessus de la barre d'onglets.
+- Les documents marqués « Disponible hors ligne » sont copiés via `expo-file-system`
+  (`offline-documents/<voyage>/<document>`) et s'ouvrent depuis la copie (aperçu natif). Une copie
+  dont le document n'est plus visible (supprimé, rendu privé, voyage quitté) est effacée à la
+  prochaine liste. Les billets liés aux événements des prochaines 48 h sont proposés.
+- Conflits (409) sur un événement : fusion à trois versions (`mergeEdits` dans `shared`). Ce qu'un
+  seul a changé est gardé ; pour chaque groupe de champs changé des deux côtés, on choisit
+  (maquette G-Conflit). Les autres contenus gardent le message « modifié entre-temps ».
 
 ## 9. Notifications
 

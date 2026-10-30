@@ -1,4 +1,5 @@
 import { GUEST_TOKEN_HEADER, type ApiErrorBody } from '@7trip/shared';
+import { onlineManager } from '@tanstack/react-query';
 import { File, UploadType } from 'expo-file-system';
 
 import { apiUrl } from './config';
@@ -31,6 +32,10 @@ export interface RequestOptions {
 const NETWORK_ERROR = () => new ApiError(0, 'NETWORK', 'Impossible de joindre 7Trip. Vérifie ta connexion.');
 
 export async function apiRequest<T>(path: string, { method = 'GET', body, accessToken, guestToken, upload }: RequestOptions = {}): Promise<T> {
+  // Read-only offline (docs/architecture.md §8): a change is refused here, with why.
+  if (method !== 'GET' && !onlineManager.isOnline()) {
+    throw new ApiError(0, 'OFFLINE', 'Tu es hors ligne : cette modification pourra se faire quand le réseau reviendra.');
+  }
   const url = `${apiUrl}/v1${path}`;
   const headers = {
     Accept: 'application/json',
