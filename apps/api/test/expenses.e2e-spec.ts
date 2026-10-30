@@ -271,6 +271,8 @@ describe('Expenses (e2e)', () => {
     await api().post(`/v1/trips/${trip.id}/settlements`).set(asGuest(token)).send({ fromId: guestId, toId: ids.jordan, amountMinor: 500 }).expect(201);
     const paella = await add(trip.id, asGuest(token), { label: 'Paella', amountMinor: 2000, payerId: guestId, split: { mode: 'EQUAL', participantIds: [guestId, ids.jordan] } });
     // 20 € between three, Léa left out: the two extra cents go to Jordan and Thomas, who joined before the guest.
+    // 1,01 $ at 0,90 between Léa, Thomas and the guest: 34 / 34 / 33 ¢ → 0,31 / 0,30 / 0,30 €.
+    const tip = await add(trip.id, jordan.auth, { label: 'Pourboire', amountMinor: 101, currency: 'USD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.lea, ids.thomas, guestId] } });
     const taxi = await add(trip.id, jordan.auth, { label: 'Taxi', amountMinor: 2000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.thomas, guestId] } });
 
     await api().post('/v1/me/guest-sessions/claim').set(lea.auth).send({ tokens: [token] }).expect(204);
@@ -283,14 +285,33 @@ describe('Expenses (e2e)', () => {
     const movedTaxi = (await api().get(`/v1/trips/${trip.id}/expenses/${taxi.id}`).set(lea.auth).expect(200)).body as Expense;
     expect(movedTaxi.shares.map((s) => [s.participant.displayName, s.amountMinor])).toEqual([['Jordan', 667], ['Léa', 666], ['Thomas', 667]]);
     expect(movedTaxi.splitMode).toBe('CUSTOM');
+    // Merged in dollars and in euros; renaming it then converts nothing again.
+    const merged$ = (await api().get(`/v1/trips/${trip.id}/expenses/${tip.id}`).set(lea.auth).expect(200)).body as Expense;
+    expect(merged$.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[67, 61], [34, 30]]);
+    const renamed = (
+      await api()
+        .put(`/v1/trips/${trip.id}/expenses/${tip.id}`)
+        .set(jordan.auth)
+        .send({
+          label: 'Pourboire guide',
+          date: merged$.date,
+          amountMinor: 101,
+          currency: 'USD',
+          payerId: ids.jordan,
+          split: { mode: 'CUSTOM', shares: merged$.shares.map((s) => ({ participantId: s.participant.id, amountMinor: s.originalMinor })) },
+          version: merged$.version,
+        })
+        .expect(200)
+    ).body as Expense;
+    expect(renamed.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[67, 61], [34, 30]]);
     // Still equal parts, whoever joined first: stays an equal split.
     expect(((await api().get(`/v1/trips/${trip.id}/expenses/${paella.id}`).set(lea.auth).expect(200)).body as Expense).splitMode).toBe('EQUAL');
     const b = await balances(trip.id, lea.auth);
     expect(b.settlements).toEqual([expect.objectContaining({ amountMinor: 500, from: expect.objectContaining({ displayName: 'Léa' }) })]);
     expect(b.people.some((p) => p.participant.id === guestId)).toBe(false);
     // Léa now: paid 20 (the paella), costs 20 (both her shares of the first one) + 10 (paella)
-    // + 6,66 (taxi), repaid 5 → owes 11,66.
-    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3666, balanceMinor: -1166 });
+    // + 6,66 (taxi) + 0,61 (tip), repaid 5 → owes 12,27.
+    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3727, balanceMinor: -1227 });
     expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
   });
 });

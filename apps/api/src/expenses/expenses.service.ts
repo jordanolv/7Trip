@@ -133,7 +133,15 @@ export class ExpensesService {
       const already = new Set([current.payerId, ...current.shares.map((s) => s.participantId)]);
       const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
       const money = await this.money(input, trip.baseCurrency, current);
-      const shares = await this.resolveShares(tx, tripId, me, input, already, money);
+      let shares = await this.resolveShares(tx, tripId, me, input, already, money);
+      // Same money (amount, currency, rate, shares as typed): the stored conversion stays. Converting
+      // again could move a hundredth, e.g. on shares added up by a guest merge.
+      const sameShares =
+        shares.length === current.shares.length &&
+        shares.every((s) => current.shares.some((c) => c.participantId === s.participantId && c.originalMinor === s.originalMinor));
+      if (sameShares && money.currency === current.currency && money.rateToBase === Number(current.rateToBase) && input.amountMinor === current.amountMinor) {
+        shares = current.shares.map(({ participantId, amountMinor, originalMinor }) => ({ participantId, amountMinor, originalMinor }));
+      }
       await tx.expenseShare.deleteMany({ where: { expenseId } });
       const expense = await tx.expense.update({
         where: { id: expenseId },
