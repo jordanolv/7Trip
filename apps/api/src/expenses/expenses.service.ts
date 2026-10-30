@@ -7,6 +7,7 @@ import {
   currencyLabel,
   expenseShares,
   isBestTransferPlan,
+  normalizeRate,
   toBaseMinor,
   transferPlans,
   type ApiErrorBody,
@@ -282,7 +283,9 @@ export class ExpensesService {
       const frozen = current?.currency === currency ? Number(current.rateToBase) : undefined;
       const rate = input.rateToBase ?? frozen ?? (await this.rates.rate(currency, baseCurrency))?.rate;
       if (rate === undefined) throw validationError('rateToBase', `Indique le taux du ${currencyLabel(currency).toLowerCase()}`);
-      rateToBase = rate;
+      // Also today's ECB rate: converted with exactly what is frozen.
+      rateToBase = normalizeRate(rate);
+      if (!(rateToBase > 0)) throw validationError('rateToBase', 'Taux trop faible');
     }
     const baseAmountMinor = toBaseMinor(input.amountMinor, rateToBase);
     if (baseAmountMinor < 1) throw validationError('amountMinor', 'Montant trop faible une fois converti');

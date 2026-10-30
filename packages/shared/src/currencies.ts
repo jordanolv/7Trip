@@ -73,7 +73,16 @@ export const rateSchema = z
   .number('Indique le taux')
   .positive('Le taux doit être positif')
   .max(1_000_000, 'Taux trop élevé')
-  .transform((rate) => Number(rate.toPrecision(10)));
+  .transform(normalizeRate)
+  .refine((rate) => rate > 0, 'Taux trop faible');
+
+/**
+ * The rate as the database keeps it (10 significant digits, 10 decimals): every conversion uses
+ * exactly the frozen rate, so an edit later finds the same amounts.
+ */
+export function normalizeRate(rate: number): number {
+  return Number(Number(rate.toPrecision(10)).toFixed(10));
+}
 
 /** An amount in the expense's currency, in the trip's currency (hundredths, rounded). */
 export const toBaseMinor = (minor: number, rate: number) => Math.round(minor * rate);

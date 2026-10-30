@@ -215,6 +215,12 @@ describe('Expenses (e2e)', () => {
     expect(riad.baseAmountMinor).toBe(4605);
     expect(riad.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[30000, 2763], [20000, 1842]]);
 
+    // A rate more precise than stored is converted as stored: renaming it later changes nothing.
+    const precise = await add(trip.id, lea.auth, { amountMinor: 5005751, currency: 'USD', rateToBase: 0.006123456789, payerId: ids.lea, split: { mode: 'EQUAL', participantIds: three } });
+    expect(precise).toMatchObject({ rateToBase: 0.0061234568, baseAmountMinor: 30653 });
+    expect(precise.shares.reduce((sum, s) => sum + s.amountMinor, 0)).toBe(30653);
+    await api().delete(`/v1/trips/${trip.id}/expenses/${precise.id}`).set(lea.auth).expect(204);
+
     // An edit that does not touch the rate keeps it frozen.
     const shares = riad.shares.map((s) => ({ participantId: s.participant.id, amountMinor: s.originalMinor }));
     const edited = (

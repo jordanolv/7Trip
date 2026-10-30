@@ -46,6 +46,9 @@ describe('rates', () => {
     expect(rateSchema.safeParse(0).success).toBe(false);
     expect(rateSchema.safeParse(-1).success).toBe(false);
     expect(rateSchema.parse(0.123456789012345)).toBe(0.123456789);
+    // Stored with 10 decimals: converted with what is stored.
+    expect(rateSchema.parse(0.006123456789)).toBe(0.0061234568);
+    expect(rateSchema.safeParse(1e-12).success).toBe(false);
   });
 });
 
