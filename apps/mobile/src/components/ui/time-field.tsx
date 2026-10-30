@@ -46,6 +46,8 @@ export function TimeField({
           is24Hour
           minuteInterval={5}
           accentColor={colors.accent}
+          // The app is light only: without this, a phone in dark mode draws white text on our white cards.
+          themeVariant="light"
           onValueChange={(_, date) => {
             if (Platform.OS !== 'ios') setOpen(false);
             onChange(toTime(date));

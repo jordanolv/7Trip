@@ -121,9 +121,9 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
 | `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
-| `Expense` | tripId, label, amountMinor, currency, rateToBase, payerId, category?, eventId?, isPersonal, createdBy, date |
+| `Expense` | tripId, authorId, payerId, label, amountMinor, currency, date, category?, personal, splitMode (equal/custom), version — rateToBase et eventId avec l'étape 6B |
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage) |
-| `Settlement` | tripId, fromId, toId, amountMinor, settledAt, createdBy |
+| `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId, totalMinor, perCategory (json) |
 | `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
 | `Notification` | participantId, type, payload, scheduledAt, sentAt? |
@@ -166,8 +166,15 @@ Règles transverses :
   égale toujours le montant.
 - **Solde d'un participant** = Σ avancé − Σ parts réelles + Σ remboursements versés
   − Σ remboursements reçus (rembourser quelqu'un rapproche son propre solde de zéro).
-- **Suggestions de remboursement** : algorithme glouton (plus gros débiteur → plus gros créancier),
-  au plus *n − 1* virements. Recalculées à la demande, jamais stockées.
+- **Suggestions de remboursement** : le **moins de virements possible**. Les personnes sont
+  découpées en un maximum de groupes dont les soldes s'annulent (programmation dynamique sur les
+  sous-ensembles, exacte jusqu'à 16 personnes avec un solde). Chaque groupe se règle ensuite en
+  glouton (plus gros débiteur → plus gros créancier). Au-delà de 16 : paires exactes, puis glouton.
+  Chaque virement va d'un débiteur à un créancier. Recalculées à la demande.
+- **« Autre répartition »** : les autres plans de même longueur minimale (`transferPlans`, 8 au
+  plus) sont proposés. Le plan choisi est stocké sur le voyage (`Trip.transferPlan`) et affiché
+  tant qu'il règle encore tout le monde en ce minimum (`isBestTransferPlan`). Un virement réglé
+  en est retiré. Si une dépense change les soldes, on revient à la suggestion.
 - **Budget personnel** : Σ des parts du participant par catégorie, hors avances. C'est l'exemple
   du cahier des charges : 120 € partagés à 4 → 30 € dans le budget.
 - Toute la logique est dans `packages/shared/finance` avec des tests unitaires, dont les cas
@@ -219,7 +226,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Idées | `GET/POST …/ideas`, `GET/PATCH/DELETE …/ideas/{iid}`, `POST …/ideas/{iid}/schedule` |
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
-| Finances | `GET/POST …/expenses`, `PATCH/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `GET/PUT …/budget` |
+| Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (6B) |
 | Documents | `GET/POST …/documents`, `PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 

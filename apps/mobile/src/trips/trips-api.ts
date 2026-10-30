@@ -8,7 +8,7 @@ import type {
   TripSummary,
   UpdateTripRequest,
 } from '@7trip/shared';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -74,6 +74,15 @@ export function useDeleteTrip(id: string) {
   });
 }
 
+/**
+ * Drops what was fetched inside a trip (events, ideas, polls, expenses, balances: keys like
+ * [kind, tripId, …]) when who we are in it changes. Personal expenses, shares and votes belong to
+ * the participant: a guest who leaves and joins again is a new one and must not see the old data.
+ */
+export function forgetTripContent(client: QueryClient, tripId: string) {
+  client.removeQueries({ predicate: (query) => query.queryKey[1] === tripId });
+}
+
 /** Stores a trip returned by a mutation and refreshes the list (counts, roles). */
 function useApplyTrip() {
   const client = useQueryClient();
@@ -115,22 +124,28 @@ export function useInvitationPreview(code: string) {
 
 export function useJoinTrip(code: string) {
   const { authedRequest } = useAuth();
+  const client = useQueryClient();
   const apply = useApplyTrip();
   return useMutation({
     mutationFn: () => authedRequest<TripDetail>(`/invitations/${code}/join`, { method: 'POST' }),
-    onSuccess: apply,
+    onSuccess: (trip) => {
+      forgetTripContent(client, trip.id);
+      apply(trip);
+    },
   });
 }
 
 /** Joins without an account: keeps the guest session on this device. */
 export function useJoinAsGuest(code: string) {
   const { addGuestSession } = useAuth();
+  const client = useQueryClient();
   const apply = useApplyTrip();
   return useMutation({
     mutationFn: (displayName: string) =>
       apiRequest<GuestJoinResponse>(`/invitations/${code}/join-guest`, { method: 'POST', body: { displayName } }),
     onSuccess: async ({ token, trip }) => {
       await addGuestSession(trip.id, token);
+      forgetTripContent(client, trip.id);
       apply(trip);
     },
   });
