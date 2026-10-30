@@ -1,5 +1,5 @@
 import { formatMoney, type TripBalances, type TripDetail } from '@7trip/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
@@ -31,6 +31,11 @@ export function useConfirmLeaveTrip(trip: Pick<TripDetail, 'id' | 'title'>) {
   };
 
   return async () => {
+    // Offline the balances query would only wait: leaving needs the network anyway.
+    if (!onlineManager.isOnline()) {
+      Alert.alert('Impossible de quitter', 'Tu es hors ligne : tu pourras quitter le voyage quand le réseau reviendra.');
+      return;
+    }
     haptics.warning();
     // Fresh balances: without them (offline…), leaving is still possible, with the usual warning.
     const balances = await client

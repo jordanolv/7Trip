@@ -1,9 +1,11 @@
 import type { CreateFileDocumentRequest, CreateLinkDocumentRequest, DocumentFileUrl, TripDocument, UpdateDocumentRequest } from '@7trip/shared';
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { onlineManager, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 
 import { useAuth } from '@/auth/auth-context';
 import { ApiError } from '@/lib/api';
+
+import { offlineCopy, pruneOffline, removeOffline, saveOffline } from './offline-documents';
 
 export const documentKeys = {
   list: (tripId: string) => ['documents', tripId] as const,
@@ -29,7 +31,11 @@ export function useDocuments(tripId: string) {
   const { tripRequest } = useAuth();
   return useQuery({
     queryKey: documentKeys.list(tripId),
-    queryFn: () => tripRequest<TripDocument[]>(tripId, `/trips/${tripId}/documents`),
+    queryFn: async () => {
+      const docs = await tripRequest<TripDocument[]>(tripId, `/trips/${tripId}/documents`);
+      pruneOffline(tripId, docs);
+      return docs;
+    },
   });
 }
 
@@ -44,7 +50,10 @@ export function useDocument(tripId: string, documentId: string) {
         return await tripRequest<TripDocument>(tripId, `/trips/${tripId}/documents/${documentId}`);
       } catch (error) {
         // Deleted, or made private since: the list must not keep showing it either.
-        if (error instanceof ApiError && error.status === 404) forget(client, tripId, documentId);
+        if (error instanceof ApiError && error.status === 404) {
+          forget(client, tripId, documentId);
+          removeOffline({ id: documentId, tripId, mime: client.getQueryData<TripDocument>(documentKeys.detail(tripId, documentId))?.mime ?? null });
+        }
         throw error;
       }
     },
@@ -102,6 +111,8 @@ export function useDeleteDocument(tripId: string, documentId: string) {
     mutationFn: () => tripRequest<void>(tripId, `/trips/${tripId}/documents/${documentId}`, { method: 'DELETE' }),
     onSuccess: () => {
       forget(client, tripId, documentId);
+      const doc = client.getQueryData<TripDocument>(documentKeys.detail(tripId, documentId));
+      if (doc) removeOffline(doc);
       client.removeQueries({ queryKey: documentKeys.detail(tripId, documentId) });
       refresh();
     },
@@ -109,14 +120,24 @@ export function useDeleteDocument(tripId: string, documentId: string) {
 }
 
 /**
- * Asked for at that moment, so access is checked again: a file through a short-lived link, a link
- * as it is now (it may have been made private since the list was loaded).
+ * A file saved on the device opens from it, network or not. Otherwise asked for at that moment, so
+ * access is checked again: a file through a short-lived link, a link as it is now (it may have been
+ * made private since the list was loaded).
  */
 export function useOpenDocument(tripId: string) {
   const { tripRequest } = useAuth();
   const client = useQueryClient();
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (doc: TripDocument) => {
+      const copy = doc.kind === 'FILE' ? offlineCopy(doc) : null;
+      if (copy) {
+        await copy.preview({ title: doc.title, mimeType: doc.mime ?? undefined });
+        return;
+      }
+      if (!onlineManager.isOnline()) {
+        throw new ApiError(0, 'OFFLINE', doc.kind === 'FILE' ? 'Ce document n’est pas enregistré sur l’appareil : il s’ouvrira avec le réseau.' : 'Ce lien s’ouvrira avec le réseau.');
+      }
       const path = `/trips/${tripId}/documents/${doc.id}`;
       let url: string;
       try {
@@ -128,6 +149,17 @@ export function useOpenDocument(tripId: string) {
         throw new ApiError(404, error.code, GONE_MESSAGE);
       }
       await WebBrowser.openBrowserAsync(url, { presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET });
+    },
+  });
+}
+
+/** "Disponible hors ligne": the copy is downloaded, or removed. */
+export function useToggleOffline(tripId: string) {
+  const { tripRequest } = useAuth();
+  return useMutation({
+    mutationFn: async ({ doc, keep }: { doc: TripDocument; keep: boolean }) => {
+      if (!keep) return removeOffline(doc);
+      await saveOffline(doc, () => tripRequest<DocumentFileUrl>(tripId, `/trips/${tripId}/documents/${doc.id}/url`));
     },
   });
 }

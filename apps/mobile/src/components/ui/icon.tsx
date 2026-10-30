@@ -99,6 +99,7 @@ const icons = {
   ticket: <Path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4zM14 7v10" />,
   lock: <Path d="M5 11h14v10H5zM8 11V8a4 4 0 0 1 8 0v3" />,
   undo: <Path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />,
+  download: <Path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   image: <Path d="M4 5h16v14H4zM4 16l5-5 4 4 2-2 5 5M15 9.5h.01" />,
 } as const;
 

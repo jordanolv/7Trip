@@ -1,14 +1,15 @@
 import { DOCUMENT_CATEGORY_LABELS, authorName, formatDayMonth, formatFileSize, weekday, type TripDocument } from '@7trip/shared';
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { DocumentTile, VisibilityLabel } from '@/documents/document-visuals';
-import { useDeleteDocument, useDocument, useOpenDocument } from '@/documents/documents-api';
+import { useDeleteDocument, useDocument, useOpenDocument, useToggleOffline } from '@/documents/documents-api';
+import { useOfflineDocuments } from '@/documents/offline-documents';
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTripId } from '@/trips/use-trip-id';
@@ -36,6 +37,10 @@ export default function DocumentScreen() {
 function DocumentDetail({ tripId, doc }: { tripId: string; doc: TripDocument }) {
   const open = useOpenDocument(tripId);
   const remove = useDeleteDocument(tripId, doc.id);
+  const toggleOffline = useToggleOffline(tripId);
+  const saved = useOfflineDocuments(tripId).data?.includes(doc.id) ?? false;
+  const setOffline = (keep: boolean) =>
+    toggleOffline.mutate({ doc, keep }, { onError: (error) => Alert.alert('Impossible d’enregistrer sur l’appareil', errorMessage(error)) });
   const details = [
     DOCUMENT_CATEGORY_LABELS[doc.category],
     doc.date ? `${weekday(doc.date)} ${formatDayMonth(doc.date)}` : 'Sans date',
@@ -97,6 +102,23 @@ function DocumentDetail({ tripId, doc }: { tripId: string; doc: TripDocument }) 
         </Pressable>
       ) : null}
 
+      {doc.kind === 'FILE' ? (
+        <View style={styles.offline}>
+          <Icon name="download" color={saved ? colors.accentInk : colors.inkSecondary} size={20} />
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong">Disponible hors ligne</AppText>
+            <AppText variant="caption" tone="secondary">
+              {saved ? 'Enregistré sur cet appareil : il s’ouvre sans réseau.' : 'Pour l’ouvrir sans réseau, à l’aéroport par exemple.'}
+            </AppText>
+          </View>
+          {toggleOffline.isPending ? (
+            <ActivityIndicator color={colors.accent} />
+          ) : (
+            <Switch accessibilityLabel="Disponible hors ligne" value={saved} onValueChange={setOffline} trackColor={{ true: colors.accent }} />
+          )}
+        </View>
+      ) : null}
+
       <View style={styles.actions}>
         <Button
           title={doc.kind === 'LINK' ? 'Ouvrir le lien' : 'Ouvrir'}
@@ -129,4 +151,5 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.6 },
   actions: { gap: spacing.sm },
+  offline: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: 14, backgroundColor: colors.surface },
 });

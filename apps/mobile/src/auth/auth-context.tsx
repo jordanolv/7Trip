@@ -2,9 +2,10 @@ import type { AuthResponse, Me } from '@7trip/shared';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
-import { queryClient } from '@/lib/query-client';
+import { clearOffline, removeOfflineTrip } from '@/documents/offline-documents';
+import { clearQueryCache, queryClient } from '@/lib/query-client';
 import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
-import { clearRefreshToken, loadRefreshToken, saveRefreshToken } from '@/lib/session-store';
+import { clearRefreshToken, clearUser, loadRefreshToken, loadUser, saveRefreshToken, saveUser } from '@/lib/session-store';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 
@@ -55,15 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessToken.current = session.accessToken;
     await saveRefreshToken(session.refreshToken);
     setUser(session.user);
+    void saveUser(session.user);
     setStatus('signedIn');
   }, []);
 
   const resetSession = useCallback(async () => {
     epoch.current += 1;
     accessToken.current = null;
-    // Never show one account's data to the next one.
-    queryClient.clear();
+    // Never show one account's data to the next one, nor its saved documents.
+    await clearQueryCache();
+    clearOffline();
     await clearRefreshToken();
+    await clearUser();
     setUser(null);
     setDevCode(null);
     setStatus('signedOut');
@@ -101,7 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       guests.current = await loadGuestSessions();
       setGuestSessions(guests.current);
       const token = await refreshAccessToken();
-      if (!token) setStatus((current) => (current === 'loading' ? 'signedOut' : current));
+      if (token) return;
+      // Not refreshed but still stored: no network. The account opens on what was saved, and the
+      // token is refreshed on the first request once online.
+      const offlineUser = (await loadRefreshToken()) ? await loadUser<Me>() : null;
+      if (offlineUser) setUser(offlineUser);
+      setStatus((current) => (current === 'loading' ? (offlineUser ? 'signedIn' : 'signedOut') : current));
     })();
   }, [refreshAccessToken]);
 
@@ -140,6 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The session is over: claimed by the account just signed in (then retry as the user),
         // or removed from the trip / left from another screen.
         await removeGuestSession(tripId);
+        // Its saved documents go too; if the account now has the trip, they can be saved again.
+        removeOfflineTrip(tripId);
         if (accessToken.current) return authedRequest<T>(path, options);
         throw new ApiError(404, 'NOT_FOUND', 'Tu ne fais plus partie de ce voyage.');
       }
@@ -186,7 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return applySession(session);
       },
       signOut,
-      setUser,
+      setUser: (next) => {
+        setUser(next);
+        void saveUser(next);
+      },
       authedRequest,
       guestSessions,
       addGuestSession: (tripId, token) => updateGuests((sessions) => ({ ...sessions, [tripId]: token })),
