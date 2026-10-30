@@ -1,3 +1,4 @@
+import { splitEqually } from '@7trip/shared';
 import { Injectable } from '@nestjs/common';
 import { sha256 } from '../auth/crypto.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
@@ -70,12 +71,11 @@ export class GuestSessionsService {
       if (await tx.expenseShare.findUnique({ where: accountKey })) {
         await tx.expenseShare.update({ where: accountKey, data: { amountMinor: { increment: amountMinor } } });
         await tx.expenseShare.delete({ where: guestKey });
-        // The parts are no longer equal: kept as amounts, so a later edit does not split it again.
-        await tx.expense.update({ where: { id: expenseId }, data: { splitMode: 'CUSTOM', version: { increment: 1 } } });
       } else {
         await tx.expenseShare.update({ where: guestKey, data: { participantId: account.id } });
       }
     }
+    await this.keepMergedShares(tx, guestShares.map((s) => s.expenseId));
     // A reimbursement between the two is now from someone to themselves: it no longer means anything.
     await tx.settlement.deleteMany({
       where: { OR: [{ fromId: guest.id, toId: account.id }, { fromId: account.id, toId: guest.id }] },
@@ -87,5 +87,23 @@ export class GuestSessionsService {
       where: { id: guest.id },
       data: { status: ParticipantStatus.LEFT, leftAt: new Date(), guestTokenHash: null },
     });
+  }
+
+  /**
+   * An equal split is computed again on each edit, the extra cents going to whoever joined first.
+   * After the merge the shares may no longer be what that gives: two shares added up, or the
+   * account joined before the guest and the cents would move. Those expenses keep their amounts.
+   */
+  private async keepMergedShares(tx: Prisma.TransactionClient, expenseIds: string[]): Promise<void> {
+    const expenses = await tx.expense.findMany({
+      where: { id: { in: expenseIds }, splitMode: 'EQUAL' },
+      include: { shares: { include: { participant: { select: { joinedAt: true } } } } },
+    });
+    for (const expense of expenses) {
+      const ordered = [...expense.shares].sort((a, b) => a.participant.joinedAt.getTime() - b.participant.joinedAt.getTime());
+      const equal = splitEqually(expense.amountMinor, ordered.map((s) => s.participantId));
+      if (equal.every((share, i) => share.amountMinor === ordered[i]!.amountMinor)) continue;
+      await tx.expense.update({ where: { id: expense.id }, data: { splitMode: 'CUSTOM', version: { increment: 1 } } });
+    }
   }
 }
