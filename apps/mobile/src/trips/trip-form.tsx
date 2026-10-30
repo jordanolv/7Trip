@@ -135,7 +135,7 @@ export function TripForm({
           <AppText variant="caption" tone={errors.baseCurrency ? 'danger' : 'secondary'} style={styles.rowPadding}>
             {errors.baseCurrency ??
               (currencyLocked
-                ? 'Les dépenses sont comptées dans cette devise : elle ne change plus.'
+                ? 'Les dépenses et remboursements sont comptés dans cette devise : elle ne change plus.'
                 : 'Les soldes et les budgets sont dans cette devise. Chaque dépense peut être payée dans une autre.')}
           </AppText>
         </View>

@@ -143,11 +143,12 @@ export function ExpenseForm({
   const set = <K extends keyof ExpenseFormValues>(key: K, value: ExpenseFormValues[K]) => onChange({ ...values, [key]: value });
   const [picking, setPicking] = useState(false);
   const foreign = values.currency !== baseCurrency;
-  const today = useRate(tripId, values.currency, foreign && hasEcbRate(values.currency) && hasEcbRate(baseCurrency));
+  const today = useRate(tripId, values.currency, baseCurrency, foreign && hasEcbRate(values.currency) && hasEcbRate(baseCurrency));
   // Today's ECB rate fills an empty rate in; one already there (typed, or frozen) stays.
   useEffect(() => {
-    if (foreign && !values.rate && today.data?.currency === values.currency && today.data.rate) onChange({ ...values, rate: rateInputText(today.data.rate.rate) });
-  }, [foreign, today.data, values, onChange]);
+    const fresh = today.data?.currency === values.currency && today.data.baseCurrency === baseCurrency;
+    if (foreign && !values.rate && fresh && today.data?.rate) onChange({ ...values, rate: rateInputText(today.data.rate.rate) });
+  }, [foreign, today.data, values, onChange, baseCurrency]);
   const rate = parseRate(values.rate);
   const rateHint = () => {
     if (today.data?.rate && values.rate === rateInputText(today.data.rate.rate)) {

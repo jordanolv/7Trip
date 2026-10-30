@@ -7,7 +7,7 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 
 | Question | Proposition |
 |---|---|
-| Devise de référence | Une par voyage, choisie à la création (EUR par défaut ; pas encore de devise dans le profil). Les organisateurs peuvent la changer tant qu'aucune dépense n'existe. |
+| Devise de référence | Une par voyage, choisie à la création (EUR par défaut ; pas encore de devise dans le profil). Les organisateurs peuvent la changer tant qu'aucune dépense ni aucun remboursement n'existe. |
 | Source des taux | Taux BCE du jour (via Frankfurter, sans clé), proposé à la saisie et **figé** dans la dépense. Il reste modifiable à la main (taux réel de la carte). Pour les devises que la BCE ne publie pas (MAD, VND…), le taux est tapé. |
 | Arrondis | Calculs en centimes. Les centimes restants d'une répartition égale vont un par un aux premiers participants (ordre d'arrivée). Affichage à 2 décimales. |
 | Répartition inégale | V1 : parts égales avec exclusions, ou montants personnalisés par personne. Pourcentages / « parts » (×2) reportés en V1.5. |

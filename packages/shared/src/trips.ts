@@ -107,7 +107,7 @@ export interface TripDetail extends TripSummary {
   invitePolicy: InvitePolicy;
   /** The trip's currency: balances, shares and budgets are in it. */
   baseCurrency: string;
-  /** It has expenses: its currency can no longer change. */
+  /** It has expenses or reimbursements, stored in its currency: it can no longer change. */
   currencyLocked: boolean;
   participants: TripParticipant[];
   createdAt: string;

@@ -247,6 +247,18 @@ describe('Expenses (e2e)', () => {
     await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'EUR' }).expect(409);
     // Sending the same currency again (a whole form) is fine.
     await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'CHF', title: 'Andalousie' }).expect(200);
+
+    // A reimbursement left after the expenses are gone is still in francs: still locked.
+    const other = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Lisbonne' }).expect(201)).body as TripDetail;
+    const { code } = (await api().get(`/v1/trips/${other.id}/invitation`).set(jordan.auth).expect(200)).body as TripInvitation;
+    await api().post(`/v1/invitations/${code}/join`).set(lea.auth).expect(201);
+    const people = ((await api().get(`/v1/trips/${other.id}`).set(jordan.auth).expect(200)).body as TripDetail).participants;
+    const [me, her] = [people.find((p) => p.displayName === 'Jordan')!.id, people.find((p) => p.displayName === 'Léa')!.id];
+    const lunch = await add(other.id, jordan.auth, { amountMinor: 2000, payerId: me, split: { mode: 'EQUAL', participantIds: [me, her] } });
+    await api().post(`/v1/trips/${other.id}/settlements`).set(lea.auth).send({ fromId: her, toId: me, amountMinor: 1000 }).expect(201);
+    await api().delete(`/v1/trips/${other.id}/expenses/${lunch.id}`).set(jordan.auth).expect(204);
+    expect((await api().get(`/v1/trips/${other.id}`).set(jordan.auth).expect(200)).body).toMatchObject({ currencyLocked: true });
+    await api().patch(`/v1/trips/${other.id}`).set(jordan.auth).send({ baseCurrency: 'JPY' }).expect(409);
   });
 
   it('moves a guest’s expenses to the account, adding up their shares on an expense both were in', async () => {

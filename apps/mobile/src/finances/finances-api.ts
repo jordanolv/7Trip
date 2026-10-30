@@ -15,7 +15,8 @@ export const financeKeys = {
   expenses: (tripId: string) => ['expenses', tripId] as const,
   expense: (tripId: string, expenseId: string) => ['expenses', tripId, expenseId] as const,
   balances: (tripId: string) => ['balances', tripId] as const,
-  rate: (tripId: string, currency: string) => ['rates', tripId, currency] as const,
+  /** With the trip's currency: a rate fetched before it changed must not be used after. */
+  rate: (tripId: string, currency: string, baseCurrency: string) => ['rates', tripId, currency, baseCurrency] as const,
 };
 
 export interface TodayRate {
@@ -26,10 +27,10 @@ export interface TodayRate {
 }
 
 /** Today's ECB rate into the trip's currency, to fill in an expense in another currency. */
-export function useRate(tripId: string, currency: string, enabled: boolean) {
+export function useRate(tripId: string, currency: string, baseCurrency: string, enabled: boolean) {
   const { tripRequest } = useAuth();
   return useQuery({
-    queryKey: financeKeys.rate(tripId, currency),
+    queryKey: financeKeys.rate(tripId, currency, baseCurrency),
     queryFn: () => tripRequest<TodayRate>(tripId, `/trips/${tripId}/rates/${currency}`),
     enabled,
     staleTime: 60 * 60 * 1000,

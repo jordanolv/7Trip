@@ -33,7 +33,7 @@ export interface TripInput {
 const TRIP_INCLUDE = {
   participants: { where: { status: ParticipantStatus.ACTIVE } },
   destinations: { orderBy: { position: 'asc' } },
-  _count: { select: { expenses: true } },
+  _count: { select: { expenses: true, settlements: true } },
 } satisfies Prisma.TripInclude;
 
 export type TripWithRelations = Prisma.TripGetPayload<{ include: typeof TRIP_INCLUDE }>;
@@ -131,9 +131,10 @@ export class TripsService {
       if (startDate && endDate && endDate < startDate) {
         throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
       }
-      // The shares and settlements are stored in it: it only changes before the first expense.
-      if (input.baseCurrency !== undefined && input.baseCurrency !== trip.baseCurrency && (await tx.expense.count({ where: { tripId } }))) {
-        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'La devise du voyage ne change plus une fois une dépense ajoutée');
+      // The shares and settlements are stored in it: it only changes while there is none of them.
+      const hasMoney = async () => (await tx.expense.count({ where: { tripId } })) + (await tx.settlement.count({ where: { tripId } })) > 0;
+      if (input.baseCurrency !== undefined && input.baseCurrency !== trip.baseCurrency && (await hasMoney())) {
+        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'La devise du voyage ne change plus une fois une dépense ou un remboursement enregistré');
       }
 
       return tx.trip.update({
@@ -229,7 +230,7 @@ export class TripsService {
       ...this.toSummary(trip, actor),
       invitePolicy: trip.invitePolicy,
       baseCurrency: trip.baseCurrency,
-      currencyLocked: trip._count.expenses > 0,
+      currencyLocked: trip._count.expenses + trip._count.settlements > 0,
       createdAt: trip.createdAt.toISOString(),
       participants: trip.participants
         .toSorted((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
