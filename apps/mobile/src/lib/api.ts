@@ -1,4 +1,5 @@
 import { GUEST_TOKEN_HEADER, type ApiErrorBody } from '@7trip/shared';
+import { File, UploadType } from 'expo-file-system';
 
 import { apiUrl } from './config';
 
@@ -20,41 +21,68 @@ export interface RequestOptions {
   accessToken?: string | null;
   /** Guest session token: opens one trip without an account. */
   guestToken?: string | null;
+  /**
+   * A file sent as multipart (`file`), with text fields beside it. Sent natively by
+   * expo-file-system: Expo's fetch does not take React Native's `{ uri, name, type }` parts.
+   */
+  upload?: { uri: string; mimeType: string; fields: Record<string, string> };
 }
 
-export async function apiRequest<T>(path: string, { method = 'GET', body, accessToken, guestToken }: RequestOptions = {}): Promise<T> {
-  // A file upload: fetch sets the multipart type and its boundary itself.
-  const form = body instanceof FormData;
-  let response: Response;
+const NETWORK_ERROR = () => new ApiError(0, 'NETWORK', 'Impossible de joindre 7Trip. Vérifie ta connexion.');
+
+export async function apiRequest<T>(path: string, { method = 'GET', body, accessToken, guestToken, upload }: RequestOptions = {}): Promise<T> {
+  const url = `${apiUrl}/v1${path}`;
+  const headers = {
+    Accept: 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...(guestToken ? { [GUEST_TOKEN_HEADER]: guestToken } : {}),
+  };
+  let status: number;
+  let text: string;
   try {
-    response = await fetch(`${apiUrl}/v1${path}`, {
-      method,
-      headers: {
-        Accept: 'application/json',
-        ...(body !== undefined && !form ? { 'Content-Type': 'application/json' } : {}),
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...(guestToken ? { [GUEST_TOKEN_HEADER]: guestToken } : {}),
-      },
-      body: form ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    throw new ApiError(0, 'NETWORK', 'Impossible de joindre 7Trip. Vérifie ta connexion.');
+    if (upload) {
+      const result = await new File(upload.uri).upload(url, {
+        httpMethod: method === 'GET' || method === 'DELETE' ? 'POST' : method,
+        uploadType: UploadType.MULTIPART,
+        fieldName: 'file',
+        mimeType: upload.mimeType,
+        parameters: upload.fields,
+        headers,
+      });
+      ({ status, body: text } = result);
+    } else {
+      const response = await fetch(url, {
+        method,
+        headers: { ...headers, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      status = response.status;
+      text = await response.text();
+    }
+  } catch (error) {
+    if (__DEV__) console.warn(`[api] ${method} ${path} failed before any answer:`, error);
+    throw NETWORK_ERROR();
   }
 
-  if (response.status === 204) return undefined as T;
-  const payload: unknown = await response.json().catch(() => undefined);
-  if (response.ok) return payload as T;
+  if (status === 204) return undefined as T;
+  let payload: unknown;
+  try {
+    payload = text ? JSON.parse(text) : undefined;
+  } catch {
+    payload = undefined;
+  }
+  if (status >= 200 && status < 300) return payload as T;
 
   const error = (payload ?? {}) as Partial<ApiErrorBody> & { message?: unknown };
-  if (response.status === 429) {
+  if (status === 429) {
     throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Trop de tentatives, réessaie dans une minute.');
   }
   // Proxy / tunnel errors (502, 503…) come back as HTML, not as our JSON error body.
-  if (response.status >= 500 && typeof error.code !== 'string') {
-    throw new ApiError(response.status, 'SERVER_UNAVAILABLE', 'Le serveur 7Trip ne répond pas pour le moment, réessaie dans un instant.');
+  if (status >= 500 && typeof error.code !== 'string') {
+    throw new ApiError(status, 'SERVER_UNAVAILABLE', 'Le serveur 7Trip ne répond pas pour le moment, réessaie dans un instant.');
   }
   throw new ApiError(
-    response.status,
+    status,
     typeof error.code === 'string' ? error.code : 'UNKNOWN',
     typeof error.message === 'string' ? error.message : 'Une erreur est survenue, réessaie.',
     error.fields,

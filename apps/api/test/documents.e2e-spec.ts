@@ -81,6 +81,9 @@ describe('Documents (e2e)', () => {
     // Named .pdf, but a PNG: kept as what it is.
     const photo = (await upload(trip.id, lea.auth, { title: 'Photo du passeport' }, PNG, 'passeport.pdf').expect(201)).body as TripDocument;
     expect(photo).toMatchObject({ mime: 'image/png', fileName: 'passeport.png' });
+    // The name picked on the phone wins over the one of the copy it sends.
+    const named = (await upload(trip.id, lea.auth, { title: 'Billet', fileName: 'Billet Alcázar.pdf' }, PDF, 'ABC123.pdf').expect(201)).body as TripDocument;
+    expect(named.fileName).toBe('Billet Alcázar.pdf');
   });
 
   it('keeps links, dated by their planning item, the undated last', async () => {

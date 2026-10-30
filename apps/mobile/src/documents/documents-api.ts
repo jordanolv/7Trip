@@ -10,7 +10,7 @@ export const documentKeys = {
   detail: (tripId: string, documentId: string) => ['documents', tripId, documentId] as const,
 };
 
-/** A file picked on the device, as fetch sends it in a multipart body. */
+/** A file picked on the device, sent from where it is. */
 export interface PickedFile {
   uri: string;
   name: string;
@@ -68,11 +68,12 @@ export function useAddDocument(tripId: string) {
   return useMutation({
     mutationFn: (input: { file: PickedFile; meta: CreateFileDocumentRequest } | { link: CreateLinkDocumentRequest }) => {
       if ('link' in input) return tripRequest<TripDocument>(tripId, `/trips/${tripId}/documents/links`, { method: 'POST', body: input.link });
-      const body = new FormData();
-      body.append('meta', JSON.stringify(input.meta));
-      // React Native's FormData takes a file as { uri, name, type }.
-      body.append('file', { uri: input.file.uri, name: input.file.name, type: input.file.mimeType } as unknown as Blob);
-      return tripRequest<TripDocument>(tripId, `/trips/${tripId}/documents`, { method: 'POST', body });
+      // The name as picked: the copy sent may be named otherwise.
+      const meta = { ...input.meta, fileName: input.file.name };
+      return tripRequest<TripDocument>(tripId, `/trips/${tripId}/documents`, {
+        method: 'POST',
+        upload: { uri: input.file.uri, mimeType: input.file.mimeType, fields: { meta: JSON.stringify(meta) } },
+      });
     },
     onSuccess: refresh,
   });

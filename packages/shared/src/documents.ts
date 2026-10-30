@@ -40,7 +40,11 @@ const documentFields = {
 };
 
 /** Sent with the file (a multipart field `meta`, in JSON). */
-export const createFileDocumentSchema = z.object(documentFields);
+export const createFileDocumentSchema = z.object({
+  ...documentFields,
+  /** The name as picked on the device; else the one of the part sent. */
+  fileName: z.string().trim().max(200).optional(),
+});
 export type CreateFileDocumentRequest = z.input<typeof createFileDocumentSchema>;
 
 export const createLinkDocumentSchema = z

@@ -109,7 +109,7 @@ export class DocumentsService {
             storageKey,
             mime,
             sizeBytes: file.size,
-            fileName: cleanFileName(file.originalname, mime),
+            fileName: cleanFileName(input.fileName || file.originalname, mime),
           },
           include: DOCUMENT_INCLUDE,
         });
