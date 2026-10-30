@@ -11,7 +11,7 @@ import type {
 import { useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
-import { pruneOfflineTrips } from '@/documents/offline-documents';
+import { pruneOfflineTrips, removeOfflineTrip } from '@/documents/offline-documents';
 import { apiRequest } from '@/lib/api';
 
 export const tripKeys = {
@@ -87,6 +87,8 @@ export function useDeleteTrip(id: string) {
  */
 export function forgetTripContent(client: QueryClient, tripId: string) {
   client.removeQueries({ predicate: (query) => query.queryKey[1] === tripId });
+  // Guests too: their trips are not in /me/trips, whose refresh cleans up the others.
+  removeOfflineTrip(tripId);
 }
 
 /** Stores a trip returned by a mutation and refreshes the list (counts, roles). */

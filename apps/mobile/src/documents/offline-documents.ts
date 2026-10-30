@@ -68,6 +68,13 @@ export function pruneOfflineTrips(tripIds: string[]): void {
   for (const entry of dir.list()) if (!keep.has(entry.name)) entry.delete();
 }
 
+/** The trip left, deleted, or its guest session over: its copies go. */
+export function removeOfflineTrip(tripId: string): void {
+  const dir = tripDir(tripId);
+  if (dir.exists) dir.delete();
+  void queryClient.invalidateQueries({ queryKey: offlineKeys.trip(tripId) });
+}
+
 /** On sign-out: nothing of the account stays on the device. */
 export function clearOffline(): void {
   const dir = root();

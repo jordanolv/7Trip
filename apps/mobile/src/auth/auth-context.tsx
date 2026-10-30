@@ -2,7 +2,7 @@ import type { AuthResponse, Me } from '@7trip/shared';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
-import { clearOffline } from '@/documents/offline-documents';
+import { clearOffline, removeOfflineTrip } from '@/documents/offline-documents';
 import { clearQueryCache, queryClient } from '@/lib/query-client';
 import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
 import { clearRefreshToken, clearUser, loadRefreshToken, loadUser, saveRefreshToken, saveUser } from '@/lib/session-store';
@@ -149,6 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The session is over: claimed by the account just signed in (then retry as the user),
         // or removed from the trip / left from another screen.
         await removeGuestSession(tripId);
+        // Its saved documents go too; if the account now has the trip, they can be saved again.
+        removeOfflineTrip(tripId);
         if (accessToken.current) return authedRequest<T>(path, options);
         throw new ApiError(404, 'NOT_FOUND', 'Tu ne fais plus partie de ce voyage.');
       }

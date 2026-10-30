@@ -22,13 +22,9 @@ export function OfflineBanner() {
   const online = useIsOnline();
   const client = useQueryClient();
   if (online) return null;
-  const last = Math.max(
-    0,
-    ...client
-      .getQueryCache()
-      .getAll()
-      .map((query) => query.state.dataUpdatedAt),
-  );
+  // From the server only: what is read on the device itself says nothing of how fresh the data is.
+  const fromServer = client.getQueryCache().getAll().filter((query) => query.queryKey[0] !== 'offline-documents');
+  const last = Math.max(0, ...fromServer.map((query) => query.state.dataUpdatedAt));
   return (
     <View accessibilityRole="alert" style={styles.banner}>
       <Icon name="alert" color="#8A3D12" size={18} />
