@@ -6,6 +6,12 @@ describe('toBaseMinor', () => {
     expect(toBaseMinor(4800, 0.8985)).toBe(4313);
     expect(toBaseMinor(150000, 0.00632)).toBe(948);
   });
+
+  it('rounds exact half-hundredths up, where floating point would not', () => {
+    expect(100 * 1.005).toBeLessThan(100.5);
+    expect(toBaseMinor(100, 1.005)).toBe(101);
+    expect(toBaseMinor(5005751, 0.0061234568)).toBe(30653);
+  });
 });
 
 describe('convertShares', () => {

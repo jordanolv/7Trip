@@ -84,27 +84,39 @@ export function normalizeRate(rate: number): number {
   return Number(Number(rate.toPrecision(10)).toFixed(10));
 }
 
-/** An amount in the expense's currency, in the trip's currency (hundredths, rounded). */
-export const toBaseMinor = (minor: number, rate: number) => Math.round(minor * rate);
+const RATE_SCALE = 10_000_000_000n;
+
+/** The rate in ten-billionths, exactly: rates are kept with 10 decimals (normalizeRate). */
+const rateUnits = (rate: number) => {
+  const [units, decimals = ''] = normalizeRate(rate).toFixed(10).split('.');
+  return BigInt(units!) * RATE_SCALE + BigInt(decimals.padEnd(10, '0'));
+};
+
+/**
+ * An amount in the expense's currency, in the trip's currency (hundredths, half up). In integers:
+ * 100 × 1,005 is 100,5 and gives 101, where floating point would find 100,4999… and give 100.
+ */
+export function toBaseMinor(minor: number, rate: number): number {
+  return Number((BigInt(minor) * rateUnits(rate) + RATE_SCALE / 2n) / RATE_SCALE);
+}
 
 /**
  * Shares in the expense's currency, in the trip's currency, adding up to exactly `baseTotal`:
- * each is rounded down, then the leftover hundredths go to the largest remainders (ties: in order).
+ * each gets its exact part of the total rounded down, then the leftover hundredths go to the
+ * largest remainders (ties: in order). In integers, so equal shares always stay equal.
  */
 export function convertShares<T extends { amountMinor: number }>(shares: T[], rate: number, baseTotal: number): (T & { baseMinor: number })[] {
-  const exact = shares.map((share) => share.amountMinor * rate);
-  const sum = exact.reduce((total, value) => total + value, 0);
-  // Scaled so that the floors can always reach baseTotal, even after the total was rounded up.
-  const scaled = sum > 0 ? exact.map((value) => (value * baseTotal) / sum) : exact.map(() => 0);
-  const floors = scaled.map((value) => Math.floor(value + 1e-9));
-  let left = baseTotal - floors.reduce((total, value) => total + value, 0);
-  const order = scaled.map((value, index) => ({ index, remainder: value - floors[index]! })).sort((a, b) => b.remainder - a.remainder || a.index - b.index);
-  for (const { index } of order) {
-    if (left <= 0) break;
-    floors[index]! += 1;
-    left -= 1;
+  const exact = shares.map((share) => BigInt(share.amountMinor) * rateUnits(rate));
+  const sum = exact.reduce((total, value) => total + value, 0n);
+  const total = BigInt(baseTotal);
+  const parts = exact.map((value, index) => ({ index, floor: sum ? (value * total) / sum : 0n, remainder: sum ? (value * total) % sum : 0n }));
+  let left = total - parts.reduce((acc, part) => acc + part.floor, 0n);
+  for (const part of [...parts].sort((a, b) => (b.remainder > a.remainder ? 1 : b.remainder < a.remainder ? -1 : a.index - b.index))) {
+    if (left <= 0n) break;
+    part.floor += 1n;
+    left -= 1n;
   }
-  return shares.map((share, index) => ({ ...share, baseMinor: floors[index]! }));
+  return shares.map((share, index) => ({ ...share, baseMinor: Number(parts[index]!.floor) }));
 }
 
 /** A rate as typed: "0,8985", "0.8985", "158". Null when it is not one. */
