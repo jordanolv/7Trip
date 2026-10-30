@@ -241,7 +241,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/apple`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password` |
 | Moi | `GET /me`, `PATCH /me`, `GET /me/trips`, `POST /me/export`, `DELETE /me` |
 | Invitations | `GET /invitations/{code}` (aperçu public), `POST /invitations/{code}/join` (compte ou pseudo invité), `POST /trips/{id}/invitations/rotate` |
-| Voyages | `POST /trips`, `GET/PATCH/DELETE /trips/{id}`, `GET /trips/{id}/dashboard` |
+| Voyages | `POST /trips`, `GET/PATCH/DELETE /trips/{id}` (le tableau de bord se compose dans l’app) |
 | Participants | `GET …/participants`, `PATCH …/participants/{pid}` (rôle), `DELETE …/participants/{pid}`, `POST …/leave` |
 | Idées | `GET/POST …/ideas`, `GET/PATCH/DELETE …/ideas/{iid}`, `POST …/ideas/{iid}/schedule` |
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
