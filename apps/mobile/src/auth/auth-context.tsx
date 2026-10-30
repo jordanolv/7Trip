@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
 import { clearOffline } from '@/documents/offline-documents';
-import { queryClient } from '@/lib/query-client';
+import { clearQueryCache, queryClient } from '@/lib/query-client';
 import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
 import { clearRefreshToken, clearUser, loadRefreshToken, loadUser, saveRefreshToken, saveUser } from '@/lib/session-store';
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     epoch.current += 1;
     accessToken.current = null;
     // Never show one account's data to the next one, nor its saved documents.
-    queryClient.clear();
+    await clearQueryCache();
     clearOffline();
     await clearRefreshToken();
     await clearUser();

@@ -23,15 +23,23 @@ export const queryClient = new QueryClient({
   },
 });
 
-/**
- * The cache saved on the device, restored on the next launch. Cleared with the cache when the
- * session ends: one account's data is never shown to the next.
- */
+const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: '7trip-query-cache', throttleTime: 2000 });
+
+/** The cache saved on the device, restored on the next launch. */
 export const persistOptions: Omit<PersistQueryClientOptions, 'queryClient'> = {
-  persister: createAsyncStoragePersister({ storage: AsyncStorage, key: '7trip-query-cache', throttleTime: 2000 }),
+  persister,
   maxAge: KEEP_MS,
   // A new app version may read data differently: start again from the network.
   buster: '1',
   // What is saved on the device is read from the device itself.
   dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.status === 'success' && query.queryKey[0] !== 'offline-documents' },
 };
+
+/**
+ * When the session ends: the cache in memory and on the device, at once. Saves are throttled, so
+ * waiting for the next one could leave the account's data there if the app is closed meanwhile.
+ */
+export async function clearQueryCache(): Promise<void> {
+  queryClient.clear();
+  await persister.removeClient();
+}

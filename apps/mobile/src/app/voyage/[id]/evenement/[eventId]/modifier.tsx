@@ -21,6 +21,13 @@ import { useAction } from '@/lib/use-action';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
+/** The merge with the versions chosen so far. */
+function resolved(conflict: Conflict): EventFields {
+  let merged = conflict.merged;
+  for (const group of conflict.conflicts) if (conflict.choices[group] === 'mine') merged = chooseVersion(merged, conflict.mine, EVENT_CONFLICT_GROUPS[group]);
+  return merged;
+}
+
 interface Conflict extends Omit<MergeResult<EventFields>, 'conflicts' | 'keptMine'> {
   latest: TripEvent;
   theirs: EventFields;
@@ -54,8 +61,8 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
   const remove = useDeleteEvent(tripId, event.id);
   // The form keeps what was loaded when it opened: that is the version the changes are made on.
   const [values, setValues] = useState<EventFormValues>(() => eventFormValues(event));
-  const [version] = useState(event.version);
-  const [original] = useState(() => eventRequest(eventFormValues(event)));
+  // The version the changes are made on; after a conflict edited by hand, the other person's.
+  const [base, setBase] = useState(() => ({ fields: eventRequest(eventFormValues(event)), version: event.version }));
   const { tripRequest } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const warning = useOverlapWarning(tripId, eventDraft(values), event.id);
@@ -69,8 +76,8 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] ??= issue.message;
+      // On the conflict screen too: "Modifier le résultat à la main" fixes it.
       setErrors(next);
-      setConflict(null);
       return;
     }
     setErrors({});
@@ -82,9 +89,11 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
       const theirs = eventRequest(eventFormValues(latest));
       const result = mergeEdits(base.fields, fields, theirs, EVENT_CONFLICT_GROUPS);
       const next = { latest, theirs, mine: fields, ...result, conflicts: result.conflicts as ConflictGroup[], keptMine: result.keptMine as ConflictGroup[], choices: {} };
-      // Nothing collides: both sets of changes go together, without asking.
-      if (!next.conflicts.length) return submit(result.merged, { fields: theirs, version: latest.version });
+      // Nothing collides: both sets of changes go together, without asking, if their mix holds.
+      const valid = updateEventRequestSchema.safeParse({ ...result.merged, version: latest.version }).success;
+      if (!next.conflicts.length && valid) return submit(result.merged, { fields: theirs, version: latest.version });
       setConflict(next);
+      if (!valid) await submit(result.merged, { fields: theirs, version: latest.version });
       return;
     }
     haptics.success();
@@ -92,11 +101,19 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
   };
 
   const save = useAction(async () => {
-    if (!conflict) return submit(eventRequest(values), { fields: original, version });
-    let merged = conflict.merged;
-    for (const group of conflict.conflicts) if (conflict.choices[group] === 'mine') merged = chooseVersion(merged, conflict.mine, EVENT_CONFLICT_GROUPS[group]);
-    return submit(merged, { fields: conflict.theirs, version: conflict.latest.version });
+    if (!conflict) return submit(eventRequest(values), base);
+    return submit(resolved(conflict), { fields: conflict.theirs, version: conflict.latest.version });
   });
+
+  /**
+   * Both versions may be valid and their mix not (a single day with an overnight time): the merge
+   * opens in the form, on the other person's version, to be fixed by hand.
+   */
+  const editMerged = (current: Conflict) => {
+    setValues(eventFormValues({ ...current.latest, ...resolved(current) } as TripEvent));
+    setBase({ fields: current.theirs, version: current.latest.version });
+    setConflict(null);
+  };
   const unresolved = conflict ? conflict.conflicts.some((group) => !conflict.choices[group]) : false;
 
   const confirmDelete = () => {
@@ -147,11 +164,12 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
             onChoose={(group, side) => setConflict({ ...conflict, choices: { ...conflict.choices, [group]: side } })}
             people={tripPeople(trip.data, conflict.latest)}
           />
-          {save.error ? (
+          {save.error || Object.keys({ ...save.fieldErrors, ...errors }).length ? (
             <AppText variant="caption" tone="danger">
-              {save.error}
+              {save.error ?? Object.values({ ...save.fieldErrors, ...errors })[0]}
             </AppText>
           ) : null}
+          <Button title="Modifier le résultat à la main" variant="soft" disabled={unresolved} onPress={() => editMerged(conflict)} />
         </FormScreen>
       </>
     );
