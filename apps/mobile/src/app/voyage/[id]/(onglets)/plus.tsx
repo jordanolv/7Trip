@@ -1,12 +1,13 @@
 import type { TripDetail } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionRow } from '@/components/action-row';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { useDocuments } from '@/documents/documents-api';
 import { usePolls } from '@/polls/polls-api';
 import { ParticipantRow } from '@/trips/participant-row';
 import { amGuest, can } from '@/trips/permissions';
@@ -33,7 +34,8 @@ function PlusContent({ trip }: { trip: TripDetail }) {
   const toVote = polls.data?.filter((poll) => !poll.closed && !poll.hasVoted).length ?? 0;
   const open = polls.data?.filter((poll) => !poll.closed).length ?? 0;
   const pollsDetail = toVote ? `${toVote} à voter` : open ? `${open} en cours` : 'Décider ensemble';
-  const soon = (what: string) => () => Alert.alert('Bientôt', `${what} arrive dans une prochaine mise à jour.`);
+  const documents = useDocuments(trip.id).data?.length ?? 0;
+  const documentsDetail = documents ? `${documents} document${documents > 1 ? 's' : ''}` : 'Billets, réservations';
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
@@ -66,7 +68,7 @@ function PlusContent({ trip }: { trip: TripDetail }) {
 
       <View style={styles.grid}>
         <Tile icon="poll" title="Sondages" detail={pollsDetail} onPress={() => router.push(`/voyage/${trip.id}/sondages` as Href)} />
-        <Tile icon="folder" title="Documents" detail="Bientôt" onPress={soon('Les documents')} />
+        <Tile icon="folder" title="Documents" detail={documentsDetail} onPress={() => router.push(`/voyage/${trip.id}/documents` as Href)} />
       </View>
 
       <Section

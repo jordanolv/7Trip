@@ -26,10 +26,15 @@ Ensuite, chaque merge `dev` → `main` est une mise en production.
 | Postgres 17 | Database (réseau interne) | 5432 |
 | API | Application, Dockerfile `apps/api/Dockerfile`, contexte Docker `.` | 3100 |
 | Web invité | Application, Dockerfile `apps/web/Dockerfile`, contexte Docker `.` | 3000 |
+| Stockage des documents | Compose RustFS (image `rustfs/rustfs`, volume persistant), réseau interne seulement | 9000 |
 
 Les images se construisent depuis la racine du dépôt : l'API et le web ont besoin des paquets
 `packages/*`. Sans contexte `.`, Dokploy prend le dossier du Dockerfile et le build ne trouve pas
 `pnpm-lock.yaml`. Les migrations Prisma s'appliquent au démarrage de l'API.
+
+Le stockage n'est jamais exposé : les apps ouvrent les fichiers par un lien signé vers l'API
+(`/v1/files`, 4 min), qui les lit dans le bucket. RustFS est gratuit et tient sur le disque du VPS ;
+son volume est à inclure dans les sauvegardes du serveur.
 
 Chaque push sur la branche de l'environnement (`dev` pour le staging) redéploie l'API et le web.
 Les push arrivent par le webhook de la GitHub App Dokploy, dont l'URL doit être l'adresse publique
@@ -47,6 +52,10 @@ GitHub.
 | `JWT_SECRET` | 32 caractères aléatoires au moins (`openssl rand -base64 48`) |
 | `MAIL_TRANSPORT` / `SMTP_URL` / `MAIL_FROM` | `smtp`, l'URL SMTP du fournisseur d'emails, `7Trip <no-reply@7trip.fr>` — obligatoires en production |
 | `TRUST_PROXY` | `loopback, uniquelocal` (Traefik et le web passent par le réseau Docker) |
+| `STORAGE_DRIVER` | `s3` — obligatoire en production (le disque d'un conteneur ne survit pas à un redéploiement) |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | URL **interne** du stockage (RustFS : `http://<service-rustfs>:9000`), région (`auto` par défaut), bucket (créé par l'API au premier démarrage) |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Clés d'accès limitées à ce bucket |
+| `S3_FORCE_PATH_STYLE` | `true` (par défaut) pour RustFS |
 
 **Web invité**
 

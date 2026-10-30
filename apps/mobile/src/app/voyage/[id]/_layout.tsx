@@ -31,6 +31,10 @@ export default function VoyageLayout() {
         <Stack.Screen name="depense/[expenseId]/index" options={sheetOptions} />
         <Stack.Screen name="depense/[expenseId]/modifier" options={{ presentation: 'modal' }} />
         <Stack.Screen name="budget" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="documents" />
+        <Stack.Screen name="document/nouveau" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="document/[documentId]/index" options={sheetOptions} />
+        <Stack.Screen name="document/[documentId]/modifier" options={{ presentation: 'modal' }} />
         <Stack.Screen name="sondage/[pollId]/index" />
         <Stack.Screen name="sondage/[pollId]/partager" options={sheetOptions} />
       </Stack>

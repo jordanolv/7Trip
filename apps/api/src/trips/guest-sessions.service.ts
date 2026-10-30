@@ -83,6 +83,7 @@ export class GuestSessionsService {
     await tx.settlement.updateMany({ where: { fromId: guest.id }, data: { fromId: account.id } });
     await tx.settlement.updateMany({ where: { toId: guest.id }, data: { toId: account.id } });
     await tx.settlement.updateMany({ where: { createdById: guest.id }, data: { createdById: account.id } });
+    await tx.document.updateMany({ where: { ownerId: guest.id }, data: { ownerId: account.id } });
     // The account's budget stands; without one, the guest's becomes it.
     if (!(await tx.personalBudget.count({ where: { participantId: account.id } }))) {
       await tx.personalBudget.updateMany({ where: { participantId: guest.id }, data: { participantId: account.id } });

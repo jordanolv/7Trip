@@ -58,8 +58,8 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
   fiables, types générés réutilisables. Remplaçable si tu préfères rester sur TypeORM.
 - Validation des entrées avec les schémas Zod de `packages/shared` (mêmes règles côté app).
 - Documentation OpenAPI générée → client typé pour le mobile et le web.
-- Stockage de fichiers compatible **S3** (MinIO auto-hébergé ou Scaleway / Cloudflare R2), accès
-  uniquement par **URL signées courtes** délivrées après contrôle des droits.
+- Stockage de fichiers compatible **S3** (RustFS auto-hébergé ; R2 ou Scaleway possibles), accès
+  uniquement par **liens signés courts** vers l'API, délivrés après contrôle des droits.
 - Tâches différées (notifications, rappels, nettoyage) : table *outbox* + worker ; pas de Redis
   en V1.
 
@@ -70,7 +70,7 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
 
 ### Infrastructure
 - **Dokploy** (Traefik, Let's Encrypt) sur le serveur existant, voir [deploiement.md](deploiement.md) :
-  `api.7trip.fr`, `7trip.fr` (web), Postgres, MinIO.
+  `api.7trip.fr`, `7trip.fr` (web), Postgres, RustFS.
 - CI GitHub Actions : lint, typecheck, tests (shared, API avec base de test), build.
 - Environnements : local, staging (`staging.7trip.fr`, branche `dev`), production (`7trip.fr`, branche `main`).
 
@@ -125,7 +125,7 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage), originalMinor (la même part, en devise de la dépense) |
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId (un par participant, vu de lui seul), currency (celle du voyage à la saisie), totalMinor?, perCategory (json : plafond par catégorie) |
-| `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
+| `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, sizeBytes?, fileName?, category (transport/hébergement/activité/autre), date?, eventId?, visibility (private/shared, privé par défaut), bookingRef?, version |
 | `Notification` | participantId, type, payload, scheduledAt, sentAt? |
 
 Une idée planifiée garde son identité : l'`Event` créé référence l'`Idea` (`ideaId`). Retirer
@@ -239,7 +239,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
 | Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (le sien uniquement) |
-| Documents | `GET/POST …/documents`, `PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée) |
+| Documents | `GET/POST …/documents` (multipart : `file` + `meta` JSON), `POST …/documents/links`, `GET/PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée 4 min) ; `GET /files` sert les fichiers en stockage local (dev) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 
 Le tableau de bord (`/dashboard`) est une route agrégée qui renvoie uniquement les blocs utiles

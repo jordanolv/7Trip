@@ -36,7 +36,16 @@
       "expo-font",
       "expo-status-bar",
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "7Trip accède à tes photos pour que tu y choisisses un billet ou une réservation à garder dans le voyage.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

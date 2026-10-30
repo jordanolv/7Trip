@@ -1,21 +1,14 @@
-import { formatDayMonth, type TripEvent } from "@7trip/shared";
-import { colors, spacing } from "@7trip/ui-tokens";
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatDayMonth, type TripEvent } from '@7trip/shared';
+import { colors, spacing } from '@7trip/ui-tokens';
+import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText } from "@/components/ui/app-text";
-import { Icon } from "@/components/ui/icon";
-import { EventIcon } from "@/events/event-visuals";
-import { useEvents } from "@/events/events-api";
+import { AppText } from '@/components/ui/app-text';
+import { Icon } from '@/components/ui/icon';
+import { EventIcon } from '@/events/event-visuals';
+import { useEvents } from '@/events/events-api';
 
-/** The planning items, by date, in a sheet over the form: the one the expense was paid for. */
+/** The planning items, by date, in a sheet over a form: the one an expense or a document is for. */
 export function EventPicker({
   visible,
   tripId,
@@ -31,35 +24,21 @@ export function EventPicker({
 }) {
   const insets = useSafeAreaInsets();
   const events = useEvents(tripId);
-  const sorted = [...(events.data ?? [])].sort((a, b) =>
-    `${a.startDate} ${a.startTime ?? ""}`.localeCompare(
-      `${b.startDate} ${b.startTime ?? ""}`,
-    ),
-  );
+  const sorted = [...(events.data ?? [])].sort((a, b) => `${a.startDate} ${a.startTime ?? ''}`.localeCompare(`${b.startDate} ${b.startTime ?? ''}`));
   const pick = (event: TripEvent | null) => {
     onSelect(event);
     onClose();
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.sheet, { paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
           <View style={styles.side} />
           <AppText variant="heading" style={styles.title}>
             Lier au planning
           </AppText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fermer"
-            onPress={onClose}
-            style={styles.side}
-          >
+          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} style={styles.side}>
             <Icon name="close" size={22} />
           </Pressable>
         </View>
@@ -83,9 +62,7 @@ export function EventPicker({
                 <AppText variant="bodyStrong" style={styles.flex}>
                   Aucun
                 </AppText>
-                {value === null ? (
-                  <Icon name="check" color={colors.accentInk} size={20} />
-                ) : null}
+                {value === null ? <Icon name="check" color={colors.accentInk} size={20} /> : null}
               </Pressable>
             }
             renderItem={({ item: event }) => {
@@ -95,11 +72,7 @@ export function EventPicker({
                   accessibilityRole="radio"
                   accessibilityState={{ checked: active }}
                   onPress={() => pick(event)}
-                  style={({ pressed }) => [
-                    styles.row,
-                    styles.rowBorder,
-                    pressed && styles.pressed,
-                  ]}
+                  style={({ pressed }) => [styles.row, styles.rowBorder, pressed && styles.pressed]}
                 >
                   <View style={styles.icon}>
                     <EventIcon category={event.category} size={18} />
@@ -110,12 +83,10 @@ export function EventPicker({
                     </AppText>
                     <AppText variant="caption" tone="secondary">
                       {formatDayMonth(event.startDate)}
-                      {event.startTime ? ` · ${event.startTime}` : ""}
+                      {event.startTime ? ` · ${event.startTime}` : ''}
                     </AppText>
                   </View>
-                  {active ? (
-                    <Icon name="check" color={colors.accentInk} size={20} />
-                  ) : null}
+                  {active ? <Icon name="check" color={colors.accentInk} size={20} /> : null}
                 </Pressable>
               );
             }}
@@ -141,18 +112,18 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   side: {
     width: 36,
     height: 36,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: { flex: 1, textAlign: "center" },
+  title: { flex: 1, textAlign: 'center' },
   loading: { marginTop: spacing.xxl },
   list: {
     margin: spacing.lg,
@@ -161,8 +132,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
     minHeight: 56,
   },
@@ -173,8 +144,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 10,
     backgroundColor: colors.chip,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  empty: { paddingVertical: spacing.lg, textAlign: "center" },
+  empty: { paddingVertical: spacing.lg, textAlign: 'center' },
 });
