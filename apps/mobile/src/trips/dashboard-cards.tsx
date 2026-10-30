@@ -3,6 +3,7 @@ import {
   formatMoney,
   formatTimeRange,
   isHappening,
+  localIsoDate,
   localTime,
   nextEvents,
   weekdayShort,
@@ -15,12 +16,26 @@ import {
 } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { router, type Href } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { EventIcon, eventStyle } from '@/events/event-visuals';
+
+/**
+ * The local day and time, kept current while the screen stays open: "Maintenant" and "À venir"
+ * follow the clock without a refresh.
+ */
+export function useClock(): { today: string; now: string } {
+  const [date, setDate] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setDate(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  return { today: localIsoDate(date), now: localTime(date) };
+}
 
 /**
  * The blocks of the dashboard (CDC §3.2, mockup G-Dashboard). Each returns nothing when it has
@@ -43,10 +58,9 @@ function CardHeader({ title, link, onLink }: { title: string; link?: string; onL
 }
 
 /** During the trip: the day's planning, what is happening now first. */
-export function TodayCard({ tripId, events, documents, today }: { tripId: string; events: TripEvent[]; documents: TripDocument[]; today: string }) {
+export function TodayCard({ tripId, events, documents, today, now }: { tripId: string; events: TripEvent[]; documents: TripDocument[]; today: string; now: string }) {
   const ofDay = eventsOfDay(events, today);
   if (!ofDay.length) return null;
-  const now = localTime();
   const open = (event: TripEvent) => router.push(`/voyage/${tripId}/evenement/${event.id}` as Href);
   const current = ofDay.find((event) => isHappening(event, today, now));
   const others = ofDay.filter((event) => event !== current);
@@ -85,8 +99,8 @@ export function TodayCard({ tripId, events, documents, today }: { tripId: string
 }
 
 /** Before the trip, or a day with nothing planned: what comes next. */
-export function NextCard({ tripId, events, today }: { tripId: string; events: TripEvent[]; today: string }) {
-  const next = nextEvents(events, today, localTime(), 3);
+export function NextCard({ tripId, events, today, now }: { tripId: string; events: TripEvent[]; today: string; now: string }) {
+  const next = nextEvents(events, today, now, 3);
   if (!next.length) return null;
   return (
     <View style={styles.card}>

@@ -3,7 +3,6 @@ import {
   eventsOfDay,
   formatDateRange,
   formatDestinations,
-  localIsoDate,
   participantsLabel,
   tripPhase,
   type PersonalBudgetView,
@@ -27,7 +26,7 @@ import { myParticipantId } from '@/finances/expense-people';
 import { useBalances, useBudget } from '@/finances/finances-api';
 import { OpenPollsCard } from '@/polls/open-polls-card';
 import { usePolls } from '@/polls/polls-api';
-import { BudgetCard, NextCard, ReimbursementsCard, TodayCard } from '@/trips/dashboard-cards';
+import { BudgetCard, NextCard, ReimbursementsCard, TodayCard, useClock } from '@/trips/dashboard-cards';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
@@ -93,7 +92,7 @@ function Dashboard({
   onRefresh: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const today = localIsoDate();
+  const { today, now } = useClock();
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const steps = setupSteps(trip, isOrganizer);
@@ -163,7 +162,7 @@ function Dashboard({
       <View style={styles.body}>
         {phase === 'ongoing' ? (
           <>
-            {todayHasEvents ? <TodayCard tripId={trip.id} events={events} documents={documents} today={today} /> : <NextCard tripId={trip.id} events={events} today={today} />}
+            {todayHasEvents ? <TodayCard tripId={trip.id} events={events} documents={documents} today={today} now={now} /> : <NextCard tripId={trip.id} events={events} today={today} now={now} />}
             {money}
             <OpenPollsCard tripId={trip.id} />
           </>
@@ -177,7 +176,7 @@ function Dashboard({
           <>
             <PhaseCard trip={trip} today={today} />
             <OpenPollsCard tripId={trip.id} />
-            <NextCard tripId={trip.id} events={events} today={today} />
+            <NextCard tripId={trip.id} events={events} today={today} now={now} />
             {money}
           </>
         )}

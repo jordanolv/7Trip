@@ -1,6 +1,6 @@
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,6 +35,10 @@ export default function FinancesScreen() {
     setLastAsked(asked);
     if (asked === 'balances' || asked === 'budget' || asked === 'expenses') setSection(asked);
   }
+  // Consumed: the next tap on the same card asks again, even if another section was picked since.
+  useEffect(() => {
+    if (asked) router.setParams({ section: undefined });
+  }, [asked]);
 
   // Others add expenses meanwhile: fetched again on each visit.
   const refetchExpenses = expenses.refetch;
