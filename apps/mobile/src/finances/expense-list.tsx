@@ -53,6 +53,8 @@ export function ExpenseList({ expenses, meId, onOpen }: { expenses: Expense[]; m
 }
 
 function ExpenseRow({ expense, meId, first, onPress }: { expense: Expense; meId: string; first: boolean; onPress: () => void }) {
+  // In the currency it was paid in, like the amount next to it.
+  const myShare = expense.shares.find((s) => s.participant.id === meId)?.originalMinor ?? 0;
   const detail = expense.personal
     ? 'Personnelle'
     : [
@@ -75,8 +77,8 @@ function ExpenseRow({ expense, meId, first, onPress }: { expense: Expense; meId:
       </View>
       <View style={styles.amounts}>
         <Text style={styles.amount}>{formatMoney(expense.amountMinor, expense.currency)}</Text>
-        <Text style={[styles.myShare, !expense.myShareMinor && styles.noShare]}>
-          {expense.myShareMinor ? `ta part ${formatMoney(expense.myShareMinor, expense.currency)}` : 'pas pour toi'}
+        <Text style={[styles.myShare, !myShare && styles.noShare]}>
+          {myShare ? `ta part ${formatMoney(myShare, expense.currency)}` : 'pas pour toi'}
         </Text>
       </View>
     </Pressable>

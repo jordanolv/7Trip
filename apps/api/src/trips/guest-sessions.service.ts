@@ -1,4 +1,4 @@
-import { splitEqually } from '@7trip/shared';
+import { convertShares, splitEqually } from '@7trip/shared';
 import { Injectable } from '@nestjs/common';
 import { sha256 } from '../auth/crypto.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
@@ -65,11 +65,11 @@ export class GuestSessionsService {
     await tx.expense.updateMany({ where: { payerId: guest.id }, data: { payerId: account.id } });
     // On an expense both were in, the guest's share joins the account's: the total stays the same.
     const guestShares = await tx.expenseShare.findMany({ where: { participantId: guest.id } });
-    for (const { expenseId, amountMinor } of guestShares) {
+    for (const { expenseId, amountMinor, originalMinor } of guestShares) {
       const guestKey = { expenseId_participantId: { expenseId, participantId: guest.id } };
       const accountKey = { expenseId_participantId: { expenseId, participantId: account.id } };
       if (await tx.expenseShare.findUnique({ where: accountKey })) {
-        await tx.expenseShare.update({ where: accountKey, data: { amountMinor: { increment: amountMinor } } });
+        await tx.expenseShare.update({ where: accountKey, data: { amountMinor: { increment: amountMinor }, originalMinor: { increment: originalMinor } } });
         await tx.expenseShare.delete({ where: guestKey });
       } else {
         await tx.expenseShare.update({ where: guestKey, data: { participantId: account.id } });
@@ -101,8 +101,9 @@ export class GuestSessionsService {
     });
     for (const expense of expenses) {
       const ordered = [...expense.shares].sort((a, b) => a.participant.joinedAt.getTime() - b.participant.joinedAt.getTime());
-      const equal = splitEqually(expense.amountMinor, ordered.map((s) => s.participantId));
-      if (equal.every((share, i) => share.amountMinor === ordered[i]!.amountMinor)) continue;
+      // What an edit would compute: equal parts in the expense's currency, then converted.
+      const equal = convertShares(splitEqually(expense.amountMinor, ordered.map((s) => s.participantId)), Number(expense.rateToBase), expense.baseAmountMinor);
+      if (equal.every((share, i) => share.amountMinor === ordered[i]!.originalMinor && share.baseMinor === ordered[i]!.amountMinor)) continue;
       await tx.expense.update({ where: { id: expense.id }, data: { splitMode: 'CUSTOM', version: { increment: 1 } } });
     }
   }

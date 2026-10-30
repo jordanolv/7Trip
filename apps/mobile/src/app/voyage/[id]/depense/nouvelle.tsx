@@ -30,21 +30,21 @@ function NouvelleDepense({ trip }: { trip: TripDetail }) {
   const save = useSaveExpense(trip.id);
   const people = expensePeople(trip);
   const meId = myParticipantId(trip);
-  const [values, setValues] = useState<ExpenseFormValues>(() => newExpenseForm(people, meId));
+  const [values, setValues] = useState<ExpenseFormValues>(() => newExpenseForm(people, meId, trip.baseCurrency));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = useAction(async () => {
-    const found = expenseFormErrors(values);
+    const found = expenseFormErrors(values, trip.baseCurrency);
     setErrors(found);
     if (Object.keys(found).length) return;
-    await save.mutateAsync(expenseRequest(values));
+    await save.mutateAsync(expenseRequest(values, trip.baseCurrency));
     haptics.success();
     router.back();
   });
 
   return (
     <FormScreen footer={<Button title="Ajouter la dépense" loading={submit.loading} onPress={() => void submit.run()} />}>
-      <ExpenseForm values={values} onChange={setValues} errors={{ ...submit.fieldErrors, ...errors }} people={people} meId={meId} autoFocus />
+      <ExpenseForm values={values} onChange={setValues} errors={{ ...submit.fieldErrors, ...errors }} people={people} meId={meId} tripId={trip.id} baseCurrency={trip.baseCurrency} autoFocus />
       {submit.error ? (
         <AppText variant="caption" tone="danger">
           {submit.error}

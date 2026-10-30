@@ -27,11 +27,13 @@ export interface TripInput {
   color?: TripColorKey;
   icon?: TripIconKey;
   invitePolicy?: InvitePolicy;
+  baseCurrency?: string;
 }
 
 const TRIP_INCLUDE = {
   participants: { where: { status: ParticipantStatus.ACTIVE } },
   destinations: { orderBy: { position: 'asc' } },
+  _count: { select: { expenses: true } },
 } satisfies Prisma.TripInclude;
 
 export type TripWithRelations = Prisma.TripGetPayload<{ include: typeof TRIP_INCLUDE }>;
@@ -129,6 +131,10 @@ export class TripsService {
       if (startDate && endDate && endDate < startDate) {
         throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'La date de fin doit être après la date de début');
       }
+      // The shares and settlements are stored in it: it only changes before the first expense.
+      if (input.baseCurrency !== undefined && input.baseCurrency !== trip.baseCurrency && (await tx.expense.count({ where: { tripId } }))) {
+        throw apiError(HttpStatus.CONFLICT, ApiErrorCode.EditConflict, 'La devise du voyage ne change plus une fois une dépense ajoutée');
+      }
 
       return tx.trip.update({
         where: { id: tripId },
@@ -198,6 +204,7 @@ export class TripsService {
       ...(input.color !== undefined && { color: input.color }),
       ...(input.icon !== undefined && { icon: input.icon }),
       ...(input.invitePolicy !== undefined && { invitePolicy: input.invitePolicy }),
+      ...(input.baseCurrency !== undefined && { baseCurrency: input.baseCurrency }),
     };
   }
 
@@ -221,6 +228,8 @@ export class TripsService {
     return {
       ...this.toSummary(trip, actor),
       invitePolicy: trip.invitePolicy,
+      baseCurrency: trip.baseCurrency,
+      currencyLocked: trip._count.expenses > 0,
       createdAt: trip.createdAt.toISOString(),
       participants: trip.participants
         .toSorted((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())

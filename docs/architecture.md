@@ -121,8 +121,8 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
 | `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
-| `Expense` | tripId, authorId, payerId, label, amountMinor, currency, date, category?, personal, splitMode (equal/custom), version — rateToBase et eventId avec l'étape 6B |
-| `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage) |
+| `Expense` | tripId, authorId, payerId, label, amountMinor + currency (tel que payé), rateToBase (figé), baseAmountMinor (en devise du voyage), date, category?, personal, splitMode (equal/custom), version — eventId à venir |
+| `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage), originalMinor (la même part, en devise de la dépense) |
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId, totalMinor, perCategory (json) |
 | `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
@@ -159,8 +159,17 @@ Règles transverses :
 ## 6. Finances
 
 - Montants en **entiers de centimes** (`amountMinor`), jamais en flottants.
-- Chaque dépense stocke sa devise d'origine et un `rateToBase` **figé à la saisie**. Les parts
-  (`ExpenseShare`) sont stockées dans la devise de référence du voyage.
+- Chaque dépense stocke son montant et sa devise d'origine, et un `rateToBase` **figé à la saisie**
+  (1 unité de la devise = `rateToBase` en devise du voyage). `baseAmountMinor` = arrondi(montant × taux).
+  La répartition se fait dans la devise de la dépense (parts égales ou montants tapés). Elle est
+  ensuite convertie au plus fort reste (`convertShares`), donc les parts converties font exactement
+  `baseAmountMinor`. Soldes, remboursements et budgets n'utilisent que les montants en devise du voyage.
+- Montants toujours en centièmes, même pour les devises sans centimes (yen, won…), qui s'affichent
+  sans décimales quand il n'y en a pas.
+- **Taux du jour** : `GET /trips/{id}/rates/{devise}` renvoie le taux BCE (via Frankfurter, gardé
+  1 h en mémoire), ou `null` pour les devises que la BCE ne publie pas (MAD, VND…) : le taux est alors
+  tapé. Une modification qui ne touche pas au taux garde celui qui est figé. `RATES_SOURCE=fixed`
+  dans les tests.
 - **Répartition égale** : la somme est divisée en centimes. Les centimes restants sont attribués
   un par un, dans un ordre déterministe (ordre d'arrivée des participants). La somme des parts
   égale toujours le montant.

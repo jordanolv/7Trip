@@ -1,4 +1,4 @@
-import { EXPENSE_CATEGORY_LABELS, formatDayMonth, formatMoney, weekday, type Expense } from '@7trip/shared';
+import { EXPENSE_CATEGORY_LABELS, currencySymbol, formatDayMonth, formatMoney, rateInputText, weekday, type Expense } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +12,7 @@ import { useDeleteExpense, useExpense } from '@/finances/finances-api';
 import { errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { AuthorName, useIsMe } from '@/trips/author-name';
+import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
 export default function DepenseScreen() {
@@ -33,6 +34,9 @@ export default function DepenseScreen() {
 function Depense({ tripId, expense }: { tripId: string; expense: Expense }) {
   const remove = useDeleteExpense(tripId, expense.id);
   const isMe = useIsMe(tripId);
+  const baseCurrency = useTrip(tripId).data?.baseCurrency;
+  // Paid in another currency: shown as paid, with what it makes in the trip's.
+  const foreign = baseCurrency !== undefined && expense.currency !== baseCurrency;
   const meta = [`${weekday(expense.date)} ${formatDayMonth(expense.date)}`, expense.category ? EXPENSE_CATEGORY_LABELS[expense.category] : null]
     .filter(Boolean)
     .join(' · ');
@@ -67,6 +71,11 @@ function Depense({ tripId, expense }: { tripId: string; expense: Expense }) {
         </View>
         <Text style={styles.amount}>{formatMoney(expense.amountMinor, expense.currency)}</Text>
       </View>
+      {foreign ? (
+        <AppText variant="caption" tone="secondary">
+          Soit {formatMoney(expense.baseAmountMinor, baseCurrency)}, au taux figé de 1 {expense.currency} = {rateInputText(expense.rateToBase)} {currencySymbol(baseCurrency)}.
+        </AppText>
+      ) : null}
 
       {expense.personal ? (
         <AppText tone="secondary">Elle compte uniquement dans ton budget. Personne d’autre ne la voit.</AppText>
@@ -86,7 +95,10 @@ function Depense({ tripId, expense }: { tripId: string; expense: Expense }) {
                   {share.participant.displayName}
                   {isMe(share.participant.id) ? ' (toi)' : share.participant.hasLeft ? ' (parti)' : ''}
                 </AppText>
-                <Text style={styles.shareAmount}>{formatMoney(share.amountMinor, expense.currency)}</Text>
+                <View style={styles.shareAmounts}>
+                  <Text style={styles.shareAmount}>{formatMoney(share.originalMinor, expense.currency)}</Text>
+                  {foreign ? <Text style={styles.shareBase}>{formatMoney(share.amountMinor, baseCurrency)}</Text> : null}
+                </View>
               </View>
             ))}
           </View>
@@ -107,6 +119,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   amount: { fontFamily: fontFamily.extrabold, fontSize: 20, color: colors.ink },
+  shareAmounts: { alignItems: 'flex-end' },
+  shareBase: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.inkSecondary },
   shares: { backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: spacing.md },
   share: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
   shareBorder: { borderTopWidth: 1, borderTopColor: colors.separator },

@@ -21,6 +21,7 @@ export default function NouveauVoyageScreen() {
     startDate: null,
     endDate: null,
     kind: 'GROUP',
+    baseCurrency: 'EUR',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 

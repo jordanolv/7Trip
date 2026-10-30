@@ -1,9 +1,13 @@
 import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   ApiErrorCode,
+  MAX_EXPENSE_MINOR,
   computeBalances,
+  convertShares,
+  currencyLabel,
   expenseShares,
   isBestTransferPlan,
+  toBaseMinor,
   transferPlans,
   type ApiErrorBody,
   type ContentAuthor,
@@ -25,6 +29,7 @@ import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { TripsService } from '../trips/trips.service.js';
+import { RatesService, type DailyRate } from './rates.service.js';
 
 /** Validated request bodies. */
 export type ExpenseInput = z.output<typeof createExpenseRequestSchema>;
@@ -68,7 +73,15 @@ export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
+    private readonly rates: RatesService,
   ) {}
+
+  /** Today's rate to fill in an expense in `currency`; null when it must be typed. */
+  async rate(actor: Actor, tripId: string, currency: string): Promise<{ currency: string; baseCurrency: string; rate: DailyRate | null }> {
+    await this.trips.member(actor, tripId);
+    const trip = await this.prisma.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+    return { currency, baseCurrency: trip.baseCurrency, rate: await this.rates.rate(currency, trip.baseCurrency) };
+  }
 
   /** Newest first, by date then by entry. */
   async list(actor: Actor, tripId: string): Promise<Expense[]> {
@@ -89,13 +102,14 @@ export class ExpensesService {
   async create(actor: Actor, tripId: string, input: ExpenseInput): Promise<Expense> {
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
-      const shares = await this.resolveShares(tx, tripId, me, input, new Set());
+      const money = await this.money(input, trip.baseCurrency, null);
+      const shares = await this.resolveShares(tx, tripId, me, input, new Set(), money);
       const expense = await tx.expense.create({
         data: {
           tripId,
           authorId: me.id,
           ...this.fields(me, input),
-          currency: trip.baseCurrency,
+          ...money,
           shares: { create: shares },
         },
         include: EXPENSE_INCLUDE,
@@ -117,11 +131,13 @@ export class ExpensesService {
       if (input.personal !== current.personal && current.authorId !== me.id) throw forbidden();
       // People who have left since may stay on it, but nobody who left can be added.
       const already = new Set([current.payerId, ...current.shares.map((s) => s.participantId)]);
-      const shares = await this.resolveShares(tx, tripId, me, input, already);
+      const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+      const money = await this.money(input, trip.baseCurrency, current);
+      const shares = await this.resolveShares(tx, tripId, me, input, already, money);
       await tx.expenseShare.deleteMany({ where: { expenseId } });
       const expense = await tx.expense.update({
         where: { id: expenseId },
-        data: { ...this.fields(me, input), version: { increment: 1 }, shares: { create: shares } },
+        data: { ...this.fields(me, input), ...money, version: { increment: 1 }, shares: { create: shares } },
         include: EXPENSE_INCLUDE,
       });
       return toExpense(expense, me);
@@ -150,11 +166,11 @@ export class ExpensesService {
     });
 
     const shared = expenses.filter((e) => !e.personal);
-    const forBalance = shared.map((e) => ({ payerId: e.payerId, amountMinor: e.amountMinor, shares: e.shares }));
+    const forBalance = shared.map((e) => ({ payerId: e.payerId, amountMinor: e.baseAmountMinor, shares: e.shares }));
     const balances = computeBalances(forBalance, settlements);
     const byId = new Map(participants.map((p) => [p.id, p]));
     const author = (id: string): ContentAuthor => toContentAuthor(byId.get(id)!);
-    const paid = (id: string) => shared.filter((e) => e.payerId === id).reduce((sum, e) => sum + e.amountMinor, 0);
+    const paid = (id: string) => shared.filter((e) => e.payerId === id).reduce((sum, e) => sum + e.baseAmountMinor, 0);
     const cost = (id: string) => shared.reduce((sum, e) => sum + (e.shares.find((s) => s.participantId === id)?.amountMinor ?? 0), 0);
 
     // Active people always; those who left only while they still count in the accounts.
@@ -164,11 +180,11 @@ export class ExpensesService {
     const { plans, planIndex } = currentPlans(balances, storedPlan(trip.transferPlan));
     const toView = (plan: Transfer[]): SuggestedTransfer[] =>
       plan.map((t) => ({ from: author(t.fromId), to: author(t.toId), amountMinor: t.amountMinor }));
-    const personal = expenses.filter((e) => e.personal && e.authorId === me.id).reduce((sum, e) => sum + e.amountMinor, 0);
+    const personal = expenses.filter((e) => e.personal && e.authorId === me.id).reduce((sum, e) => sum + e.baseAmountMinor, 0);
 
     return {
       currency: trip.baseCurrency,
-      groupTotalMinor: shared.reduce((sum, e) => sum + e.amountMinor, 0),
+      groupTotalMinor: shared.reduce((sum, e) => sum + e.baseAmountMinor, 0),
       sharedCount: shared.length,
       people,
       transfers: toView(plans[planIndex]!),
@@ -241,9 +257,29 @@ export class ExpensesService {
     const expenses = await tx.expense.findMany({ where: { tripId, personal: false }, include: { shares: true } });
     const settlements = await tx.settlement.findMany({ where: { tripId } });
     return computeBalances(
-      expenses.map((e) => ({ payerId: e.payerId, amountMinor: e.amountMinor, shares: e.shares })),
+      expenses.map((e) => ({ payerId: e.payerId, amountMinor: e.baseAmountMinor, shares: e.shares })),
       settlements,
     );
+  }
+
+  /**
+   * Currency, frozen rate and amount in the trip's currency. In the trip's currency the rate is 1.
+   * Otherwise: the rate sent; on an edit in the same currency, the one already frozen; else today's
+   * ECB rate. Without any of them, the rate must be typed.
+   */
+  private async money(input: ExpenseInput, baseCurrency: string, current: { currency: string; rateToBase: Prisma.Decimal } | null) {
+    const currency = input.currency ?? (current ? current.currency : baseCurrency);
+    let rateToBase = 1;
+    if (currency !== baseCurrency) {
+      const frozen = current?.currency === currency ? Number(current.rateToBase) : undefined;
+      const rate = input.rateToBase ?? frozen ?? (await this.rates.rate(currency, baseCurrency))?.rate;
+      if (rate === undefined) throw validationError('rateToBase', `Indique le taux du ${currencyLabel(currency).toLowerCase()}`);
+      rateToBase = rate;
+    }
+    const baseAmountMinor = toBaseMinor(input.amountMinor, rateToBase);
+    if (baseAmountMinor < 1) throw validationError('amountMinor', 'Montant trop faible une fois converti');
+    if (baseAmountMinor > MAX_EXPENSE_MINOR) throw validationError('amountMinor', 'Montant trop élevé une fois converti');
+    return { currency, rateToBase, baseAmountMinor };
   }
 
   private fields(me: Participant, input: ExpenseInput) {
@@ -268,14 +304,20 @@ export class ExpensesService {
     me: Participant,
     input: ExpenseInput,
     already: Set<string>,
-  ): Promise<{ participantId: string; amountMinor: number }[]> {
+    money: { rateToBase: number; baseAmountMinor: number },
+  ): Promise<{ participantId: string; amountMinor: number; originalMinor: number }[]> {
     if (input.personal && input.payerId !== me.id) throw validationError('payerId', 'Une dépense personnelle est payée par toi');
     const participants = await tx.participant.findMany({ where: { tripId }, orderBy: { joinedAt: 'asc' } });
     const allowed = new Set(participants.filter((p) => p.status === ParticipantStatus.ACTIVE || already.has(p.id)).map((p) => p.id));
     const shares = expenseShares(input, participants.map((p) => p.id));
     if (!allowed.has(input.payerId)) throw validationError('payerId', 'Cette personne ne fait pas partie du voyage');
     if (!shares.every((s) => allowed.has(s.participantId))) throw validationError('split', 'Une des personnes ne fait pas partie du voyage');
-    return shares;
+    // Split in the expense's currency, stored in the trip's: the converted shares add up exactly.
+    return convertShares(shares, money.rateToBase, money.baseAmountMinor).map((s) => ({
+      participantId: s.participantId,
+      amountMinor: s.baseMinor,
+      originalMinor: s.amountMinor,
+    }));
   }
 
   private async find(db: Prisma.TransactionClient, tripId: string, expenseId: string, me: Participant): Promise<ExpenseWithRelations> {
@@ -328,15 +370,17 @@ function validationError(field: string, message: string) {
 function toExpense(expense: ExpenseWithRelations, me: Participant): Expense {
   // In the order people joined the trip, like the split.
   const shares = expense.shares
-    .map((s) => ({ participant: toContentAuthor(s.participant), amountMinor: s.amountMinor, joinedAt: s.participant.joinedAt }))
+    .map((s) => ({ participant: toContentAuthor(s.participant), amountMinor: s.amountMinor, originalMinor: s.originalMinor, joinedAt: s.participant.joinedAt }))
     .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
-    .map(({ participant, amountMinor }) => ({ participant, amountMinor }));
+    .map(({ joinedAt: _joinedAt, ...share }) => share);
   return {
     id: expense.id,
     tripId: expense.tripId,
     label: expense.label,
     amountMinor: expense.amountMinor,
     currency: expense.currency,
+    rateToBase: Number(expense.rateToBase),
+    baseAmountMinor: expense.baseAmountMinor,
     date: expense.date.toISOString().slice(0, 10),
     category: expense.category as ExpenseCategory | null,
     personal: expense.personal,

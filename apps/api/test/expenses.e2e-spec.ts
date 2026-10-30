@@ -189,6 +189,66 @@ describe('Expenses (e2e)', () => {
     expect(b.transfers).toEqual(b.plans[0]);
   });
 
+  it('keeps an expense in its currency, at the frozen rate, and counts it in the trip’s', async () => {
+    const { trip, ids } = await newTrip();
+    expect((await api().get(`/v1/trips/${trip.id}/rates/USD`).set(lea.auth).expect(200)).body).toMatchObject({ baseCurrency: 'EUR', rate: { rate: 0.9 } });
+    // Not published by the ECB: to type by hand.
+    expect((await api().get(`/v1/trips/${trip.id}/rates/MAD`).set(lea.auth).expect(200)).body).toMatchObject({ rate: null });
+    await api().get(`/v1/trips/${trip.id}/rates/XYZ`).set(lea.auth).expect(400);
+
+    // 100 $ between three, today's rate (0,90): 90 € → 30 € each; 33,34 / 33,33 / 33,33 $.
+    const three = [ids.jordan, ids.lea, ids.thomas];
+    const dinner = await add(trip.id, jordan.auth, { label: 'Dîner', amountMinor: 10000, currency: 'USD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: three } });
+    expect(dinner).toMatchObject({ amountMinor: 10000, currency: 'USD', rateToBase: 0.9, baseAmountMinor: 9000 });
+    expect(dinner.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[3334, 3000], [3333, 3000], [3333, 3000]]);
+
+    // The real rate of the card, typed; custom shares in dirhams.
+    await add(trip.id, lea.auth, { amountMinor: 50000, currency: 'MAD', payerId: ids.lea, split: { mode: 'EQUAL', participantIds: three } }, 400);
+    const riad = await add(trip.id, lea.auth, {
+      label: 'Riad',
+      amountMinor: 50000,
+      currency: 'MAD',
+      rateToBase: 0.0921,
+      payerId: ids.lea,
+      split: { mode: 'CUSTOM', shares: [{ participantId: ids.lea, amountMinor: 30000 }, { participantId: ids.thomas, amountMinor: 20000 }] },
+    });
+    expect(riad.baseAmountMinor).toBe(4605);
+    expect(riad.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[30000, 2763], [20000, 1842]]);
+
+    // An edit that does not touch the rate keeps it frozen.
+    const shares = riad.shares.map((s) => ({ participantId: s.participant.id, amountMinor: s.originalMinor }));
+    const edited = (
+      await api()
+        .put(`/v1/trips/${trip.id}/expenses/${riad.id}`)
+        .set(lea.auth)
+        .send({ label: 'Riad Marrakech', date: riad.date, amountMinor: 50000, payerId: ids.lea, split: { mode: 'CUSTOM', shares } })
+        .expect(200)
+    ).body as Expense;
+    expect(edited).toMatchObject({ rateToBase: 0.0921, baseAmountMinor: 4605 });
+
+    const b = await balances(trip.id, jordan.auth);
+    expect(b.currency).toBe('EUR');
+    expect(b.groupTotalMinor).toBe(9000 + 4605);
+    expect(balanceOf(b, ids.jordan)).toMatchObject({ paidMinor: 9000, costMinor: 3000, balanceMinor: 6000 });
+    expect(balanceOf(b, ids.thomas)).toMatchObject({ paidMinor: 0, costMinor: 3000 + 1842 });
+    expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
+  });
+
+  it('lets the organizers choose the trip’s currency until the first expense', async () => {
+    const created = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Kyoto', baseCurrency: 'JPY' }).expect(201)).body as TripDetail;
+    expect(created).toMatchObject({ baseCurrency: 'JPY', currencyLocked: false });
+    const { trip, ids } = await newTrip();
+    expect(trip).toMatchObject({ baseCurrency: 'EUR', currencyLocked: false });
+    await api().patch(`/v1/trips/${trip.id}`).set(lea.auth).send({ baseCurrency: 'CHF' }).expect(403);
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'CHF' }).expect(200);
+    const expense = await add(trip.id, jordan.auth, { amountMinor: 2000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan] } });
+    expect(expense).toMatchObject({ currency: 'CHF', rateToBase: 1, baseAmountMinor: 2000 });
+    expect((await api().get(`/v1/trips/${trip.id}`).set(jordan.auth).expect(200)).body).toMatchObject({ baseCurrency: 'CHF', currencyLocked: true });
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'EUR' }).expect(409);
+    // Sending the same currency again (a whole form) is fine.
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'CHF', title: 'Andalousie' }).expect(200);
+  });
+
   it('moves a guest’s expenses to the account, adding up their shares on an expense both were in', async () => {
     const { trip, code, ids } = await newTrip();
     const { token } = (await api().post(`/v1/invitations/${code}/join-guest`).send({ displayName: 'Léa invitée' }).expect(201)).body as GuestJoinResponse;

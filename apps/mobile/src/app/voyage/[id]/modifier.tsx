@@ -1,4 +1,4 @@
-import { localIsoDate, updateTripRequestSchema, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
+import { localIsoDate, updateTripRequestSchema, type CurrencyCode, type TripColorKey, type TripDetail, type TripIconKey } from '@7trip/shared';
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -33,6 +33,7 @@ function ModifierVoyage({ trip }: { trip: TripDetail }) {
     startDate: trip.startDate,
     endDate: trip.endDate,
     kind: trip.kind,
+    baseCurrency: trip.baseCurrency as CurrencyCode,
   });
   const [color, setColor] = useState<TripColorKey>(trip.color);
   const [icon, setIcon] = useState<TripIconKey>(trip.icon);
@@ -75,7 +76,7 @@ function ModifierVoyage({ trip }: { trip: TripDetail }) {
       <ScreenHeader mode="close" title="Modifier le voyage" />
       <FormScreen footer={<Button title="Enregistrer" loading={save.loading} onPress={() => void save.run()} />}>
         <TripPreviewCard trip={preview} color={color} icon={icon} today={localIsoDate()} />
-        <TripForm values={values} onChange={setValues} errors={{ ...save.fieldErrors, ...errors }} />
+        <TripForm values={values} onChange={setValues} errors={{ ...save.fieldErrors, ...errors }} currencyLocked={trip.currencyLocked} />
 
         <View style={styles.section}>
           <AppText variant="label" tone="secondary" style={styles.sectionTitle}>

@@ -4,16 +4,24 @@ import {
   amountInputText,
   authorName,
   createExpenseRequestSchema,
+  currencyLabel,
+  currencySymbol,
   expenseShares,
+  formatDayMonth,
   formatMoney,
+  hasEcbRate,
   localIsoDate,
   parseAmount,
+  parseRate,
+  rateInputText,
+  toBaseMinor,
   type ContentAuthor,
   type CreateExpenseRequest,
   type Expense,
   type ExpenseCategory,
 } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
@@ -22,7 +30,9 @@ import { DateField } from '@/components/ui/date-field';
 import { Icon } from '@/components/ui/icon';
 import { Segmented } from '@/components/ui/segmented';
 
+import { CurrencyPicker } from './currency-picker';
 import { ExpenseCategoryIcon } from './expense-visuals';
+import { useRate } from './finances-api';
 
 export interface ExpenseFormValues {
   amount: string;
@@ -36,9 +46,13 @@ export interface ExpenseFormValues {
   customAmounts: Record<string, string>;
   date: string;
   category: ExpenseCategory | null;
+  /** Paid in it; the amount and custom shares are typed in it. */
+  currency: string;
+  /** "1 currency = rate trip currency", as typed. Only used in another currency than the trip's. */
+  rate: string;
 }
 
-export function newExpenseForm(people: ContentAuthor[], meId: string): ExpenseFormValues {
+export function newExpenseForm(people: ContentAuthor[], meId: string, baseCurrency: string): ExpenseFormValues {
   return {
     amount: '',
     label: '',
@@ -49,6 +63,8 @@ export function newExpenseForm(people: ContentAuthor[], meId: string): ExpenseFo
     customAmounts: {},
     date: localIsoDate(),
     category: null,
+    currency: baseCurrency,
+    rate: '',
   };
 }
 
@@ -60,19 +76,24 @@ export function expenseFormValues(expense: Expense): ExpenseFormValues {
     payerId: expense.payer.id,
     included: expense.shares.map((s) => s.participant.id),
     custom: expense.splitMode === 'CUSTOM',
-    customAmounts: Object.fromEntries(expense.shares.map((s) => [s.participant.id, amountInputText(s.amountMinor)])),
+    customAmounts: Object.fromEntries(expense.shares.map((s) => [s.participant.id, amountInputText(s.originalMinor)])),
     date: expense.date,
     category: expense.category,
+    currency: expense.currency,
+    // The frozen rate: kept unless it is changed here.
+    rate: rateInputText(expense.rateToBase),
   };
 }
 
 /** The request for these values, as the API expects it (its schema checks the rest). */
-export function expenseRequest(values: ExpenseFormValues): CreateExpenseRequest {
+export function expenseRequest(values: ExpenseFormValues, baseCurrency: string): CreateExpenseRequest {
   return {
     label: values.label,
     amountMinor: parseAmount(values.amount) ?? Number.NaN,
     date: values.date,
     category: values.category,
+    currency: values.currency as CreateExpenseRequest['currency'],
+    rateToBase: values.currency === baseCurrency ? undefined : (parseRate(values.rate) ?? Number.NaN),
     personal: values.personal,
     payerId: values.payerId,
     // A personal expense has no split: the hidden shared-expense choices must not block it.
@@ -85,11 +106,12 @@ export function expenseRequest(values: ExpenseFormValues): CreateExpenseRequest 
 }
 
 /** Errors by field, from the shared schema (amount, label, split…). */
-export function expenseFormErrors(values: ExpenseFormValues): Record<string, string> {
-  const parsed = createExpenseRequestSchema.safeParse(expenseRequest(values));
+export function expenseFormErrors(values: ExpenseFormValues, baseCurrency: string): Record<string, string> {
+  const parsed = createExpenseRequestSchema.safeParse(expenseRequest(values, baseCurrency));
   const errors: Record<string, string> = {};
   if (!parsed.success) for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
   if (parseAmount(values.amount) === null) errors.amountMinor = values.amount ? 'Montant invalide' : 'Indique le montant';
+  if (values.currency !== baseCurrency && parseRate(values.rate) === null) errors.rateToBase = values.rate ? 'Taux invalide' : 'Indique le taux';
   return errors;
 }
 
@@ -103,6 +125,8 @@ export function ExpenseForm({
   errors,
   people,
   meId,
+  tripId,
+  baseCurrency,
   autoFocus,
 }: {
   values: ExpenseFormValues;
@@ -111,9 +135,31 @@ export function ExpenseForm({
   /** Members first, in the order they joined; then anyone already on the expense who has left. */
   people: ContentAuthor[];
   meId: string;
+  tripId: string;
+  /** The trip's currency: shares and balances end up in it. */
+  baseCurrency: string;
   autoFocus?: boolean;
 }) {
   const set = <K extends keyof ExpenseFormValues>(key: K, value: ExpenseFormValues[K]) => onChange({ ...values, [key]: value });
+  const [picking, setPicking] = useState(false);
+  const foreign = values.currency !== baseCurrency;
+  const today = useRate(tripId, values.currency, foreign && hasEcbRate(values.currency) && hasEcbRate(baseCurrency));
+  // Today's ECB rate fills an empty rate in; one already there (typed, or frozen) stays.
+  useEffect(() => {
+    if (foreign && !values.rate && today.data?.currency === values.currency && today.data.rate) onChange({ ...values, rate: rateInputText(today.data.rate.rate) });
+  }, [foreign, today.data, values, onChange]);
+  const rate = parseRate(values.rate);
+  const rateHint = () => {
+    if (today.data?.rate && values.rate === rateInputText(today.data.rate.rate)) {
+      return `Taux BCE du ${formatDayMonth(today.data.rate.date)} : mets celui de ta carte s’il diffère.`;
+    }
+    if (values.rate) return 'Figé sur la dépense : il ne bougera plus.';
+    if (today.isFetching) return 'Recherche du taux du jour…';
+    return hasEcbRate(values.currency)
+      ? 'Taux du jour indisponible : indique celui de ta carte ou du bureau de change.'
+      : 'Pas de taux BCE pour cette devise : indique celui de ta carte ou du bureau de change.';
+  };
+  const money = (minor: number) => formatMoney(minor, values.currency);
   const amountMinor = parseAmount(values.amount);
   const order = people.map((p) => p.id);
   const preview =
@@ -143,7 +189,18 @@ export function ExpenseForm({
             maxLength={12}
             style={styles.amount}
           />
-          <Text style={styles.currency}>€</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Devise : ${currencyLabel(values.currency)}. Changer`}
+            hitSlop={8}
+            onPress={() => setPicking(true)}
+            style={styles.currencyButton}
+          >
+            <Text style={styles.currency}>{currencySymbol(values.currency)}</Text>
+            <View style={styles.chevron}>
+              <Icon name="chevronRight" color={colors.inkSecondary} size={16} />
+            </View>
+          </Pressable>
         </View>
         {errors.amountMinor ? (
           <AppText variant="caption" tone="danger">
@@ -165,6 +222,39 @@ export function ExpenseForm({
           </AppText>
         ) : null}
       </View>
+
+      {foreign ? (
+        <View style={styles.section}>
+          <View style={styles.rateRow}>
+            <AppText variant="label" style={styles.flex}>
+              Taux
+            </AppText>
+            <Text style={styles.rateText}>1 {values.currency} =</Text>
+            <TextInput
+              accessibilityLabel={`Taux en ${currencyLabel(baseCurrency).toLowerCase()}`}
+              value={values.rate}
+              onChangeText={(text) => set('rate', text)}
+              placeholder={today.isFetching ? '…' : '0,00'}
+              placeholderTextColor={colors.border}
+              keyboardType="decimal-pad"
+              maxLength={14}
+              style={[styles.rate, errors.rateToBase ? styles.rateError : null]}
+            />
+            <Text style={styles.rateText}>{currencySymbol(baseCurrency)}</Text>
+          </View>
+          <AppText variant="caption" tone={errors.rateToBase ? 'danger' : 'secondary'}>
+            {errors.rateToBase ?? [amountMinor && rate ? `Soit ${formatMoney(toBaseMinor(amountMinor, rate), baseCurrency)}.` : '', rateHint()].join(' ').trim()}
+          </AppText>
+        </View>
+      ) : null}
+      <CurrencyPicker
+        visible={picking}
+        value={values.currency}
+        first={baseCurrency}
+        // Another currency: its own rate, filled in again from today's.
+        onSelect={(currency) => currency !== values.currency && onChange({ ...values, currency, rate: '' })}
+        onClose={() => setPicking(false)}
+      />
 
       <Segmented
         options={[
@@ -248,7 +338,7 @@ export function ExpenseForm({
                         style={styles.share}
                       />
                     ) : (
-                      <Text style={styles.shareText}>{preview?.has(p.id) ? formatMoney(preview.get(p.id)!) : '—'}</Text>
+                      <Text style={styles.shareText}>{preview?.has(p.id) ? money(preview.get(p.id)!) : '—'}</Text>
                     )}
                   </View>
                 );
@@ -259,8 +349,8 @@ export function ExpenseForm({
                 {customTotal === amountMinor
                   ? 'Le compte est bon.'
                   : customTotal < amountMinor
-                    ? `Reste ${formatMoney(amountMinor - customTotal)} à répartir`
-                    : `Les parts dépassent de ${formatMoney(customTotal - amountMinor)}`}
+                    ? `Reste ${money(amountMinor - customTotal)} à répartir`
+                    : `Les parts dépassent de ${money(customTotal - amountMinor)}`}
               </AppText>
             ) : null}
             {errors.split ? (
@@ -304,7 +394,24 @@ const styles = StyleSheet.create({
   amountBlock: { alignItems: 'center', gap: spacing.sm },
   amountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   amount: { minWidth: 120, textAlign: 'center', fontFamily: fontFamily.extrabold, fontSize: 44, letterSpacing: -1, color: colors.ink },
+  currencyButton: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   currency: { fontFamily: fontFamily.extrabold, fontSize: 32, color: colors.inkSecondary },
+  chevron: { transform: [{ rotate: '90deg' }] },
+  rateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rateText: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.inkTertiary },
+  rate: {
+    width: 104,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
+    textAlign: 'right',
+    fontFamily: fontFamily.bold,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  rateError: { borderColor: colors.danger },
   label: {
     width: 260,
     height: 40,
