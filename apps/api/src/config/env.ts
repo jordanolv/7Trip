@@ -28,12 +28,36 @@ const envSchema = z
      */
     RATES_SOURCE: z.enum(['ecb', 'fixed']).default('ecb'),
 
+    /**
+     * Where documents are kept. `local`: a folder on this machine (development, tests), served by
+     * the API through signed links. `s3`: any S3-compatible bucket (MinIO, R2, Scaleway), private,
+     * opened through presigned links.
+     */
+    STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+    STORAGE_DIR: z.string().default('.storage'),
+    S3_ENDPOINT: z.url().optional(),
+    S3_REGION: z.string().default('auto'),
+    S3_BUCKET: z.string().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    /** MinIO wants bucket names in the path rather than in the host. */
+    S3_FORCE_PATH_STYLE: z.stringbool().default(true),
+
     /** Requests allowed per minute and per IP on sensitive auth routes. */
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),
   })
   .refine((env) => env.MAIL_TRANSPORT !== 'smtp' || !!env.SMTP_URL, {
     message: 'SMTP_URL is required when MAIL_TRANSPORT=smtp',
     path: ['SMTP_URL'],
+  })
+  .refine((env) => env.STORAGE_DRIVER !== 's3' || (!!env.S3_BUCKET && !!env.S3_ACCESS_KEY_ID && !!env.S3_SECRET_ACCESS_KEY), {
+    message: 'S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are required when STORAGE_DRIVER=s3',
+    path: ['S3_BUCKET'],
+  })
+  // A container's own disk does not survive a redeploy.
+  .refine((env) => env.NODE_ENV !== 'production' || env.STORAGE_DRIVER === 's3', {
+    message: 'Documents must be kept in a bucket in production (STORAGE_DRIVER=s3)',
+    path: ['STORAGE_DRIVER'],
   })
   .refine((env) => env.NODE_ENV !== 'production' || env.MAIL_TRANSPORT === 'smtp', {
     message: 'Emails must really be sent in production (MAIL_TRANSPORT=smtp)',

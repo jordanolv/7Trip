@@ -33,7 +33,7 @@ import { Icon } from '@/components/ui/icon';
 import { Segmented } from '@/components/ui/segmented';
 
 import { CurrencyPicker } from './currency-picker';
-import { EventPicker } from './event-picker';
+import { EventPicker } from '@/events/event-picker';
 import { ExpenseCategoryIcon } from './expense-visuals';
 import { useRate } from './finances-api';
 

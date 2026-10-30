@@ -9,3 +9,4 @@ export * from './polls.js';
 export * from './avatars.js';
 export * from './expenses.js';
 export * from './currencies.js';
+export * from './documents.js';

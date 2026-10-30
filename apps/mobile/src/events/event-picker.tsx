@@ -15,7 +15,7 @@ import { Icon } from "@/components/ui/icon";
 import { EventIcon } from "@/events/event-visuals";
 import { useEvents } from "@/events/events-api";
 
-/** The planning items, by date, in a sheet over the form: the one the expense was paid for. */
+/** The planning items, by date, in a sheet over a form: the one an expense or a document is for. */
 export function EventPicker({
   visible,
   tripId,

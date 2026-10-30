@@ -119,6 +119,7 @@ model Trip {
   polls        Poll[]
   expenses     Expense[]
   settlements  Settlement[]
+  documents    Document[]
 }
 
 /// Group invitation link of a trip (7trip.fr/j/<code>). One active link per trip; renewing it
@@ -190,6 +191,7 @@ model Participant {
   paidExpenses     Expense[]          @relation("ExpensePayer")
   expenseShares    ExpenseShare[]
   budget           PersonalBudget?
+  documents        Document[]
   settlementsPaid  Settlement[]       @relation("SettlementFrom")
   settlementsGot   Settlement[]       @relation("SettlementTo")
   settlementsMade  Settlement[]       @relation("SettlementCreator")
@@ -281,6 +283,7 @@ model Event {
   /// None: the whole group.
   participants EventParticipant[]
   expenses     Expense[]
+  documents    Document[]
 
   @@index([tripId, startDate])
   @@index([authorId])
@@ -431,6 +434,57 @@ model PersonalBudget {
   updatedAt     DateTime @updatedAt
 
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+/// A ticket, a booking, a useful link (CDC §9). Private by default: only its owner sees it.
+model Document {
+  id         String             @id @default(uuid(7)) @db.Uuid
+  tripId     String             @db.Uuid
+  ownerId    String             @db.Uuid
+  title      String
+  kind       DocumentKind
+  category   DocumentCategory   @default(OTHER)
+  /// Null: "Sans date", unless its planning item gives it one.
+  date       DateTime?          @db.Date
+  /// Deleting the planning item keeps the document.
+  eventId    String?            @db.Uuid
+  visibility DocumentVisibility @default(PRIVATE)
+  bookingRef String?
+  /// LINK: where it goes.
+  url        String?
+  /// FILE: where it is stored (never shown), its checked type, size and name as sent.
+  storageKey String?            @unique
+  mime       String?
+  sizeBytes  Int?
+  fileName   String?
+  version    Int                @default(1)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  trip  Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  owner Participant @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  event Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([tripId, date])
+  @@index([ownerId])
+  @@index([eventId])
+}
+
+enum DocumentKind {
+  FILE
+  LINK
+}
+
+enum DocumentCategory {
+  TRANSPORT
+  LODGING
+  ACTIVITY
+  OTHER
+}
+
+enum DocumentVisibility {
+  PRIVATE
+  SHARED
 }
 
 model ExpenseShare {

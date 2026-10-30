@@ -10,6 +10,8 @@ import { ScreenHeader } from '@/components/screen-header';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { DocumentTile, VisibilityLabel } from '@/documents/document-visuals';
+import { useDocuments, useOpenDocument } from '@/documents/documents-api';
 import { useDeleteEvent, useEvent } from '@/events/events-api';
 import { useExpenses } from '@/finances/finances-api';
 import { EventCategoryChip, EventIcon, eventDays, eventStyle } from '@/events/event-visuals';
@@ -55,6 +57,9 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
   const mapsUrl = placeMapsUrl(event);
   const time = formatTimeRange(event);
   const expenses = useExpenses(tripId).data?.filter((expense) => expense.event?.id === event.id) ?? [];
+  // Linked here, kept once in Documents (CDC §9: no copy).
+  const documents = useDocuments(tripId).data?.filter((doc) => doc.event?.id === event.id) ?? [];
+  const openDocument = useOpenDocument(tripId);
 
   const unplan = () => {
     haptics.warning();
@@ -175,6 +180,52 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
 
           <View style={styles.expenses}>
             <AppText variant="label" tone="secondary">
+              Documents
+            </AppText>
+            {documents.length ? (
+              <View style={styles.card}>
+                {documents.map((doc, index) => (
+                  <View key={doc.id}>
+                    {index > 0 ? <View style={styles.separator} /> : null}
+                    <View style={styles.row}>
+                      <Pressable
+                        accessibilityRole="link"
+                        onPress={() => router.push(`/voyage/${tripId}/document/${doc.id}` as Href)}
+                        style={({ pressed }) => [styles.docMain, pressed && styles.pressed]}
+                      >
+                        <DocumentTile doc={doc} size={36} />
+                        <View style={styles.flex}>
+                          <AppText variant="bodyStrong" numberOfLines={1}>
+                            {doc.title}
+                          </AppText>
+                          <VisibilityLabel visibility={doc.visibility} />
+                        </View>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={openDocument.isPending}
+                        onPress={() => openDocument.mutate(doc, { onError: (error) => Alert.alert('Impossible d’ouvrir le document', errorMessage(error)) })}
+                        style={styles.action}
+                      >
+                        <Text style={styles.actionText}>Ouvrir</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/voyage/${tripId}/document/nouveau?evenement=${event.id}` as Href)}
+              style={({ pressed }) => [styles.addExpense, pressed && styles.pressed]}
+            >
+              <Icon name="plus" color={colors.accentInk} size={18} />
+              <Text style={styles.actionText}>Ajouter un document</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.expenses}>
+            <AppText variant="label" tone="secondary">
               Dépenses
             </AppText>
             {expenses.length ? (
@@ -275,6 +326,7 @@ const styles = StyleSheet.create({
   unplanText: { fontFamily: fontFamily.semibold, fontSize: 14, color: colors.inkTertiary },
   pressed: { opacity: 0.6 },
   expenses: { gap: spacing.sm },
+  docMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   expenseAmount: { fontFamily: fontFamily.bold, fontSize: 15, color: colors.ink },
   addExpense: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 40, paddingHorizontal: spacing.md, borderRadius: 999, backgroundColor: colors.accentTint },
 });

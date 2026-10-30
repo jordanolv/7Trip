@@ -47,6 +47,10 @@ GitHub.
 | `JWT_SECRET` | 32 caractères aléatoires au moins (`openssl rand -base64 48`) |
 | `MAIL_TRANSPORT` / `SMTP_URL` / `MAIL_FROM` | `smtp`, l'URL SMTP du fournisseur d'emails, `7Trip <no-reply@7trip.fr>` — obligatoires en production |
 | `TRUST_PROXY` | `loopback, uniquelocal` (Traefik et le web passent par le réseau Docker) |
+| `STORAGE_DRIVER` | `s3` — obligatoire en production (le disque d'un conteneur ne survit pas à un redéploiement) |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | Adresse du stockage S3 (MinIO : son URL interne, par ex. `http://<service-minio>:9000`), région (`auto` par défaut), bucket **privé** |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Clés d'accès limitées à ce bucket |
+| `S3_FORCE_PATH_STYLE` | `true` pour MinIO (par défaut), `false` pour R2 ou Scaleway si besoin |
 
 **Web invité**
 

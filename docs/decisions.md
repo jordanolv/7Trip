@@ -61,6 +61,10 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Taille | 20 Mo par fichier. Quota de 500 Mo par voyage en V1. |
 | Hors ligne | Enregistrement manuel par document (« Disponible hors ligne »). Les billets liés aux événements des prochaines 48 h sont proposés automatiquement. |
 | Après révocation d'accès | La copie locale est supprimée à la prochaine synchro. L'URL signée expire en moins de 5 min. |
+| Droits | Seul le propriétaire modifie un document (nom, visibilité, lien…). Un organisateur peut aussi supprimer un document partagé (modération), jamais en voir un privé. Un document privé d'un autre est répondu « introuvable », comme s'il n'existait pas. |
+| Contrôle des fichiers | Le type est lu dans les premiers octets (PDF, JPEG, PNG), pas dans le nom ni l'en-tête envoyé. Les photos HEIC sont converties en JPEG par l'app avant l'envoi. |
+| Date | Un document lié à un événement sans date propre prend celle de l'événement. Sans l'une ni l'autre, il est dans « Sans date ». |
+| Stockage | Bucket S3 privé (MinIO sur le VPS ou un service compatible) en staging et en production ; un dossier local en dev et en test. Les fichiers d'un voyage supprimé sont effacés avec lui. |
 
 ## Invitations
 

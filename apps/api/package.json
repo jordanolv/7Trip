@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@7trip/shared": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1159.0",
+    "@aws-sdk/s3-request-presigner": "^3.1159.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/core": "^12.0.1",
     "@nestjs/platform-express": "^12.0.1",
@@ -45,6 +47,7 @@
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^7.0.0",

@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus, type TripKind } from '../generated/prisma/enums.js';
+import { StorageService } from '../documents/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { actorWhere, isActor, userActor, type Actor } from './actor.js';
 
@@ -75,7 +76,10 @@ const FORBIDDEN_MESSAGES: Record<TripAction, string> = {
 
 @Injectable()
 export class TripsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async create(userId: string, input: TripInput & { title: string }): Promise<TripDetail> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -154,10 +158,14 @@ export class TripsService {
 
   /** Deletes the trip for everyone (participants and destinations cascade). Organizers only. */
   async remove(actor: Actor, tripId: string): Promise<void> {
-    await this.withTripLock(actor, tripId, async (tx, locked) => {
+    const keys = await this.withTripLock(actor, tripId, async (tx, locked) => {
       assertCan(locked.me, 'deleteTrip', locked);
+      const files = await tx.document.findMany({ where: { tripId, storageKey: { not: null } }, select: { storageKey: true } });
       await tx.trip.delete({ where: { id: tripId } });
+      return files.map((f) => f.storageKey!);
     });
+    // Once the trip is gone: its documents' files with it.
+    await this.storage.remove(keys);
   }
 
   /** The trip with its active participants, or 404 when the caller is not one of them. */

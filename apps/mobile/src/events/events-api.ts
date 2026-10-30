@@ -2,6 +2,7 @@ import type { CreateEventRequest, TripEvent, UpdateEventRequest } from '@7trip/s
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/auth/auth-context';
+import { documentKeys } from '@/documents/documents-api';
 import { financeKeys } from '@/finances/finances-api';
 import { ideaKeys } from '@/ideas/ideas-api';
 
@@ -40,8 +41,9 @@ function useRefreshPlanning(tripId: string) {
     if (event) client.setQueryData(eventKeys.detail(tripId, event.id), event);
     void client.invalidateQueries({ queryKey: eventKeys.list(tripId), exact: true });
     void client.invalidateQueries({ queryKey: ideaKeys.list(tripId) });
-    // Expenses show the title of the item they are linked to, or lose it with the item.
+    // Expenses and documents show the item they are linked to, or lose it with the item.
     void client.invalidateQueries({ queryKey: financeKeys.expenses(tripId) });
+    void client.invalidateQueries({ queryKey: documentKeys.list(tripId) });
   };
 }
 

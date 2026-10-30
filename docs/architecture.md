@@ -125,7 +125,7 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage), originalMinor (la même part, en devise de la dépense) |
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId (un par participant, vu de lui seul), currency (celle du voyage à la saisie), totalMinor?, perCategory (json : plafond par catégorie) |
-| `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
+| `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, sizeBytes?, fileName?, category (transport/hébergement/activité/autre), date?, eventId?, visibility (private/shared, privé par défaut), bookingRef?, version |
 | `Notification` | participantId, type, payload, scheduledAt, sentAt? |
 
 Une idée planifiée garde son identité : l'`Event` créé référence l'`Idea` (`ideaId`). Retirer
@@ -239,7 +239,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
 | Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (le sien uniquement) |
-| Documents | `GET/POST …/documents`, `PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée) |
+| Documents | `GET/POST …/documents` (multipart : `file` + `meta` JSON), `POST …/documents/links`, `GET/PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée 4 min) ; `GET /files` sert les fichiers en stockage local (dev) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 
 Le tableau de bord (`/dashboard`) est une route agrégée qui renvoie uniquement les blocs utiles

@@ -14,6 +14,8 @@ export default defineConfig({
       JWT_SECRET: 'test-only-secret-that-is-long-enough-for-hs256',
       MAIL_TRANSPORT: 'log',
       RATES_SOURCE: 'fixed',
+      STORAGE_DRIVER: 'local',
+      STORAGE_DIR: '.storage-test',
     },
   },
 });
