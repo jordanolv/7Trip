@@ -9,30 +9,34 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Segmented } from '@/components/ui/segmented';
 import { BalancesView } from '@/finances/balances-view';
+import { BudgetView } from '@/finances/budget-view';
 import { myParticipantId } from '@/finances/expense-people';
 import { ExpenseList, FinanceSummary } from '@/finances/expense-list';
-import { useBalances, useExpenses } from '@/finances/finances-api';
+import { useBalances, useBudget, useExpenses } from '@/finances/finances-api';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
-type Section = 'expenses' | 'balances';
+type Section = 'expenses' | 'balances' | 'budget';
 
-/** One Finances module: expenses, then balances and reimbursements (CDC §8). The budget comes with step 6B. */
+/** One Finances module: expenses, balances and reimbursements, and the personal budget (CDC §8). */
 export default function FinancesScreen() {
   const tripId = useTripId();
   const insets = useSafeAreaInsets();
   const trip = useTrip(tripId);
   const expenses = useExpenses(tripId);
   const balances = useBalances(tripId);
+  const budget = useBudget(tripId);
   const [section, setSection] = useState<Section>('expenses');
 
   // Others add expenses meanwhile: fetched again on each visit.
   const refetchExpenses = expenses.refetch;
   const refetchBalances = balances.refetch;
+  const refetchBudget = budget.refetch;
   const refresh = useCallback(() => {
     void refetchExpenses({ cancelRefetch: false });
     void refetchBalances({ cancelRefetch: false });
-  }, [refetchExpenses, refetchBalances]);
+    void refetchBudget({ cancelRefetch: false });
+  }, [refetchExpenses, refetchBalances, refetchBudget]);
   useFocusEffect(refresh);
 
   const add = () => router.push(`/voyage/${tripId}/depense/nouvelle` as Href);
@@ -44,7 +48,7 @@ export default function FinancesScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={expenses.isRefetching || balances.isRefetching} onRefresh={refresh} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={expenses.isRefetching || balances.isRefetching || budget.isRefetching} onRefresh={refresh} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
@@ -64,6 +68,7 @@ export default function FinancesScreen() {
         options={[
           { value: 'expenses', label: 'Dépenses' },
           { value: 'balances', label: 'Soldes' },
+          { value: 'budget', label: 'Mon budget' },
         ]}
         value={section}
         onChange={setSection}
@@ -77,6 +82,18 @@ export default function FinancesScreen() {
         </View>
       ) : loading || !balances.data || !expenses.data ? (
         <ActivityIndicator color={colors.accent} style={styles.loading} />
+      ) : section === 'budget' ? (
+        budget.data && trip.data ? (
+          <BudgetView trip={trip.data} budget={budget.data} />
+        ) : budget.isError ? (
+          <View style={styles.empty}>
+            <AppText variant="heading">Impossible de charger ton budget</AppText>
+            <AppText tone="secondary">{budget.error.message}</AppText>
+            <Button title="Réessayer" variant="soft" onPress={refresh} />
+          </View>
+        ) : (
+          <ActivityIndicator color={colors.accent} style={styles.loading} />
+        )
       ) : section === 'balances' ? (
         <BalancesView tripId={tripId} balances={balances.data} meId={meId} organizer={trip.data?.myRole === 'ORGANIZER'} />
       ) : expenses.data.length === 0 ? (

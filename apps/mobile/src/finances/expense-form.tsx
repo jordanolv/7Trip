@@ -18,7 +18,9 @@ import {
   type ContentAuthor,
   type CreateExpenseRequest,
   type Expense,
+  type EventCategory,
   type ExpenseCategory,
+  type TripEvent,
 } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
 import { useEffect, useState } from 'react';
@@ -31,8 +33,18 @@ import { Icon } from '@/components/ui/icon';
 import { Segmented } from '@/components/ui/segmented';
 
 import { CurrencyPicker } from './currency-picker';
+import { EventPicker } from './event-picker';
 import { ExpenseCategoryIcon } from './expense-visuals';
 import { useRate } from './finances-api';
+
+/** The expense category an expense added from a planning item starts with. */
+const EVENT_EXPENSE_CATEGORY: Record<EventCategory, ExpenseCategory> = {
+  TRANSPORT: 'TRANSPORT',
+  LODGING: 'LODGING',
+  ACTIVITY: 'ACTIVITY',
+  FOOD: 'FOOD',
+  OTHER: 'OTHER',
+};
 
 export interface ExpenseFormValues {
   amount: string;
@@ -50,9 +62,11 @@ export interface ExpenseFormValues {
   currency: string;
   /** "1 currency = rate trip currency", as typed. Only used in another currency than the trip's. */
   rate: string;
+  /** The planning item it was paid for, with its title to show it. */
+  event: { id: string; title: string } | null;
 }
 
-export function newExpenseForm(people: ContentAuthor[], meId: string, baseCurrency: string): ExpenseFormValues {
+export function newExpenseForm(people: ContentAuthor[], meId: string, baseCurrency: string, event: TripEvent | null = null): ExpenseFormValues {
   return {
     amount: '',
     label: '',
@@ -61,10 +75,12 @@ export function newExpenseForm(people: ContentAuthor[], meId: string, baseCurren
     included: people.filter((p) => !p.hasLeft).map((p) => p.id),
     custom: false,
     customAmounts: {},
-    date: localIsoDate(),
-    category: null,
+    // Added from a planning item: on its day, under its kind.
+    date: event?.startDate ?? localIsoDate(),
+    category: event ? EVENT_EXPENSE_CATEGORY[event.category] : null,
     currency: baseCurrency,
     rate: '',
+    event: event && { id: event.id, title: event.title },
   };
 }
 
@@ -82,6 +98,7 @@ export function expenseFormValues(expense: Expense): ExpenseFormValues {
     currency: expense.currency,
     // The frozen rate: kept unless it is changed here.
     rate: rateInputText(expense.rateToBase),
+    event: expense.event,
   };
 }
 
@@ -96,6 +113,7 @@ export function expenseRequest(values: ExpenseFormValues, baseCurrency: string):
     rateToBase: values.currency === baseCurrency ? undefined : (parseRate(values.rate) ?? Number.NaN),
     personal: values.personal,
     payerId: values.payerId,
+    eventId: values.event?.id ?? null,
     // A personal expense has no split: the hidden shared-expense choices must not block it.
     split: values.personal
       ? undefined
@@ -142,6 +160,7 @@ export function ExpenseForm({
 }) {
   const set = <K extends keyof ExpenseFormValues>(key: K, value: ExpenseFormValues[K]) => onChange({ ...values, [key]: value });
   const [picking, setPicking] = useState(false);
+  const [pickingEvent, setPickingEvent] = useState(false);
   const foreign = values.currency !== baseCurrency;
   const today = useRate(tripId, values.currency, baseCurrency, foreign && hasEcbRate(values.currency) && hasEcbRate(baseCurrency));
   // Today's ECB rate fills an empty rate in; one already there (typed, or frozen) stays.
@@ -386,6 +405,29 @@ export function ExpenseForm({
           })}
         </View>
       </View>
+
+      <View style={styles.section}>
+        <AppText variant="label">Lié au planning</AppText>
+        <Pressable accessibilityRole="button" onPress={() => setPickingEvent(true)} style={styles.eventRow}>
+          <Icon name="calendar" color={values.event ? colors.accentInk : colors.inkSecondary} size={18} />
+          <Text style={[styles.eventText, !values.event && styles.off]} numberOfLines={1}>
+            {values.event?.title ?? 'Aucun'}
+          </Text>
+          <Icon name="chevronRight" color={colors.inkSecondary} size={16} />
+        </Pressable>
+        {errors.eventId ? (
+          <AppText variant="caption" tone="danger">
+            {errors.eventId}
+          </AppText>
+        ) : null}
+      </View>
+      <EventPicker
+        visible={pickingEvent}
+        tripId={tripId}
+        value={values.event?.id ?? null}
+        onSelect={(event) => set('event', event && { id: event.id, title: event.title })}
+        onClose={() => setPickingEvent(false)}
+      />
     </>
   );
 }
@@ -426,6 +468,8 @@ const styles = StyleSheet.create({
   labelError: { borderBottomColor: colors.danger },
   note: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: colors.surface, borderRadius: 14, padding: spacing.md },
   section: { gap: spacing.sm },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: spacing.md, borderRadius: 14, backgroundColor: colors.surface },
+  eventText: { flex: 1, fontFamily: fontFamily.semibold, fontSize: 15, color: colors.ink },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   mode: { fontFamily: fontFamily.medium, color: colors.inkSecondary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

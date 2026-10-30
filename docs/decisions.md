@@ -9,6 +9,8 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 |---|---|
 | Devise de référence | Une par voyage, choisie à la création (EUR par défaut ; pas encore de devise dans le profil). Les organisateurs peuvent la changer tant qu'aucune dépense ni aucun remboursement n'existe. |
 | Source des taux | Taux BCE du jour (via Frankfurter, sans clé), proposé à la saisie et **figé** dans la dépense. Il reste modifiable à la main (taux réel de la carte). Pour les devises que la BCE ne publie pas (MAD, VND…), le taux est tapé. |
+| Budget personnel | Facultatif : un total, un plafond par catégorie, ou les deux, en devise du voyage. Seul son propriétaire le voit (pas les organisateurs). Il ne bloque pas le changement de devise du voyage : s'il a été saisi dans l'ancienne devise, l'app demande de le refaire. |
+| Dépense liée au planning | Facultatif, un seul élément par dépense. Supprimer l'élément garde la dépense, sans lien. Depuis la fiche d'un élément, « Ajouter une dépense » la crée déjà liée, à sa date et dans la catégorie correspondante. |
 | Arrondis | Calculs en centimes. Les centimes restants d'une répartition égale vont un par un aux premiers participants (ordre d'arrivée). Affichage à 2 décimales. |
 | Répartition inégale | V1 : parts égales avec exclusions, ou montants personnalisés par personne. Pourcentages / « parts » (×2) reportés en V1.5. |
 | Participant qui part | Ses dépenses et parts restent. Il apparaît « parti » et peut encore régler ses soldes. Il ne peut pas partir avec un solde non nul sans avertissement. |

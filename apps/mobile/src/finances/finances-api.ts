@@ -3,6 +3,8 @@ import type {
   CreateExpenseRequest,
   CreateSettlementRequest,
   Expense,
+  PersonalBudgetRequest,
+  PersonalBudgetView,
   Settlement,
   TripBalances,
   UpdateExpenseRequest,
@@ -15,6 +17,7 @@ export const financeKeys = {
   expenses: (tripId: string) => ['expenses', tripId] as const,
   expense: (tripId: string, expenseId: string) => ['expenses', tripId, expenseId] as const,
   balances: (tripId: string) => ['balances', tripId] as const,
+  budget: (tripId: string) => ['budget', tripId] as const,
   /** With the trip's currency: a rate fetched before it changed must not be used after. */
   rate: (tripId: string, currency: string, baseCurrency: string) => ['rates', tripId, currency, baseCurrency] as const,
 };
@@ -65,12 +68,31 @@ export function useBalances(tripId: string) {
   });
 }
 
-/** Any change to the money moves the balances: both are fetched again. */
+/** The caller's own budget, with what they spent against it. */
+export function useBudget(tripId: string) {
+  const { tripRequest } = useAuth();
+  return useQuery({
+    queryKey: financeKeys.budget(tripId),
+    queryFn: () => tripRequest<PersonalBudgetView>(tripId, `/trips/${tripId}/budget`),
+  });
+}
+
+export function useSaveBudget(tripId: string) {
+  const { tripRequest } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PersonalBudgetRequest) => tripRequest<PersonalBudgetView>(tripId, `/trips/${tripId}/budget`, { method: 'PUT', body }),
+    onSuccess: (budget) => client.setQueryData(financeKeys.budget(tripId), budget),
+  });
+}
+
+/** Any change to the money moves the balances and the budget: they are fetched again. */
 function useRefreshFinances(tripId: string) {
   const client = useQueryClient();
   return () => {
     void client.invalidateQueries({ queryKey: financeKeys.expenses(tripId) });
     void client.invalidateQueries({ queryKey: financeKeys.balances(tripId) });
+    void client.invalidateQueries({ queryKey: financeKeys.budget(tripId) });
   };
 }
 
@@ -123,7 +145,10 @@ export function useChoosePlan(tripId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: ChooseTransferPlanRequest) => tripRequest<TripBalances>(tripId, `/trips/${tripId}/balances/plan`, { method: 'PUT', body }),
-    onSuccess: (balances) => client.setQueryData(financeKeys.balances(tripId), balances),
+    onSuccess: (balances) => {
+      client.setQueryData(financeKeys.balances(tripId), balances);
+      void client.invalidateQueries({ queryKey: financeKeys.budget(tripId) });
+    },
     onError: () => void client.invalidateQueries({ queryKey: financeKeys.balances(tripId) }),
   });
 }

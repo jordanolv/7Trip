@@ -121,10 +121,10 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Poll` | tripId, authorId, question, kind (destination/dates/logement/resto/activité/oui-non/autre), multiple, closesAt?, closedAt?, closedBy?, appliedOptionId? |
 | `PollOption` | pollId, label, position, startDate?/endDate? (sondage de dates), ideaId? (option tirée d'une idée) |
 | `Vote` | optionId, participantId (unique par option) |
-| `Expense` | tripId, authorId, payerId, label, amountMinor + currency (tel que payé), rateToBase (figé), baseAmountMinor (en devise du voyage), date, category?, personal, splitMode (equal/custom), version — eventId à venir |
+| `Expense` | tripId, authorId, payerId, label, amountMinor + currency (tel que payé), rateToBase (figé), baseAmountMinor (en devise du voyage), date, category?, personal, splitMode (equal/custom), eventId? (élément du planning ; le supprimer garde la dépense), version |
 | `ExpenseShare` | expenseId, participantId, amountMinor (part réelle, en devise du voyage), originalMinor (la même part, en devise de la dépense) |
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
-| `PersonalBudget` | participantId, totalMinor, perCategory (json) |
+| `PersonalBudget` | participantId (un par participant, vu de lui seul), currency (celle du voyage à la saisie), totalMinor?, perCategory (json : plafond par catégorie) |
 | `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, size?, category, date?, eventId?, visibility (private/shared) |
 | `Notification` | participantId, type, payload, scheduledAt, sentAt? |
 
@@ -186,6 +186,9 @@ Règles transverses :
   en est retiré. Si une dépense change les soldes, on revient à la suggestion.
 - **Budget personnel** : Σ des parts du participant par catégorie, hors avances. C'est l'exemple
   du cahier des charges : 120 € partagés à 4 → 30 € dans le budget.
+  Dépenses personnelles comprises. Ce qui reste à rembourser ou à recevoir est affiché à part,
+  d'après les virements proposés dans Soldes. Un budget saisi avant un changement de devise du
+  voyage est à refaire (`staleCurrency`).
 - Toute la logique est dans `packages/shared/finance` avec des tests unitaires, dont les cas
   limites : payeur non bénéficiaire, participant exclu, arrondis, multi-devises.
 
@@ -235,7 +238,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Idées | `GET/POST …/ideas`, `GET/PATCH/DELETE …/ideas/{iid}`, `POST …/ideas/{iid}/schedule` |
 | Planning | `GET/POST …/events` (filtres date / catégorie), `GET/PATCH/DELETE …/events/{eid}` |
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
-| Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (6B) |
+| Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (le sien uniquement) |
 | Documents | `GET/POST …/documents`, `PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 

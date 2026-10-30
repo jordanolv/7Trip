@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExpenseRequestSchema, createSettlementRequestSchema, expenseShares, formatMoney, parseAmount } from './expenses.js';
+import {
+  budgetDaysLeft,
+  createExpenseRequestSchema,
+  createSettlementRequestSchema,
+  expenseShares,
+  formatMoney,
+  parseAmount,
+  personalBudgetRequestSchema,
+} from './expenses.js';
 
 const [a, b, c] = ['01a1841b-0000-7000-8000-00000000000a', '01a1841b-0000-7000-8000-00000000000b', '01a1841b-0000-7000-8000-00000000000c'];
 const base = { label: 'Tapas', amountMinor: 4800, date: '2027-07-12', payerId: a };
@@ -66,5 +74,31 @@ describe('createSettlementRequestSchema', () => {
   it('refuses repaying yourself', () => {
     expect(createSettlementRequestSchema.safeParse({ fromId: a, toId: a, amountMinor: 100 }).success).toBe(false);
     expect(createSettlementRequestSchema.safeParse({ fromId: a, toId: b, amountMinor: 100 }).success).toBe(true);
+  });
+});
+
+describe('personalBudgetRequestSchema', () => {
+  it('takes a total, categories, or both', () => {
+    expect(personalBudgetRequestSchema.parse({ totalMinor: 50000 })).toEqual({ totalMinor: 50000, perCategory: {} });
+    expect(personalBudgetRequestSchema.parse({ totalMinor: null, perCategory: { FOOD: 18000 } })).toEqual({ totalMinor: null, perCategory: { FOOD: 18000 } });
+  });
+
+  it('refuses zero, negative and unknown categories', () => {
+    expect(personalBudgetRequestSchema.safeParse({ totalMinor: 0 }).success).toBe(false);
+    expect(personalBudgetRequestSchema.safeParse({ totalMinor: null, perCategory: { FOOD: -1 } }).success).toBe(false);
+    expect(personalBudgetRequestSchema.safeParse({ totalMinor: null, perCategory: { BEER: 100 } }).success).toBe(false);
+  });
+});
+
+describe('budgetDaysLeft', () => {
+  const trip = { startDate: '2026-11-10', endDate: '2026-11-13' };
+  it('counts the whole trip before it starts', () => expect(budgetDaysLeft(trip, '2026-11-01')).toBe(4));
+  it('counts today during the trip', () => {
+    expect(budgetDaysLeft(trip, '2026-11-12')).toBe(2);
+    expect(budgetDaysLeft(trip, '2026-11-13')).toBe(1);
+  });
+  it('is null once over or without an end date', () => {
+    expect(budgetDaysLeft(trip, '2026-11-14')).toBeNull();
+    expect(budgetDaysLeft({ startDate: null, endDate: null }, '2026-11-14')).toBeNull();
   });
 });

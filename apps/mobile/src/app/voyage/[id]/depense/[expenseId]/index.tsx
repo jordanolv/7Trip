@@ -1,12 +1,13 @@
 import { EXPENSE_CATEGORY_LABELS, currencySymbol, formatDayMonth, formatMoney, rateInputText, weekday, type Expense } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { Sheet } from '@/components/sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { ExpenseCategoryTile } from '@/finances/expense-visuals';
 import { useDeleteExpense, useExpense } from '@/finances/finances-api';
 import { errorMessage } from '@/lib/api';
@@ -77,6 +78,23 @@ function Depense({ tripId, expense }: { tripId: string; expense: Expense }) {
         </AppText>
       ) : null}
 
+      {expense.event ? (
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push(`/voyage/${tripId}/evenement/${expense.event!.id}` as Href)}
+          style={({ pressed }) => [styles.event, pressed && styles.pressed]}
+        >
+          <Icon name="calendar" color={colors.accentInk} size={18} />
+          <AppText variant="bodyStrong" style={styles.flex} numberOfLines={1}>
+            {expense.event.title}
+          </AppText>
+          <AppText variant="caption" tone="secondary">
+            {formatDayMonth(expense.event.startDate)}
+          </AppText>
+          <Icon name="chevronRight" color={colors.inkSecondary} size={16} />
+        </Pressable>
+      ) : null}
+
       {expense.personal ? (
         <AppText tone="secondary">Elle compte uniquement dans ton budget. Personne d’autre ne la voit.</AppText>
       ) : (
@@ -126,4 +144,6 @@ const styles = StyleSheet.create({
   shareBorder: { borderTopWidth: 1, borderTopColor: colors.separator },
   shareAmount: { fontFamily: fontFamily.bold, fontSize: 15, color: colors.ink },
   actions: { gap: spacing.sm },
+  event: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: spacing.md, borderRadius: 14, backgroundColor: colors.accentTint },
+  pressed: { opacity: 0.6 },
 });

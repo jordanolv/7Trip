@@ -1,6 +1,7 @@
 import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   ApiErrorCode,
+  EXPENSE_CATEGORIES,
   MAX_EXPENSE_MINOR,
   computeBalances,
   convertShares,
@@ -14,12 +15,15 @@ import {
   type ContentAuthor,
   type Expense,
   type ExpenseCategory,
+  type PersonalBudget,
+  type PersonalBudgetView,
   type SuggestedTransfer,
   type Settlement,
   type TripBalances,
   type createExpenseRequestSchema,
   type chooseTransferPlanRequestSchema,
   type createSettlementRequestSchema,
+  type personalBudgetRequestSchema,
   type updateExpenseRequestSchema,
 } from '@7trip/shared';
 import { z } from 'zod';
@@ -37,10 +41,12 @@ export type ExpenseInput = z.output<typeof createExpenseRequestSchema>;
 export type UpdateExpenseInput = z.output<typeof updateExpenseRequestSchema>;
 export type SettlementInput = z.output<typeof createSettlementRequestSchema>;
 export type TransferPlanInput = z.output<typeof chooseTransferPlanRequestSchema>;
+export type BudgetInput = z.output<typeof personalBudgetRequestSchema>;
 
 const EXPENSE_INCLUDE = {
   author: true,
   payer: true,
+  event: { select: { id: true, title: true, startDate: true } },
   shares: { include: { participant: true } },
 } satisfies Prisma.ExpenseInclude;
 type ExpenseWithRelations = Prisma.ExpenseGetPayload<{ include: typeof EXPENSE_INCLUDE }>;
@@ -104,6 +110,7 @@ export class ExpensesService {
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
       const money = await this.money(input, trip.baseCurrency, null);
+      await this.checkEvent(tx, tripId, input.eventId);
       const shares = await this.resolveShares(tx, tripId, me, input, new Set(), money);
       const expense = await tx.expense.create({
         data: {
@@ -134,6 +141,7 @@ export class ExpensesService {
       const already = new Set([current.payerId, ...current.shares.map((s) => s.participantId)]);
       const trip = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
       const money = await this.money(input, trip.baseCurrency, current);
+      await this.checkEvent(tx, tripId, input.eventId);
       let shares = await this.resolveShares(tx, tripId, me, input, already, money);
       // Same money (amount, currency, rate, shares as typed): the stored conversion stays. Converting
       // again could move a hundredth, e.g. on shares added up by a guest merge.
@@ -202,6 +210,53 @@ export class ExpensesService {
       settlements: settlements.map((s) => toSettlement(s, me)),
       me: { paidMinor: paid(me.id), costMinor: cost(me.id) + personal, balanceMinor: balances.get(me.id) ?? 0 },
     };
+  }
+
+  /**
+   * "Mon budget": the caller's shares by category against what they planned, and apart, what
+   * they still owe or are owed (CDC §8.3). Their own only: nobody sees another's budget.
+   */
+  async budget(actor: Actor, tripId: string): Promise<PersonalBudgetView> {
+    const balances = await this.balances(actor, tripId);
+    const me = await this.trips.member(actor, tripId);
+    const shares = await this.prisma.expenseShare.findMany({
+      where: { participantId: me.id, expense: { tripId, ...visibleTo(me) } },
+      select: { amountMinor: true, expense: { select: { category: true } } },
+    });
+    const stored = await this.prisma.personalBudget.findUnique({ where: { participantId: me.id } });
+    const spentByCategory: Partial<Record<ExpenseCategory, number>> = {};
+    let uncategorizedMinor = 0;
+    for (const { amountMinor, expense } of shares) {
+      if (expense.category) spentByCategory[expense.category] = (spentByCategory[expense.category] ?? 0) + amountMinor;
+      else uncategorizedMinor += amountMinor;
+    }
+    const current = stored?.currency === balances.currency;
+    return {
+      currency: balances.currency,
+      budget: stored && current ? toBudget(stored) : null,
+      staleCurrency: stored && !current ? stored.currency : null,
+      spentMinor: shares.reduce((sum, s) => sum + s.amountMinor, 0),
+      spentByCategory,
+      uncategorizedMinor,
+      toRepayMinor: balances.transfers.filter((t) => t.from.id === me.id).reduce((sum, t) => sum + t.amountMinor, 0),
+      toReceiveMinor: balances.transfers.filter((t) => t.to.id === me.id).reduce((sum, t) => sum + t.amountMinor, 0),
+    };
+  }
+
+  /** Sets the caller's budget, in the trip's currency; nothing set removes it. */
+  async setBudget(actor: Actor, tripId: string, input: BudgetInput): Promise<PersonalBudgetView> {
+    await this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
+      const perCategory = Object.fromEntries(Object.entries(input.perCategory).filter(([, amount]) => amount !== undefined));
+      if (input.totalMinor === null && Object.keys(perCategory).length === 0) {
+        await tx.personalBudget.deleteMany({ where: { participantId: me.id } });
+        return;
+      }
+      // Under the lock: the trip's currency cannot change meanwhile.
+      const { baseCurrency: currency } = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+      const data = { currency, totalMinor: input.totalMinor, perCategory };
+      await tx.personalBudget.upsert({ where: { participantId: me.id }, create: { participantId: me.id, ...data }, update: data });
+    });
+    return this.budget(actor, tripId);
   }
 
   /** "C'est réglé": one of the two people concerned, or an organizer, records the reimbursement. */
@@ -300,9 +355,14 @@ export class ExpensesService {
       date: toDate(input.date),
       category: input.category ?? null,
       personal: input.personal,
+      eventId: input.eventId ?? null,
       payerId: input.personal ? me.id : input.payerId,
       splitMode: !input.personal && input.split?.mode === 'CUSTOM' ? ('CUSTOM' as const) : ('EQUAL' as const),
     };
+  }
+
+  private async checkEvent(tx: Prisma.TransactionClient, tripId: string, eventId: string | null | undefined): Promise<void> {
+    if (eventId && !(await tx.event.count({ where: { id: eventId, tripId } }))) throw validationError('eventId', 'Cet événement n’est plus au planning');
   }
 
   /**
@@ -395,6 +455,7 @@ function toExpense(expense: ExpenseWithRelations, me: Participant): Expense {
     date: expense.date.toISOString().slice(0, 10),
     category: expense.category as ExpenseCategory | null,
     personal: expense.personal,
+    event: expense.event && { id: expense.event.id, title: expense.event.title, startDate: expense.event.startDate.toISOString().slice(0, 10) },
     payer: toContentAuthor(expense.payer),
     author: toContentAuthor(expense.author),
     splitMode: expense.splitMode,
@@ -404,6 +465,18 @@ function toExpense(expense: ExpenseWithRelations, me: Participant): Expense {
     createdAt: expense.createdAt.toISOString(),
     version: expense.version,
   };
+}
+
+function toBudget(stored: { totalMinor: number | null; perCategory: Prisma.JsonValue }): PersonalBudget {
+  const perCategory: PersonalBudget['perCategory'] = {};
+  const value = stored.perCategory;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    for (const category of EXPENSE_CATEGORIES) {
+      const amount = value[category];
+      if (typeof amount === 'number') perCategory[category] = amount;
+    }
+  }
+  return { totalMinor: stored.totalMinor, perCategory };
 }
 
 function toSettlement(settlement: SettlementWithRelations, me: Participant): Settlement {
