@@ -1,14 +1,33 @@
-import { daysBetween, formatDateRange, formatDestinations, localIsoDate, participantsLabel, tripPhase, type TripDetail } from '@7trip/shared';
+import {
+  daysBetween,
+  eventsOfDay,
+  formatDateRange,
+  formatDestinations,
+  localIsoDate,
+  participantsLabel,
+  tripPhase,
+  type PersonalBudgetView,
+  type TripBalances,
+  type TripDetail,
+  type TripDocument,
+  type TripEvent,
+} from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
-import { router, type Href } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { useDocuments } from '@/documents/documents-api';
+import { useEvents } from '@/events/events-api';
+import { myParticipantId } from '@/finances/expense-people';
+import { useBalances, useBudget } from '@/finances/finances-api';
 import { OpenPollsCard } from '@/polls/open-polls-card';
 import { usePolls } from '@/polls/polls-api';
+import { BudgetCard, NextCard, ReimbursementsCard, TodayCard } from '@/trips/dashboard-cards';
 import { TripQueryState } from '@/trips/trip-query-state';
 import { TripCover, TripIconTile } from '@/trips/trip-visuals';
 import { useTrip } from '@/trips/trips-api';
@@ -17,22 +36,77 @@ import { useTripId } from '@/trips/use-trip-id';
 export default function TripDashboardScreen() {
   const id = useTripId();
   const query = useTrip(id);
-  // The polls card shows on the dashboard: pulling to refresh reloads it too.
+  // Every block's data: pulling to refresh reloads them all.
   const polls = usePolls(id);
-  const refresh = () => void Promise.all([query.refetch(), polls.refetch()]);
+  const events = useEvents(id);
+  const balances = useBalances(id);
+  const budget = useBudget(id);
+  const documents = useDocuments(id);
+  const all = [query, polls, events, balances, budget, documents];
+  const refresh = () => void Promise.all(all.map((q) => q.refetch()));
+  // Others change things meanwhile: fetched again each time the dashboard shows.
+  const refetchBalances = balances.refetch;
+  const refetchEvents = events.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      void refetchBalances({ cancelRefetch: false });
+      void refetchEvents({ cancelRefetch: false });
+    }, [refetchBalances, refetchEvents]),
+  );
   return (
     <TripQueryState query={query}>
-      {(trip) => <Dashboard trip={trip} refreshing={query.isRefetching || polls.isRefetching} onRefresh={refresh} />}
+      {(trip) => (
+        <Dashboard
+          trip={trip}
+          events={events.data ?? []}
+          balances={balances.data}
+          budget={budget.data}
+          documents={documents.data ?? []}
+          refreshing={all.some((q) => q.isRefetching)}
+          onRefresh={refresh}
+        />
+      )}
     </TripQueryState>
   );
 }
 
-function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshing: boolean; onRefresh: () => void }) {
+/**
+ * What is useful now (CDC §3.2): before the trip, what comes and what is left to decide; during
+ * it, the day's planning first; after it, what is still to reimburse. Blocks with nothing to show
+ * are not shown.
+ */
+function Dashboard({
+  trip,
+  events,
+  balances,
+  budget,
+  documents,
+  refreshing,
+  onRefresh,
+}: {
+  trip: TripDetail;
+  events: TripEvent[];
+  balances: TripBalances | undefined;
+  budget: PersonalBudgetView | undefined;
+  documents: TripDocument[];
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const today = localIsoDate();
   const dates = formatDateRange(trip.startDate, trip.endDate, today);
   const isOrganizer = trip.myRole === 'ORGANIZER';
   const steps = setupSteps(trip, isOrganizer);
+  const phase = trip.startDate ? tripPhase(trip, today) : 'upcoming';
+  const meId = myParticipantId(trip);
+  const ongoingDay = phase === 'ongoing' && trip.startDate ? `Jour ${daysBetween(trip.startDate, today) + 1} sur ${daysBetween(trip.startDate, trip.endDate ?? trip.startDate) + 1}` : null;
+  const todayHasEvents = phase === 'ongoing' && eventsOfDay(events, today).length > 0;
+  const money = (
+    <>
+      {balances ? <ReimbursementsCard tripId={trip.id} balances={balances} meId={meId} /> : null}
+      {budget ? <BudgetCard tripId={trip.id} budget={budget} /> : null}
+    </>
+  );
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -78,16 +152,35 @@ function Dashboard({ trip, refreshing, onRefresh }: { trip: TripDetail; refreshi
               {trip.title}
             </AppText>
             <AppText variant="caption" style={styles.heroSubtitle}>
-              {[dates ?? 'Dates à décider', formatDestinations(trip.destinations), participantsLabel(trip.participantCount)].filter(Boolean).join(' · ')}
+              {[dates ?? 'Dates à décider', ongoingDay ?? formatDestinations(trip.destinations), ongoingDay ? null : participantsLabel(trip.participantCount)]
+                .filter(Boolean)
+                .join(' · ')}
             </AppText>
           </View>
         </View>
       </TripCover>
 
       <View style={styles.body}>
-        <PhaseCard trip={trip} today={today} />
-
-        <OpenPollsCard tripId={trip.id} />
+        {phase === 'ongoing' ? (
+          <>
+            {todayHasEvents ? <TodayCard tripId={trip.id} events={events} documents={documents} today={today} /> : <NextCard tripId={trip.id} events={events} today={today} />}
+            {money}
+            <OpenPollsCard tripId={trip.id} />
+          </>
+        ) : phase === 'past' ? (
+          <>
+            <PhaseCard trip={trip} today={today} />
+            {money}
+            <OpenPollsCard tripId={trip.id} />
+          </>
+        ) : (
+          <>
+            <PhaseCard trip={trip} today={today} />
+            <OpenPollsCard tripId={trip.id} />
+            <NextCard tripId={trip.id} events={events} today={today} />
+            {money}
+          </>
+        )}
 
         {steps.length > 0 ? (
           <View style={styles.card}>
@@ -123,7 +216,7 @@ function PhaseCard({ trip, today }: { trip: TripDetail; today: string }) {
   let detail: string;
   if (phase === 'ongoing') {
     title = `Jour ${daysBetween(trip.startDate, today) + 1} sur ${total}`;
-    detail = 'Bon voyage ! Le planning du jour apparaîtra ici.';
+    detail = 'Bon voyage !';
   } else if (phase === 'upcoming') {
     const days = daysBetween(today, trip.startDate);
     title = days === 1 ? 'Départ demain' : `Départ dans ${days} jours`;

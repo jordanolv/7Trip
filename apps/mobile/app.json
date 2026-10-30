@@ -50,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f7af558b-b338-4574-9a11-f2fcfa3de309"
+      }
+    },
+    "owner": "jordan.olv"
   }
 }

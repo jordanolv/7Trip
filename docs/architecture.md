@@ -250,8 +250,11 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Documents | `GET/POST …/documents` (multipart : `file` + `meta` JSON), `POST …/documents/links`, `GET/PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée 4 min) ; `GET /files` sert les fichiers en stockage local (dev) |
 | Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
 
-Le tableau de bord (`/dashboard`) est une route agrégée qui renvoie uniquement les blocs utiles
-(sondages à voter, rappels, remboursements, planning du jour), pour éviter les blocs vides.
+Le tableau de bord se compose dans l'app à partir des données déjà chargées (planning, soldes,
+budget, sondages, documents) : il reste lisible hors ligne et ne demande pas de route à part. Il
+change selon le moment (`tripPhase`) : avant le séjour, ce qui vient et ce qui reste à décider ;
+pendant, le planning du jour (« Maintenant ») ; après, ce qui reste à rembourser. Un bloc sans
+contenu n'est pas affiché.
 
 **Conflits de modification** : chaque ressource modifiable expose un `version` (entier). Un
 `PATCH` avec une version périmée renvoie `409` et l'état courant. L'app affiche alors l'écran de
