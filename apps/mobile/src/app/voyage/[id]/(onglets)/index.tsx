@@ -45,12 +45,15 @@ export default function TripDashboardScreen() {
   const refresh = () => void Promise.all(all.map((q) => q.refetch()));
   // Others change things meanwhile: fetched again each time the dashboard shows.
   const refetchBalances = balances.refetch;
+  const refetchBudget = budget.refetch;
   const refetchEvents = events.refetch;
   useFocusEffect(
     useCallback(() => {
       void refetchBalances({ cancelRefetch: false });
+      // Its spending moves with the others' expenses too.
+      void refetchBudget({ cancelRefetch: false });
       void refetchEvents({ cancelRefetch: false });
-    }, [refetchBalances, refetchEvents]),
+    }, [refetchBalances, refetchBudget, refetchEvents]),
   );
   return (
     <TripQueryState query={query}>
