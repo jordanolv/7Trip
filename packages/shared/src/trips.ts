@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { AvatarColor } from './avatars.js';
+import { currencySchema } from './currencies.js';
 
 /** Identity colours a trip can use (keys of `tripColors` in @7trip/ui-tokens). */
 export const TRIP_COLORS = ['orange', 'forest', 'lagoon', 'raspberry', 'lavender', 'mustard'] as const;
@@ -56,6 +57,8 @@ export const createTripRequestSchema = z
     kind: z.enum(TRIP_KINDS).default('GROUP'),
     color: z.enum(TRIP_COLORS).optional(),
     icon: z.enum(TRIP_ICONS).optional(),
+    /** Balances and budgets are in it. EUR when left out. */
+    baseCurrency: currencySchema.optional(),
   })
   .refine(datesRefinement, datesMessage);
 export type CreateTripRequest = z.input<typeof createTripRequestSchema>;
@@ -70,6 +73,8 @@ export const updateTripRequestSchema = z
     color: z.enum(TRIP_COLORS).optional(),
     icon: z.enum(TRIP_ICONS).optional(),
     invitePolicy: z.enum(INVITE_POLICIES).optional(),
+    /** Only while the trip has no expense (docs/decisions.md). */
+    baseCurrency: currencySchema.optional(),
   })
   .refine(datesRefinement, datesMessage);
 export type UpdateTripRequest = z.input<typeof updateTripRequestSchema>;
@@ -100,6 +105,10 @@ export interface TripSummary {
 
 export interface TripDetail extends TripSummary {
   invitePolicy: InvitePolicy;
+  /** The trip's currency: balances, shares and budgets are in it. */
+  baseCurrency: string;
+  /** It has expenses or reimbursements, stored in its currency: it can no longer change. */
+  currencyLocked: boolean;
   participants: TripParticipant[];
   createdAt: string;
 }

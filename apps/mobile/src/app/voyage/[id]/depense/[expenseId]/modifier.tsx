@@ -51,11 +51,11 @@ function ModifierDepense({ trip, expense }: { trip: TripDetail; expense: Expense
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = useAction(async () => {
-    const found = expenseFormErrors(values);
+    const found = expenseFormErrors(values, trip.baseCurrency);
     setErrors(found);
     if (Object.keys(found).length) return;
     try {
-      await save.mutateAsync({ ...expenseRequest(values), version });
+      await save.mutateAsync({ ...expenseRequest(values, trip.baseCurrency), version });
     } catch (error) {
       if (!(error instanceof ApiError && error.code === ApiErrorCode.EditConflict)) throw error;
       // The expense refreshes behind this screen: going back shows the other person's changes.
@@ -68,7 +68,7 @@ function ModifierDepense({ trip, expense }: { trip: TripDetail; expense: Expense
 
   return (
     <FormScreen footer={<Button title="Enregistrer" loading={submit.loading} onPress={() => void submit.run()} />}>
-      <ExpenseForm values={values} onChange={setValues} errors={{ ...submit.fieldErrors, ...errors }} people={people} meId={meId} />
+      <ExpenseForm values={values} onChange={setValues} errors={{ ...submit.fieldErrors, ...errors }} people={people} meId={meId} tripId={trip.id} baseCurrency={trip.baseCurrency} />
       {submit.error ? (
         <AppText variant="caption" tone="danger">
           {submit.error}

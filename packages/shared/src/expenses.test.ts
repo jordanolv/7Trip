@@ -55,7 +55,10 @@ describe('amounts', () => {
     expect(formatMoney(128400)).toBe('1 284,00 €');
     expect(formatMoney(128400, 'EUR', { whole: true })).toBe('1 284 €');
     expect(formatMoney(-2450)).toBe('− 24,50 €');
-    expect(formatMoney(500, 'USD')).toBe('5,00 USD');
+    expect(formatMoney(500, 'USD')).toBe('5,00 $');
+    expect(formatMoney(150000, 'JPY')).toBe('1 500 ¥');
+    expect(formatMoney(150050, 'JPY')).toBe('1 500,50 ¥');
+    expect(formatMoney(500, 'MAD')).toBe('5,00 MAD');
   });
 });
 

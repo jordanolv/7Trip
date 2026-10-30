@@ -3,6 +3,7 @@ import {
   chooseTransferPlanRequestSchema,
   createExpenseRequestSchema,
   createSettlementRequestSchema,
+  currencySchema,
   updateExpenseRequestSchema,
   type Expense,
   type Settlement,
@@ -52,6 +53,12 @@ export class ExpensesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@CurrentActor() actor: Actor, @Param('tripId') tripId: string, @Param('expenseId') expenseId: string): Promise<void> {
     return this.expenses.remove(actor, tripId, expenseId);
+  }
+
+  /** Today's ECB rate from `currency` to the trip's, to fill in an expense; `rate` null: to type. */
+  @Get('rates/:currency')
+  rate(@CurrentActor() actor: Actor, @Param('tripId') tripId: string, @Param('currency', new ZodValidationPipe(currencySchema)) currency: string) {
+    return this.expenses.rate(actor, tripId, currency);
   }
 
   @Get('balances')

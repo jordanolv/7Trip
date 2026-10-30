@@ -189,6 +189,84 @@ describe('Expenses (e2e)', () => {
     expect(b.transfers).toEqual(b.plans[0]);
   });
 
+  it('keeps an expense in its currency, at the frozen rate, and counts it in the trip’s', async () => {
+    const { trip, ids } = await newTrip();
+    expect((await api().get(`/v1/trips/${trip.id}/rates/USD`).set(lea.auth).expect(200)).body).toMatchObject({ baseCurrency: 'EUR', rate: { rate: 0.9 } });
+    // Not published by the ECB: to type by hand.
+    expect((await api().get(`/v1/trips/${trip.id}/rates/MAD`).set(lea.auth).expect(200)).body).toMatchObject({ rate: null });
+    await api().get(`/v1/trips/${trip.id}/rates/XYZ`).set(lea.auth).expect(400);
+
+    // 100 $ between three, today's rate (0,90): 90 € → 30 € each; 33,34 / 33,33 / 33,33 $.
+    const three = [ids.jordan, ids.lea, ids.thomas];
+    const dinner = await add(trip.id, jordan.auth, { label: 'Dîner', amountMinor: 10000, currency: 'USD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: three } });
+    expect(dinner).toMatchObject({ amountMinor: 10000, currency: 'USD', rateToBase: 0.9, baseAmountMinor: 9000 });
+    expect(dinner.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[3334, 3000], [3333, 3000], [3333, 3000]]);
+
+    // The real rate of the card, typed; custom shares in dirhams.
+    await add(trip.id, lea.auth, { amountMinor: 50000, currency: 'MAD', payerId: ids.lea, split: { mode: 'EQUAL', participantIds: three } }, 400);
+    const riad = await add(trip.id, lea.auth, {
+      label: 'Riad',
+      amountMinor: 50000,
+      currency: 'MAD',
+      rateToBase: 0.0921,
+      payerId: ids.lea,
+      split: { mode: 'CUSTOM', shares: [{ participantId: ids.lea, amountMinor: 30000 }, { participantId: ids.thomas, amountMinor: 20000 }] },
+    });
+    expect(riad.baseAmountMinor).toBe(4605);
+    expect(riad.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[30000, 2763], [20000, 1842]]);
+
+    // A rate more precise than stored is converted as stored: renaming it later changes nothing.
+    const precise = await add(trip.id, lea.auth, { amountMinor: 5005751, currency: 'USD', rateToBase: 0.006123456789, payerId: ids.lea, split: { mode: 'EQUAL', participantIds: three } });
+    expect(precise).toMatchObject({ rateToBase: 0.0061234568, baseAmountMinor: 30653 });
+    expect(precise.shares.reduce((sum, s) => sum + s.amountMinor, 0)).toBe(30653);
+    await api().delete(`/v1/trips/${trip.id}/expenses/${precise.id}`).set(lea.auth).expect(204);
+
+    // An edit that does not touch the rate keeps it frozen.
+    const shares = riad.shares.map((s) => ({ participantId: s.participant.id, amountMinor: s.originalMinor }));
+    const edited = (
+      await api()
+        .put(`/v1/trips/${trip.id}/expenses/${riad.id}`)
+        .set(lea.auth)
+        .send({ label: 'Riad Marrakech', date: riad.date, amountMinor: 50000, payerId: ids.lea, split: { mode: 'CUSTOM', shares } })
+        .expect(200)
+    ).body as Expense;
+    expect(edited).toMatchObject({ rateToBase: 0.0921, baseAmountMinor: 4605 });
+
+    const b = await balances(trip.id, jordan.auth);
+    expect(b.currency).toBe('EUR');
+    expect(b.groupTotalMinor).toBe(9000 + 4605);
+    expect(balanceOf(b, ids.jordan)).toMatchObject({ paidMinor: 9000, costMinor: 3000, balanceMinor: 6000 });
+    expect(balanceOf(b, ids.thomas)).toMatchObject({ paidMinor: 0, costMinor: 3000 + 1842 });
+    expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
+  });
+
+  it('lets the organizers choose the trip’s currency until the first expense', async () => {
+    const created = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Kyoto', baseCurrency: 'JPY' }).expect(201)).body as TripDetail;
+    expect(created).toMatchObject({ baseCurrency: 'JPY', currencyLocked: false });
+    const { trip, ids } = await newTrip();
+    expect(trip).toMatchObject({ baseCurrency: 'EUR', currencyLocked: false });
+    await api().patch(`/v1/trips/${trip.id}`).set(lea.auth).send({ baseCurrency: 'CHF' }).expect(403);
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'CHF' }).expect(200);
+    const expense = await add(trip.id, jordan.auth, { amountMinor: 2000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan] } });
+    expect(expense).toMatchObject({ currency: 'CHF', rateToBase: 1, baseAmountMinor: 2000 });
+    expect((await api().get(`/v1/trips/${trip.id}`).set(jordan.auth).expect(200)).body).toMatchObject({ baseCurrency: 'CHF', currencyLocked: true });
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'EUR' }).expect(409);
+    // Sending the same currency again (a whole form) is fine.
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'CHF', title: 'Andalousie' }).expect(200);
+
+    // A reimbursement left after the expenses are gone is still in francs: still locked.
+    const other = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Lisbonne' }).expect(201)).body as TripDetail;
+    const { code } = (await api().get(`/v1/trips/${other.id}/invitation`).set(jordan.auth).expect(200)).body as TripInvitation;
+    await api().post(`/v1/invitations/${code}/join`).set(lea.auth).expect(201);
+    const people = ((await api().get(`/v1/trips/${other.id}`).set(jordan.auth).expect(200)).body as TripDetail).participants;
+    const [me, her] = [people.find((p) => p.displayName === 'Jordan')!.id, people.find((p) => p.displayName === 'Léa')!.id];
+    const lunch = await add(other.id, jordan.auth, { amountMinor: 2000, payerId: me, split: { mode: 'EQUAL', participantIds: [me, her] } });
+    await api().post(`/v1/trips/${other.id}/settlements`).set(lea.auth).send({ fromId: her, toId: me, amountMinor: 1000 }).expect(201);
+    await api().delete(`/v1/trips/${other.id}/expenses/${lunch.id}`).set(jordan.auth).expect(204);
+    expect((await api().get(`/v1/trips/${other.id}`).set(jordan.auth).expect(200)).body).toMatchObject({ currencyLocked: true });
+    await api().patch(`/v1/trips/${other.id}`).set(jordan.auth).send({ baseCurrency: 'JPY' }).expect(409);
+  });
+
   it('moves a guest’s expenses to the account, adding up their shares on an expense both were in', async () => {
     const { trip, code, ids } = await newTrip();
     const { token } = (await api().post(`/v1/invitations/${code}/join-guest`).send({ displayName: 'Léa invitée' }).expect(201)).body as GuestJoinResponse;
@@ -199,6 +277,8 @@ describe('Expenses (e2e)', () => {
     await api().post(`/v1/trips/${trip.id}/settlements`).set(asGuest(token)).send({ fromId: guestId, toId: ids.jordan, amountMinor: 500 }).expect(201);
     const paella = await add(trip.id, asGuest(token), { label: 'Paella', amountMinor: 2000, payerId: guestId, split: { mode: 'EQUAL', participantIds: [guestId, ids.jordan] } });
     // 20 € between three, Léa left out: the two extra cents go to Jordan and Thomas, who joined before the guest.
+    // 1,01 $ at 0,90 between Léa, Thomas and the guest: 34 / 34 / 33 ¢ → 0,31 / 0,30 / 0,30 €.
+    const tip = await add(trip.id, jordan.auth, { label: 'Pourboire', amountMinor: 101, currency: 'USD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.lea, ids.thomas, guestId] } });
     const taxi = await add(trip.id, jordan.auth, { label: 'Taxi', amountMinor: 2000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.thomas, guestId] } });
 
     await api().post('/v1/me/guest-sessions/claim').set(lea.auth).send({ tokens: [token] }).expect(204);
@@ -211,14 +291,33 @@ describe('Expenses (e2e)', () => {
     const movedTaxi = (await api().get(`/v1/trips/${trip.id}/expenses/${taxi.id}`).set(lea.auth).expect(200)).body as Expense;
     expect(movedTaxi.shares.map((s) => [s.participant.displayName, s.amountMinor])).toEqual([['Jordan', 667], ['Léa', 666], ['Thomas', 667]]);
     expect(movedTaxi.splitMode).toBe('CUSTOM');
+    // Merged in dollars and in euros; renaming it then converts nothing again.
+    const merged$ = (await api().get(`/v1/trips/${trip.id}/expenses/${tip.id}`).set(lea.auth).expect(200)).body as Expense;
+    expect(merged$.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[67, 61], [34, 30]]);
+    const renamed = (
+      await api()
+        .put(`/v1/trips/${trip.id}/expenses/${tip.id}`)
+        .set(jordan.auth)
+        .send({
+          label: 'Pourboire guide',
+          date: merged$.date,
+          amountMinor: 101,
+          currency: 'USD',
+          payerId: ids.jordan,
+          split: { mode: 'CUSTOM', shares: merged$.shares.map((s) => ({ participantId: s.participant.id, amountMinor: s.originalMinor })) },
+          version: merged$.version,
+        })
+        .expect(200)
+    ).body as Expense;
+    expect(renamed.shares.map((s) => [s.originalMinor, s.amountMinor])).toEqual([[67, 61], [34, 30]]);
     // Still equal parts, whoever joined first: stays an equal split.
     expect(((await api().get(`/v1/trips/${trip.id}/expenses/${paella.id}`).set(lea.auth).expect(200)).body as Expense).splitMode).toBe('EQUAL');
     const b = await balances(trip.id, lea.auth);
     expect(b.settlements).toEqual([expect.objectContaining({ amountMinor: 500, from: expect.objectContaining({ displayName: 'Léa' }) })]);
     expect(b.people.some((p) => p.participant.id === guestId)).toBe(false);
     // Léa now: paid 20 (the paella), costs 20 (both her shares of the first one) + 10 (paella)
-    // + 6,66 (taxi), repaid 5 → owes 11,66.
-    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3666, balanceMinor: -1166 });
+    // + 6,66 (taxi) + 0,61 (tip), repaid 5 → owes 12,27.
+    expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3727, balanceMinor: -1227 });
     expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
   });
 });

@@ -1,10 +1,13 @@
-import type { TripKind } from '@7trip/shared';
+import { currencyLabel, currencySymbol, type CurrencyCode, type TripKind } from '@7trip/shared';
 import { colors, fontFamily, radii, spacing } from '@7trip/ui-tokens';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { DateField } from '@/components/ui/date-field';
+import { Icon } from '@/components/ui/icon';
 import { Segmented } from '@/components/ui/segmented';
+import { CurrencyPicker } from '@/finances/currency-picker';
 
 import { DestinationsEditor } from './destinations-editor';
 
@@ -14,6 +17,8 @@ export interface TripFormValues {
   startDate: string | null;
   endDate: string | null;
   kind: TripKind;
+  /** Balances and budgets are in it; each expense may be paid in another one. */
+  baseCurrency: CurrencyCode;
 }
 
 /** Title + optional details (CDC §4: only the title is required). */
@@ -22,13 +27,17 @@ export function TripForm({
   onChange,
   errors,
   autoFocusTitle,
+  currencyLocked = false,
 }: {
   values: TripFormValues;
   onChange: (values: TripFormValues) => void;
   errors: Record<string, string | undefined>;
   autoFocusTitle?: boolean;
+  /** The trip has expenses: its currency no longer changes. */
+  currencyLocked?: boolean;
 }) {
   const set = <K extends keyof TripFormValues>(key: K, value: TripFormValues[K]) => onChange({ ...values, [key]: value });
+  const [picking, setPicking] = useState(false);
 
   return (
     <>
@@ -107,8 +116,37 @@ export function TripForm({
               ]}
             />
           </View>
+          <View style={styles.separator} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: currencyLocked }}
+            disabled={currencyLocked}
+            onPress={() => setPicking(true)}
+            style={styles.row}
+          >
+            <AppText variant="bodyStrong">Devise</AppText>
+            <View style={styles.currency}>
+              <Text style={styles.currencyText}>
+                {currencyLabel(values.baseCurrency)} · {currencySymbol(values.baseCurrency)}
+              </Text>
+              {currencyLocked ? <Icon name="lock" color={colors.inkSecondary} size={16} /> : <Icon name="chevronRight" color={colors.inkSecondary} size={18} />}
+            </View>
+          </Pressable>
+          <AppText variant="caption" tone={errors.baseCurrency ? 'danger' : 'secondary'} style={styles.rowPadding}>
+            {errors.baseCurrency ??
+              (currencyLocked
+                ? 'Les dépenses et remboursements sont comptés dans cette devise : elle ne change plus.'
+                : 'Les soldes et les budgets sont dans cette devise. Chaque dépense peut être payée dans une autre.')}
+          </AppText>
         </View>
       </View>
+      <CurrencyPicker
+        visible={picking}
+        value={values.baseCurrency}
+        first={values.baseCurrency}
+        onSelect={(currency) => set('baseCurrency', currency)}
+        onClose={() => setPicking(false)}
+      />
     </>
   );
 }
@@ -127,6 +165,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   inputError: { borderColor: colors.danger },
+  currency: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  currencyText: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.inkTertiary },
   section: { gap: spacing.sm + 2 },
   sectionTitle: { letterSpacing: 0.8 },
   card: { backgroundColor: colors.surface, borderRadius: radii.card, paddingVertical: spacing.xs },

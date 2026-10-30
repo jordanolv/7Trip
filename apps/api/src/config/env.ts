@@ -22,6 +22,12 @@ const envSchema = z
      */
     TRUST_PROXY: z.string().default('loopback'),
 
+    /**
+     * Daily exchange rates. `ecb`: the European Central Bank's, through Frankfurter (no key).
+     * `fixed`: a small fixed table, for tests that must not depend on the network.
+     */
+    RATES_SOURCE: z.enum(['ecb', 'fixed']).default('ecb'),
+
     /** Requests allowed per minute and per IP on sensitive auth routes. */
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),
   })

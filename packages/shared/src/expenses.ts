@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { currencySchema, currencySymbol, isWholeCurrency, rateSchema } from './currencies.js';
 import { splitEqually, type ExpenseShare } from './finance.js';
 import type { ContentAuthor } from './ideas.js';
 import { isoDateSchema } from './trips.js';
@@ -18,8 +19,11 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   OTHER: 'Autre',
 };
 
-/** 1 000 000,00 in minor units: more is a typing mistake. */
-export const MAX_EXPENSE_MINOR = 100_000_000;
+/**
+ * 20 000 000,00 in hundredths: more is a typing mistake, even in dongs or rupiahs. Checked on the
+ * amount as typed and once converted into the trip's currency.
+ */
+export const MAX_EXPENSE_MINOR = 2_000_000_000;
 
 const amountMinorSchema = z.int('Montant invalide').positive('Le montant doit être positif').max(MAX_EXPENSE_MINOR, 'Montant trop élevé');
 
@@ -44,6 +48,10 @@ const expenseFields = z.object({
   amountMinor: amountMinorSchema,
   date: isoDateSchema,
   category: z.enum(EXPENSE_CATEGORIES).nullish(),
+  /** The currency it was paid in; the trip's when left out. Custom shares are in it too. */
+  currency: currencySchema.optional(),
+  /** 1 unit of `currency` in the trip's currency, frozen on the expense. Needed in another currency. */
+  rateToBase: rateSchema.optional(),
   /** Personal: only its author sees it, it counts in their budget and never in the balances. */
   personal: z.boolean().default(false),
   /** Who advanced the money. A personal expense is always paid by its author. */
@@ -88,16 +96,23 @@ export type ChooseTransferPlanRequest = z.input<typeof chooseTransferPlanRequest
 
 export interface ExpenseShareView {
   participant: ContentAuthor;
+  /** In the trip's currency: what counts in the balances and the budget. */
   amountMinor: number;
+  /** In the expense's currency, as split or typed. */
+  originalMinor: number;
 }
 
 export interface Expense {
   id: string;
   tripId: string;
   label: string;
+  /** As paid, in `currency`. */
   amountMinor: number;
-  /** The trip's currency (one currency per trip until multi-currency, step 6B). */
   currency: string;
+  /** 1 unit of `currency` in the trip's currency, frozen when it was entered (1 in the trip's currency). */
+  rateToBase: number;
+  /** In the trip's currency: the shares add up to it. */
+  baseAmountMinor: number;
   date: string;
   category: ExpenseCategory | null;
   personal: boolean;
@@ -105,7 +120,7 @@ export interface Expense {
   author: ContentAuthor;
   splitMode: 'EQUAL' | 'CUSTOM';
   shares: ExpenseShareView[];
-  /** What it costs the caller: their share, 0 when they are not in it. */
+  /** What it costs the caller, in the trip's currency: their share, 0 when they are not in it. */
   myShareMinor: number;
   /** Author, payer or organizer (docs/decisions.md, "Permissions fines"). */
   canEdit: boolean;
@@ -172,8 +187,11 @@ export function parseAmount(text: string): number | null {
   return Number(units) * 100 + Number(cents.padEnd(2, '0'));
 }
 
-/** "1 284,00 €" (narrow no-break spaces between thousands). `whole` drops ",00" on round amounts. */
-export function formatMoney(minor: number, currency = 'EUR', { whole = false }: { whole?: boolean } = {}): string {
+/**
+ * "1 284,00 €" (narrow no-break spaces between thousands). `whole` drops ",00" on round amounts;
+ * always so for currencies written without cents (yen, won…).
+ */
+export function formatMoney(minor: number, currency = 'EUR', { whole = isWholeCurrency(currency) }: { whole?: boolean } = {}): string {
   const sign = minor < 0 ? '− ' : '';
   const abs = Math.abs(minor);
   const units = Math.floor(abs / 100)
@@ -181,7 +199,7 @@ export function formatMoney(minor: number, currency = 'EUR', { whole = false }: 
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const cents = (abs % 100).toString().padStart(2, '0');
   const amount = whole && cents === '00' ? units : `${units},${cents}`;
-  return `${sign}${amount} ${currency === 'EUR' ? '€' : currency}`;
+  return `${sign}${amount} ${currencySymbol(currency)}`;
 }
 
 /** Text for an amount field: 4800 → "48,00". */

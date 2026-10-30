@@ -13,6 +13,7 @@ export default defineConfig({
       NODE_ENV: 'test',
       JWT_SECRET: 'test-only-secret-that-is-long-enough-for-hs256',
       MAIL_TRANSPORT: 'log',
+      RATES_SOURCE: 'fixed',
     },
   },
 });
