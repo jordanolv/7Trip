@@ -1,46 +1,31 @@
-import {
-  DOCUMENT_CATEGORY_LABELS,
-  authorName,
-  formatDayMonth,
-  formatFileSize,
-  weekday,
-  type TripDocument,
-} from "@7trip/shared";
-import { colors, spacing } from "@7trip/ui-tokens";
-import { router, useLocalSearchParams, type Href } from "expo-router";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { DOCUMENT_CATEGORY_LABELS, authorName, formatDayMonth, formatFileSize, weekday, type TripDocument } from '@7trip/shared';
+import { colors, spacing } from '@7trip/ui-tokens';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { Sheet } from "@/components/sheet";
-import { AppText } from "@/components/ui/app-text";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { DocumentTile, VisibilityLabel } from "@/documents/document-visuals";
-import {
-  useDeleteDocument,
-  useDocument,
-  useOpenDocument,
-} from "@/documents/documents-api";
-import { errorMessage } from "@/lib/api";
-import { haptics } from "@/lib/haptics";
-import { useTripId } from "@/trips/use-trip-id";
+import { Sheet } from '@/components/sheet';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { DocumentTile, VisibilityLabel } from '@/documents/document-visuals';
+import { useDeleteDocument, useDocument, useOpenDocument } from '@/documents/documents-api';
+import { ApiError, errorMessage } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
+import { useTripId } from '@/trips/use-trip-id';
 
 export default function DocumentScreen() {
   const tripId = useTripId();
   const { documentId } = useLocalSearchParams<{ documentId: string }>();
   const doc = useDocument(tripId, documentId);
-  if (!doc.data) {
+  // A 404 wins over cached data: deleted, or made private by its owner since it was loaded.
+  const gone = doc.error instanceof ApiError && doc.error.status === 404;
+  if (!doc.data || gone) {
     return (
       <Sheet title="Document">
         {doc.isPending ? (
           <ActivityIndicator color={colors.accent} />
         ) : (
-          <AppText tone="secondary">{doc.error?.message}</AppText>
+          <AppText tone="secondary">{gone ? 'Ce document n’est plus disponible : il a été supprimé ou rendu privé.' : doc.error?.message}</AppText>
         )}
       </Sheet>
     );
@@ -48,44 +33,31 @@ export default function DocumentScreen() {
   return <DocumentDetail tripId={tripId} doc={doc.data} />;
 }
 
-function DocumentDetail({
-  tripId,
-  doc,
-}: {
-  tripId: string;
-  doc: TripDocument;
-}) {
+function DocumentDetail({ tripId, doc }: { tripId: string; doc: TripDocument }) {
   const open = useOpenDocument(tripId);
   const remove = useDeleteDocument(tripId, doc.id);
   const details = [
     DOCUMENT_CATEGORY_LABELS[doc.category],
-    doc.date ? `${weekday(doc.date)} ${formatDayMonth(doc.date)}` : "Sans date",
+    doc.date ? `${weekday(doc.date)} ${formatDayMonth(doc.date)}` : 'Sans date',
     doc.sizeBytes ? formatFileSize(doc.sizeBytes) : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(' · ');
 
   const confirmDelete = () => {
     haptics.warning();
-    Alert.alert(
-      "Supprimer le document ?",
-      doc.visibility === "SHARED"
-        ? "Il disparaîtra pour tout le groupe."
-        : "Il sera supprimé définitivement.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: () =>
-            remove.mutate(undefined, {
-              onSuccess: () => router.back(),
-              onError: (error) =>
-                Alert.alert("Impossible de supprimer", errorMessage(error)),
-            }),
-        },
-      ],
-    );
+    Alert.alert('Supprimer le document ?', doc.visibility === 'SHARED' ? 'Il disparaîtra pour tout le groupe.' : 'Il sera supprimé définitivement.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () =>
+          remove.mutate(undefined, {
+            onSuccess: () => router.back(),
+            onError: (error) => Alert.alert('Impossible de supprimer', errorMessage(error)),
+          }),
+      },
+    ]);
   };
 
   return (
@@ -104,18 +76,14 @@ function DocumentDetail({
       <View style={styles.line}>
         <VisibilityLabel visibility={doc.visibility} />
         <AppText variant="caption" tone="secondary">
-          · ajouté par {doc.canEdit ? "toi" : authorName(doc.owner)}
+          · ajouté par {doc.canEdit ? 'toi' : authorName(doc.owner)}
         </AppText>
       </View>
-      {doc.bookingRef ? (
-        <AppText tone="secondary">Réf. {doc.bookingRef}</AppText>
-      ) : null}
+      {doc.bookingRef ? <AppText tone="secondary">Réf. {doc.bookingRef}</AppText> : null}
       {doc.event ? (
         <Pressable
           accessibilityRole="link"
-          onPress={() =>
-            router.push(`/voyage/${tripId}/evenement/${doc.event!.id}` as Href)
-          }
+          onPress={() => router.push(`/voyage/${tripId}/evenement/${doc.event!.id}` as Href)}
           style={({ pressed }) => [styles.event, pressed && styles.pressed]}
         >
           <Icon name="calendar" color={colors.accentInk} size={18} />
@@ -131,37 +99,16 @@ function DocumentDetail({
 
       <View style={styles.actions}>
         <Button
-          title={doc.kind === "LINK" ? "Ouvrir le lien" : "Ouvrir"}
+          title={doc.kind === 'LINK' ? 'Ouvrir le lien' : 'Ouvrir'}
           loading={open.isPending}
           onPress={() =>
             open.mutate(doc, {
-              onError: (error) =>
-                Alert.alert(
-                  "Impossible d’ouvrir le document",
-                  errorMessage(error),
-                ),
+              onError: (error) => Alert.alert('Impossible d’ouvrir le document', errorMessage(error)),
             })
           }
         />
-        {doc.canEdit ? (
-          <Button
-            title="Modifier"
-            variant="soft"
-            onPress={() =>
-              router.push(
-                `/voyage/${tripId}/document/${doc.id}/modifier` as Href,
-              )
-            }
-          />
-        ) : null}
-        {doc.canDelete ? (
-          <Button
-            title="Supprimer"
-            variant="ghost"
-            loading={remove.isPending}
-            onPress={confirmDelete}
-          />
-        ) : null}
+        {doc.canEdit ? <Button title="Modifier" variant="soft" onPress={() => router.push(`/voyage/${tripId}/document/${doc.id}/modifier` as Href)} /> : null}
+        {doc.canDelete ? <Button title="Supprimer" variant="ghost" loading={remove.isPending} onPress={confirmDelete} /> : null}
       </View>
     </Sheet>
   );
@@ -169,11 +116,11 @@ function DocumentDetail({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
-  top: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  line: { flexDirection: "row", alignItems: "center", gap: 4 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   event: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     minHeight: 48,
     paddingHorizontal: spacing.md,
