@@ -58,6 +58,8 @@ const expenseFields = z.object({
   payerId: z.uuid(),
   /** Ignored for a personal expense. */
   split: expenseSplitSchema.optional(),
+  /** The planning item it was paid for (CDC §8.1). */
+  eventId: z.uuid().nullish(),
 });
 
 function checkSplit(body: z.output<typeof expenseFields>, ctx: z.RefinementCtx) {
@@ -116,6 +118,8 @@ export interface Expense {
   date: string;
   category: ExpenseCategory | null;
   personal: boolean;
+  /** The planning item it was paid for. */
+  event: { id: string; title: string; startDate: string } | null;
   payer: ContentAuthor;
   author: ContentAuthor;
   splitMode: 'EQUAL' | 'CUSTOM';
@@ -219,4 +223,48 @@ export function expenseShares(
   const picked = new Set(expense.split.participantIds);
   const ordered = [...joinOrder.filter((id) => picked.has(id)), ...expense.split.participantIds.filter((id) => !joinOrder.includes(id))];
   return splitEqually(expense.amountMinor, ordered);
+}
+
+/**
+ * "Mon budget" (CDC §8.3): a total, a cap for some categories, or both, in the trip's currency.
+ * Nothing set: the budget is removed.
+ */
+export const personalBudgetRequestSchema = z.object({
+  totalMinor: amountMinorSchema.nullable(),
+  perCategory: z.partialRecord(z.enum(EXPENSE_CATEGORIES), amountMinorSchema).default({}),
+});
+export type PersonalBudgetRequest = z.input<typeof personalBudgetRequestSchema>;
+
+export interface PersonalBudget {
+  /** Null: only per category. */
+  totalMinor: number | null;
+  perCategory: Partial<Record<ExpenseCategory, number>>;
+}
+
+/** Only the caller's: their share of each expense, never what they advanced for the others. */
+export interface PersonalBudgetView {
+  /** The trip's: every amount here is in it. */
+  currency: string;
+  /** Null: none set (or one set in another currency, see `staleCurrency`). */
+  budget: PersonalBudget | null;
+  /** A budget set before the trip's currency changed, in that currency: to set again. */
+  staleCurrency: string | null;
+  /** Their shares of the shared expenses, plus their personal expenses. */
+  spentMinor: number;
+  /** Per category; expenses without one are under `uncategorizedMinor`. */
+  spentByCategory: Partial<Record<ExpenseCategory, number>>;
+  uncategorizedMinor: number;
+  /** Shown apart (CDC §8.3), from the reimbursements suggested in Soldes. */
+  toRepayMinor: number;
+  toReceiveMinor: number;
+}
+
+/**
+ * Days of the trip left to spend the rest of the budget on, today included. Null without an end
+ * date or once it is over.
+ */
+export function budgetDaysLeft(trip: { startDate: string | null; endDate: string | null }, today: string): number | null {
+  if (!trip.endDate || today > trip.endDate) return null;
+  const from = trip.startDate && trip.startDate > today ? trip.startDate : today;
+  return Math.round((Date.parse(trip.endDate) - Date.parse(from)) / 86_400_000) + 1;
 }

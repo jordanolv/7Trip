@@ -1,4 +1,4 @@
-import { authorName, formatTimeRange, placeMapsUrl, type TripEvent } from '@7trip/shared';
+import { authorName, formatMoney, formatTimeRange, placeMapsUrl, type TripEvent } from '@7trip/shared';
 import { colors, fontFamily, spacing } from '@7trip/ui-tokens';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
@@ -11,6 +11,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { useDeleteEvent, useEvent } from '@/events/events-api';
+import { useExpenses } from '@/finances/finances-api';
 import { EventCategoryChip, EventIcon, eventDays, eventStyle } from '@/events/event-visuals';
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
@@ -53,6 +54,7 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
   const back = () => (router.canGoBack() ? router.back() : router.replace(`/voyage/${tripId}/planning` as Href));
   const mapsUrl = placeMapsUrl(event);
   const time = formatTimeRange(event);
+  const expenses = useExpenses(tripId).data?.filter((expense) => expense.event?.id === event.id) ?? [];
 
   const unplan = () => {
     haptics.warning();
@@ -171,6 +173,40 @@ function EvenementDetail({ tripId, event }: { tripId: string; event: TripEvent }
 
           {event.description ? <AppText style={styles.description}>{event.description}</AppText> : null}
 
+          <View style={styles.expenses}>
+            <AppText variant="label" tone="secondary">
+              Dépenses
+            </AppText>
+            {expenses.length ? (
+              <View style={styles.card}>
+                {expenses.map((expense, index) => (
+                  <View key={expense.id}>
+                    {index > 0 ? <View style={styles.separator} /> : null}
+                    <Pressable
+                      accessibilityRole="link"
+                      onPress={() => router.push(`/voyage/${tripId}/depense/${expense.id}` as Href)}
+                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                    >
+                      <Icon name="coins" color={colors.accentInk} size={20} />
+                      <AppText variant="bodyStrong" style={styles.flex} numberOfLines={1}>
+                        {expense.label}
+                      </AppText>
+                      <Text style={styles.expenseAmount}>{formatMoney(expense.amountMinor, expense.currency)}</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/voyage/${tripId}/depense/nouvelle?evenement=${event.id}` as Href)}
+              style={({ pressed }) => [styles.addExpense, pressed && styles.pressed]}
+            >
+              <Icon name="plus" color={colors.accentInk} size={18} />
+              <Text style={styles.actionText}>Ajouter une dépense</Text>
+            </Pressable>
+          </View>
+
           {event.idea && event.canEdit ? (
             <Pressable
               accessibilityRole="button"
@@ -238,4 +274,7 @@ const styles = StyleSheet.create({
   },
   unplanText: { fontFamily: fontFamily.semibold, fontSize: 14, color: colors.inkTertiary },
   pressed: { opacity: 0.6 },
+  expenses: { gap: spacing.sm },
+  expenseAmount: { fontFamily: fontFamily.bold, fontSize: 15, color: colors.ink },
+  addExpense: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 40, paddingHorizontal: spacing.md, borderRadius: 999, backgroundColor: colors.accentTint },
 });

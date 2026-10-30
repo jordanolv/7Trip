@@ -4,6 +4,8 @@ import {
   type CreateExpenseRequest,
   type Expense,
   type GuestJoinResponse,
+  type PersonalBudgetView,
+  type TripEvent,
   type TripBalances,
   type TripDetail,
   type TripInvitation,
@@ -281,7 +283,10 @@ describe('Expenses (e2e)', () => {
     const tip = await add(trip.id, jordan.auth, { label: 'Pourboire', amountMinor: 101, currency: 'USD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.lea, ids.thomas, guestId] } });
     const taxi = await add(trip.id, jordan.auth, { label: 'Taxi', amountMinor: 2000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.thomas, guestId] } });
 
+    await api().put(`/v1/trips/${trip.id}/budget`).set(asGuest(token)).send({ totalMinor: 40000 }).expect(200);
     await api().post('/v1/me/guest-sessions/claim').set(lea.auth).send({ tokens: [token] }).expect(204);
+    // Léa had none with her account: the guest's budget is hers now.
+    expect((await api().get(`/v1/trips/${trip.id}/budget`).set(lea.auth).expect(200)).body).toMatchObject({ budget: { totalMinor: 40000 } });
 
     const merged = (await api().get(`/v1/trips/${trip.id}/expenses/${both.id}`).set(lea.auth).expect(200)).body as Expense;
     expect(merged.shares.map((s) => [s.participant.displayName, s.amountMinor])).toEqual([['Jordan', 1000], ['Léa', 2000]]);
@@ -319,5 +324,63 @@ describe('Expenses (e2e)', () => {
     // + 6,66 (taxi) + 0,61 (tip), repaid 5 → owes 12,27.
     expect(b.me).toEqual({ paidMinor: 2000, costMinor: 3727, balanceMinor: -1227 });
     expect(b.people.reduce((sum, p) => sum + p.balanceMinor, 0)).toBe(0);
+  });
+
+  it('links an expense to a planning item, until the item is deleted', async () => {
+    const { trip, ids } = await newTrip();
+    const event = (await api().post(`/v1/trips/${trip.id}/events`).set(lea.auth).send({ title: 'Alhambra', startDate: '2027-07-12' }).expect(201))
+      .body as TripEvent;
+    const tickets = await add(trip.id, jordan.auth, { label: 'Billets', amountMinor: 8000, payerId: ids.jordan, eventId: event.id, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.lea] } });
+    expect(tickets.event).toEqual({ id: event.id, title: 'Alhambra', startDate: '2027-07-12' });
+
+    // Only an item of this trip.
+    const other = await newTrip();
+    const elsewhere = (await api().post(`/v1/trips/${other.trip.id}/events`).set(jordan.auth).send({ title: 'Ailleurs', startDate: '2027-07-12' }).expect(201))
+      .body as TripEvent;
+    await add(trip.id, jordan.auth, { amountMinor: 100, payerId: ids.jordan, eventId: elsewhere.id, split: { mode: 'EQUAL', participantIds: [ids.jordan] } }, 400);
+
+    await api().delete(`/v1/trips/${trip.id}/events/${event.id}`).set(lea.auth).expect(204);
+    const kept = (await api().get(`/v1/trips/${trip.id}/expenses/${tickets.id}`).set(jordan.auth).expect(200)).body as Expense;
+    expect(kept).toMatchObject({ event: null, amountMinor: 8000 });
+  });
+
+  it('keeps a personal budget, counting only the caller’s shares (CDC §8.3)', async () => {
+    const { trip, ids } = await newTrip();
+    const everyone = [ids.jordan, ids.lea, ids.thomas, ids.camille];
+    const budget = async (headers: Record<string, string>) => (await api().get(`/v1/trips/${trip.id}/budget`).set(headers).expect(200)).body as PersonalBudgetView;
+    expect(await budget(lea.auth)).toMatchObject({ currency: 'EUR', budget: null, spentMinor: 0, toRepayMinor: 0, toReceiveMinor: 0 });
+
+    // The example of the spec: 120 € shared by four, 30 € in each budget.
+    await add(trip.id, jordan.auth, { label: 'Resto', amountMinor: 12000, category: 'FOOD', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: everyone } });
+    await add(trip.id, lea.auth, { label: 'Éventail', amountMinor: 1200, category: 'SHOPPING', payerId: ids.lea, personal: true });
+    // Léa advances the taxi for Thomas alone: not in her budget, to receive.
+    await add(trip.id, lea.auth, { label: 'Taxi', amountMinor: 2000, payerId: ids.lea, split: { mode: 'EQUAL', participantIds: [ids.thomas] } });
+    await add(trip.id, jordan.auth, { label: 'Essence', amountMinor: 4000, payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.lea] } });
+
+    const saved = (
+      await api().put(`/v1/trips/${trip.id}/budget`).set(lea.auth).send({ totalMinor: 50000, perCategory: { FOOD: 18000 } }).expect(200)
+    ).body as PersonalBudgetView;
+    expect(saved).toMatchObject({
+      budget: { totalMinor: 50000, perCategory: { FOOD: 18000 } },
+      staleCurrency: null,
+      spentMinor: 3000 + 1200 + 2000,
+      spentByCategory: { FOOD: 3000, SHOPPING: 1200 },
+      uncategorizedMinor: 2000,
+    });
+    // She owes Jordan 30 + 20 and Thomas owes her 20: settled through the suggested transfers.
+    expect(saved.toRepayMinor - saved.toReceiveMinor).toBe(3000);
+
+    // Nobody else's: Jordan sees his own, with his personal share only.
+    expect(await budget(jordan.auth)).toMatchObject({ budget: null, spentMinor: 5000 });
+    await api().put(`/v1/trips/${trip.id}/budget`).set(lea.auth).send({ totalMinor: 0 }).expect(400);
+    await api().put(`/v1/trips/${trip.id}/budget`).set(lea.auth).send({ totalMinor: null, perCategory: {} }).expect(200);
+    expect((await budget(lea.auth)).budget).toBeNull();
+  });
+
+  it('asks for the budget again once the trip’s currency changes', async () => {
+    const { trip } = await newTrip();
+    await api().put(`/v1/trips/${trip.id}/budget`).set(lea.auth).send({ totalMinor: 50000 }).expect(200);
+    await api().patch(`/v1/trips/${trip.id}`).set(jordan.auth).send({ baseCurrency: 'GBP' }).expect(200);
+    expect((await api().get(`/v1/trips/${trip.id}/budget`).set(lea.auth).expect(200)).body).toMatchObject({ currency: 'GBP', budget: null, staleCurrency: 'EUR' });
   });
 });

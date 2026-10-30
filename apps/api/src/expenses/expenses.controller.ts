@@ -4,15 +4,17 @@ import {
   createExpenseRequestSchema,
   createSettlementRequestSchema,
   currencySchema,
+  personalBudgetRequestSchema,
   updateExpenseRequestSchema,
   type Expense,
+  type PersonalBudgetView,
   type Settlement,
   type TripBalances,
 } from '@7trip/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import type { Actor } from '../trips/actor.js';
 import { CurrentActor, TripMemberGuard } from '../trips/trip-member.guard.js';
-import { ExpensesService, type ExpenseInput, type SettlementInput, type TransferPlanInput, type UpdateExpenseInput } from './expenses.service.js';
+import { ExpensesService, type BudgetInput, type ExpenseInput, type SettlementInput, type TransferPlanInput, type UpdateExpenseInput } from './expenses.service.js';
 
 /** Open to every member of the trip, guests included (docs/architecture.md §5). */
 @Controller('trips/:tripId')
@@ -73,6 +75,21 @@ export class ExpensesController {
     @Body(new ZodValidationPipe(chooseTransferPlanRequestSchema)) body: TransferPlanInput,
   ): Promise<TripBalances> {
     return this.expenses.choosePlan(actor, tripId, body);
+  }
+
+  /** The caller's own budget: nobody else's can be read. */
+  @Get('budget')
+  budget(@CurrentActor() actor: Actor, @Param('tripId') tripId: string): Promise<PersonalBudgetView> {
+    return this.expenses.budget(actor, tripId);
+  }
+
+  @Put('budget')
+  setBudget(
+    @CurrentActor() actor: Actor,
+    @Param('tripId') tripId: string,
+    @Body(new ZodValidationPipe(personalBudgetRequestSchema)) body: BudgetInput,
+  ): Promise<PersonalBudgetView> {
+    return this.expenses.setBudget(actor, tripId, body);
   }
 
   @Post('settlements')

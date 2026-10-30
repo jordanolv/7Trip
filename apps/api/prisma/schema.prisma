@@ -189,6 +189,7 @@ model Participant {
   expenses         Expense[]          @relation("ExpenseAuthor")
   paidExpenses     Expense[]          @relation("ExpensePayer")
   expenseShares    ExpenseShare[]
+  budget           PersonalBudget?
   settlementsPaid  Settlement[]       @relation("SettlementFrom")
   settlementsGot   Settlement[]       @relation("SettlementTo")
   settlementsMade  Settlement[]       @relation("SettlementCreator")
@@ -279,6 +280,7 @@ model Event {
   idea         Idea?              @relation(fields: [ideaId], references: [id], onDelete: SetNull)
   /// None: the whole group.
   participants EventParticipant[]
+  expenses     Expense[]
 
   @@index([tripId, startDate])
   @@index([authorId])
@@ -397,6 +399,8 @@ model Expense {
   category        ExpenseCategory?
   /// Only its author sees it; it counts in their budget, never in the balances.
   personal        Boolean          @default(false)
+  /// The planning item it was paid for (CDC §8.1); deleting the event keeps the expense.
+  eventId         String?          @db.Uuid
   splitMode       SplitMode        @default(EQUAL)
   version         Int              @default(1)
   createdAt       DateTime         @default(now())
@@ -405,14 +409,30 @@ model Expense {
   trip   Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
   author Participant    @relation("ExpenseAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   payer  Participant    @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Cascade)
+  event  Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
   shares ExpenseShare[]
 
   @@index([tripId, date])
+  @@index([eventId])
   @@index([authorId])
   @@index([payerId])
 }
 
 /// Real share of an expense: what it costs this participant. The shares add up to the amount.
+/// A participant's own forecast, seen only by them (CDC §8.3). Amounts in hundredths of `currency`.
+model PersonalBudget {
+  participantId String   @id @db.Uuid
+  /// The trip's currency when it was set: a budget set before the trip's currency changed is set again.
+  currency      String
+  /// Null: only per category.
+  totalMinor    Int?
+  /// { FOOD: 18000, … }: a cap for some categories.
+  perCategory   Json     @default("{}")
+  updatedAt     DateTime @updatedAt
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
 model ExpenseShare {
   expenseId     String @db.Uuid
   participantId String @db.Uuid
