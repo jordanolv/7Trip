@@ -1,4 +1,4 @@
-import { ApiErrorCode, EVENT_CONFLICT_GROUPS, chooseVersion, mergeEdits, updateEventRequestSchema, type MergeResult, type TripEvent } from '@7trip/shared';
+import { ApiErrorCode, EVENT_CONFLICT_GROUPS, chooseVersion, mergeEdits, scheduleError, updateEventRequestSchema, type MergeResult, type TripEvent } from '@7trip/shared';
 import { colors, spacing } from '@7trip/ui-tokens';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -90,10 +90,23 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
       const result = mergeEdits(base.fields, fields, theirs, EVENT_CONFLICT_GROUPS);
       const next = { latest, theirs, mine: fields, ...result, conflicts: result.conflicts as ConflictGroup[], keptMine: result.keptMine as ConflictGroup[], choices: {} };
       // Nothing collides: both sets of changes go together, without asking, if their mix holds.
-      const valid = updateEventRequestSchema.safeParse({ ...result.merged, version: latest.version }).success;
-      if (!next.conflicts.length && valid) return submit(result.merged, { fields: theirs, version: latest.version });
+      // The schedule rules too: the request schema leaves them to the server, for partial updates.
+      const valid = updateEventRequestSchema.safeParse({ ...result.merged, version: latest.version }).success && !scheduleError(result.merged);
+      if (!next.conflicts.length && valid) {
+        try {
+          return await submit(result.merged, { fields: theirs, version: latest.version });
+        } catch (retryError) {
+          // Refused anyway: the merge stays on screen, to be fixed by hand.
+          setConflict(next);
+          throw retryError;
+        }
+      }
       setConflict(next);
-      if (!valid) await submit(result.merged, { fields: theirs, version: latest.version });
+      if (!valid) {
+        const schedule = scheduleError(result.merged);
+        if (schedule) setErrors({ [schedule.field]: schedule.message });
+        else await submit(result.merged, { fields: theirs, version: latest.version });
+      }
       return;
     }
     haptics.success();
