@@ -174,7 +174,7 @@ export class DocumentsService {
     const me = await this.trips.member(actor, tripId);
     const doc = await this.find(this.prisma, tripId, documentId, me);
     if (!doc.storageKey || !doc.mime) throw apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Ce document est un lien, sans fichier');
-    const { url, expiresAt } = await this.storage.signedUrl(doc.storageKey, { mime: doc.mime, fileName: doc.fileName ?? doc.title }, apiBase);
+    const { url, expiresAt } = this.storage.signedUrl(doc.storageKey, apiBase);
     return { url, expiresAt: expiresAt.toISOString() };
   }
 

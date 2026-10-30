@@ -127,8 +127,8 @@ export class DocumentsController {
 }
 
 /**
- * Local storage only (development, tests): serves a file behind a link signed by
- * StorageService.signedUrl. In production the links point to the bucket.
+ * Serves a file behind a link signed by StorageService.signedUrl, whichever the storage: the
+ * bucket is never reached by the apps.
  */
 @Controller('files')
 export class FilesController {
@@ -141,19 +141,19 @@ export class FilesController {
   async file(@Query('key') key: unknown, @Query('expires') expires: unknown, @Query('signature') signature: unknown, @Res() response: Response): Promise<void> {
     const notFound = () => apiError(HttpStatus.NOT_FOUND, ApiErrorCode.NotFound, 'Lien expiré ou invalide');
     if (typeof key !== 'string' || typeof expires !== 'string' || typeof signature !== 'string') throw notFound();
-    const path = this.storage.verifiedLocalPath(key, Number(expires), signature);
+    if (!this.storage.verify(key, Number(expires), signature)) throw notFound();
     // Deleted since the link was made: gone too.
-    const doc = path ? await this.prisma.document.findUnique({ where: { storageKey: key }, select: { mime: true, fileName: true, title: true } }) : null;
-    if (!path || !doc?.mime) throw notFound();
+    const doc = await this.prisma.document.findUnique({ where: { storageKey: key }, select: { mime: true, fileName: true, title: true } });
+    const file = doc?.mime ? await this.storage.read(key) : null;
+    if (!doc?.mime || !file) throw notFound();
     response.set({
       'Content-Type': doc.mime,
+      'Content-Length': String(file.size),
       'Content-Disposition': contentDisposition(doc.fileName ?? doc.title),
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     });
-    // The folder may be a dot folder (.storage): the path was checked, it is ours.
-    response.sendFile(path, { dotfiles: 'allow' }, (error) => {
-      if (error && !response.headersSent) response.status(HttpStatus.NOT_FOUND).end();
-    });
+    file.body.on('error', () => response.destroy());
+    file.body.pipe(response);
   }
 }

@@ -1,9 +1,10 @@
-import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { CreateBucketCommand, DeleteObjectsCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import type { Readable } from 'node:stream';
 import { ENV, type Env } from '../config/env.js';
 
 /** docs/decisions.md: a link to a file stops working in under 5 minutes. */
@@ -12,11 +13,12 @@ export const SIGNED_URL_SECONDS = 4 * 60;
 const KEY_PATTERN = /^trips\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/;
 
 /**
- * Where the documents' files live, never public: they are opened through links signed for a few
- * minutes, handed out after the API has checked who may see them.
+ * Where the documents' files live, never public. They are opened through links to this API signed
+ * for a few minutes, handed out after it has checked who may see them; the API then streams the
+ * file. The bucket stays on the private network: only the API reaches it.
  */
 @Injectable()
-export class StorageService {
+export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private readonly s3: S3Client | null;
 
@@ -30,6 +32,19 @@ export class StorageService {
             credentials: { accessKeyId: env.S3_ACCESS_KEY_ID!, secretAccessKey: env.S3_SECRET_ACCESS_KEY! },
           })
         : null;
+  }
+
+  /** A new bucket (a fresh RustFS or MinIO) is created on the first start. */
+  async onModuleInit(): Promise<void> {
+    if (!this.s3) return;
+    try {
+      await this.s3.send(new HeadBucketCommand({ Bucket: this.env.S3_BUCKET }));
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+      if (status !== 404) throw error;
+      await this.s3.send(new CreateBucketCommand({ Bucket: this.env.S3_BUCKET }));
+      this.logger.log(`Created the bucket ${this.env.S3_BUCKET}`);
+    }
   }
 
   static key(tripId: string, documentId: string): string {
@@ -63,33 +78,37 @@ export class StorageService {
     }
   }
 
-  /**
-   * A link to open the file for a few minutes. `apiBase`: this API's public address, for the
-   * local driver, which serves the files itself (GET /v1/files).
-   */
-  async signedUrl(key: string, file: { mime: string; fileName: string }, apiBase: string): Promise<{ url: string; expiresAt: Date }> {
+  /** A link to open the file for a few minutes; `apiBase`: this API's public address. */
+  signedUrl(key: string, apiBase: string): { url: string; expiresAt: Date } {
     const expiresAt = new Date(Date.now() + SIGNED_URL_SECONDS * 1000);
-    if (this.s3) {
-      const command = new GetObjectCommand({
-        Bucket: this.env.S3_BUCKET,
-        Key: key,
-        ResponseContentType: file.mime,
-        ResponseContentDisposition: contentDisposition(file.fileName),
-      });
-      return { url: await getSignedUrl(this.s3, command, { expiresIn: SIGNED_URL_SECONDS }), expiresAt };
-    }
     const expires = Math.floor(expiresAt.getTime() / 1000);
     const query = new URLSearchParams({ key, expires: String(expires), signature: this.sign(key, expires) });
     return { url: `${apiBase}/v1/files?${query.toString()}`, expiresAt };
   }
 
-  /** Local driver: the file behind a signed link still valid, else null. */
-  verifiedLocalPath(key: string, expires: number, signature: string): string | null {
-    if (this.s3 || !KEY_PATTERN.test(key) || !Number.isInteger(expires) || expires * 1000 < Date.now()) return null;
+  /** Whether a link from signedUrl is genuine and still valid. */
+  verify(key: string, expires: number, signature: string): boolean {
+    if (!KEY_PATTERN.test(key) || !Number.isInteger(expires) || expires * 1000 < Date.now()) return false;
     const expected = Buffer.from(this.sign(key, expires));
     const given = Buffer.from(signature);
-    if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-    return this.localPath(key);
+    return expected.length === given.length && timingSafeEqual(expected, given);
+  }
+
+  /** The file's bytes and size; null when it is not there. */
+  async read(key: string): Promise<{ body: Readable; size: number } | null> {
+    try {
+      if (this.s3) {
+        const object = await this.s3.send(new GetObjectCommand({ Bucket: this.env.S3_BUCKET, Key: key }));
+        return object.Body ? { body: object.Body as Readable, size: object.ContentLength ?? 0 } : null;
+      }
+      const path = this.localPath(key);
+      const { size } = await stat(path);
+      return { body: createReadStream(path), size };
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number }; code?: string }).$metadata?.httpStatusCode;
+      if (status === 404 || (error as { code?: string }).code === 'ENOENT') return null;
+      throw error;
+    }
   }
 
   private sign(key: string, expires: number): string {

@@ -58,8 +58,8 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
   fiables, types générés réutilisables. Remplaçable si tu préfères rester sur TypeORM.
 - Validation des entrées avec les schémas Zod de `packages/shared` (mêmes règles côté app).
 - Documentation OpenAPI générée → client typé pour le mobile et le web.
-- Stockage de fichiers compatible **S3** (MinIO auto-hébergé ou Scaleway / Cloudflare R2), accès
-  uniquement par **URL signées courtes** délivrées après contrôle des droits.
+- Stockage de fichiers compatible **S3** (RustFS auto-hébergé ; R2 ou Scaleway possibles), accès
+  uniquement par **liens signés courts** vers l'API, délivrés après contrôle des droits.
 - Tâches différées (notifications, rappels, nettoyage) : table *outbox* + worker ; pas de Redis
   en V1.
 
@@ -70,7 +70,7 @@ arrondis, « qui peut faire quoi ») sont écrites et testées une seule fois.
 
 ### Infrastructure
 - **Dokploy** (Traefik, Let's Encrypt) sur le serveur existant, voir [deploiement.md](deploiement.md) :
-  `api.7trip.fr`, `7trip.fr` (web), Postgres, MinIO.
+  `api.7trip.fr`, `7trip.fr` (web), Postgres, RustFS.
 - CI GitHub Actions : lint, typecheck, tests (shared, API avec base de test), build.
 - Environnements : local, staging (`staging.7trip.fr`, branche `dev`), production (`7trip.fr`, branche `main`).
 
