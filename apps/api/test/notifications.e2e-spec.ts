@@ -241,6 +241,16 @@ describe('Notifications (e2e)', () => {
     await worker.planReminders(new Date('2027-07-17T10:00:00Z'));
     const due = await prisma.notification.findMany({ where: { participantId: { in: Object.values(ids) }, kind: 'settlement.due' } });
     expect(due.map((n) => [n.participantId, n.body])).toEqual([[ids.lea, `Le voyage est fini : il te reste ${formatMoney(10000)} à rembourser`]]);
+
+    // Léa pays half back before it goes out: told what is left, as it is when sent.
+    await api().post(`/v1/trips/${trip.id}/settlements`).set(lea.auth).send({ fromId: ids.lea, toId: ids.jordan, amountMinor: 5000 }).expect(201);
+    let to = await sentDuring(() => worker.sendDue(new Date('2027-07-17T10:05:00Z')));
+    expect(to(lea).map((m) => m.body)).toEqual([`Le voyage est fini : il te reste ${formatMoney(5000)} à rembourser`]);
+    // Paid back in full before it goes out: nothing is sent.
+    await prisma.notification.updateMany({ where: { participantId: ids.lea, kind: 'settlement.due' }, data: { sentAt: null, outcome: null, claimedAt: null } });
+    await api().post(`/v1/trips/${trip.id}/settlements`).set(lea.auth).send({ fromId: ids.lea, toId: ids.jordan, amountMinor: 5000 }).expect(201);
+    to = await sentDuring(() => worker.sendDue(new Date('2027-07-17T10:10:00Z')));
+    expect(to(lea)).toEqual([]);
   });
 
   it('forgets a phone that no longer takes notifications', async () => {

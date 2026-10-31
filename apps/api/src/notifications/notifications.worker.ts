@@ -112,8 +112,14 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
       else if (!(await this.stillRelevant(row, now, participant.user.pushTokens[0]?.timeZone))) outcomes.set(row.id, 'skipped');
       else if (!participant.user.pushTokens.length) outcomes.set(row.id, 'no-device');
       else {
+        // What is owed may have been paid back since it was planned: told as it is now, or not at all.
+        const body = row.kind === 'settlement.due' ? await this.stillOwed(participant.tripId, participant.id) : row.body;
+        if (body === null) {
+          outcomes.set(row.id, 'skipped');
+          continue;
+        }
         for (const { token } of participant.user.pushTokens) {
-          messages.push({ id: row.id, message: { to: token, title: row.title, body: row.body, data: { url: row.url } } });
+          messages.push({ id: row.id, message: { to: token, title: row.title, body, data: { url: row.url } } });
         }
       }
     }
@@ -247,7 +253,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
               this.notifications.enqueue(tx, trip.id, [participant], {
                 kind: 'settlement.due',
                 key,
-                body: `Le voyage est fini : il te reste ${formatMoney(owed, trip.baseCurrency)} à rembourser`,
+                body: dueMessage(owed, trip.baseCurrency),
                 url: `/voyage/${trip.id}/finances?section=balances`,
               }),
             );
@@ -277,6 +283,14 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     return `${events.length} au programme : ${shown.join(', ')}${more}`;
   }
 
+  /** The reminder of what is owed, from the balances of now; null once nothing is. */
+  private async stillOwed(tripId: string, participantId: string): Promise<string | null> {
+    const owed = -((await this.balances(tripId)).get(participantId) ?? 0);
+    if (owed <= 0) return null;
+    const { baseCurrency } = await this.prisma.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+    return dueMessage(owed, baseCurrency);
+  }
+
   private async balances(tripId: string): Promise<Map<string, number>> {
     const expenses = await this.prisma.expense.findMany({ where: { tripId, personal: false }, include: { shares: true } });
     const settlements = await this.prisma.settlement.findMany({ where: { tripId } });
@@ -286,3 +300,5 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     );
   }
 }
+
+const dueMessage = (owedMinor: number, currency: string) => `Le voyage est fini : il te reste ${formatMoney(owedMinor, currency)} à rembourser`;
