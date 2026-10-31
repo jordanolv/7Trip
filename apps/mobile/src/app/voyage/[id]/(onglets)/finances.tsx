@@ -1,6 +1,6 @@
 import { colors, spacing } from '@7trip/ui-tokens';
-import { router, useFocusEffect, type Href } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,7 +26,19 @@ export default function FinancesScreen() {
   const expenses = useExpenses(tripId);
   const balances = useBalances(tripId);
   const budget = useBudget(tripId);
+  // `?section=balances|budget`: opened from a dashboard card on that section.
+  const { section: asked } = useLocalSearchParams<{ section?: Section }>();
   const [section, setSection] = useState<Section>('expenses');
+  // A new card tapped: its section, set while rendering (React's "adjusting state" pattern).
+  const [lastAsked, setLastAsked] = useState<string | undefined>(undefined);
+  if (asked !== lastAsked) {
+    setLastAsked(asked);
+    if (asked === 'balances' || asked === 'budget' || asked === 'expenses') setSection(asked);
+  }
+  // Consumed: the next tap on the same card asks again, even if another section was picked since.
+  useEffect(() => {
+    if (asked) router.setParams({ section: undefined });
+  }, [asked]);
 
   // Others add expenses meanwhile: fetched again on each visit.
   const refetchExpenses = expenses.refetch;
