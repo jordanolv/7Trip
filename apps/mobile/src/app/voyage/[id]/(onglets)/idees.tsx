@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { CategoryTile, IdeaStatusChip, ideaDisplayStatus, ideaMeta, type IdeaDisplayStatus } from '@/ideas/idea-visuals';
 import { useIdeas, useMarkIdeasSeen } from '@/ideas/ideas-api';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 import { AuthorName } from '@/trips/author-name';
@@ -32,6 +33,7 @@ export default function IdeesScreen() {
     const newest = (await refetch({ cancelRefetch: false })).data?.[0]?.createdAt;
     if (newest) markSeen(newest);
   }, [refetch, markSeen]);
+  const pull = usePullRefresh(refresh);
   useFocusEffect(
     useCallback(() => {
       void refresh();
@@ -50,7 +52,7 @@ export default function IdeesScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={ideas.isRefetching} onRefresh={() => void refresh()} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>

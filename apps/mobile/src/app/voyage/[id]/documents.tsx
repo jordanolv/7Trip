@@ -14,6 +14,7 @@ import { useOfflineDocuments } from '@/documents/offline-documents';
 import { errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useIsOnline } from '@/lib/online';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { useTripId } from '@/trips/use-trip-id';
 
 type Filter = 'all' | DocumentCategory;
@@ -43,6 +44,7 @@ export default function DocumentsScreen() {
   const documents = useDocuments(tripId);
   const [filter, setFilter] = useState<Filter>('all');
   const { refetch } = documents;
+  const pull = usePullRefresh(refetch);
   // Others add documents meanwhile: fetched again on each visit.
   useFocusEffect(
     useCallback(() => {
@@ -72,7 +74,7 @@ export default function DocumentsScreen() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={documents.isRefetching} onRefresh={() => void refetch()} tintColor={colors.accent} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
       >
         {documents.isPending ? (
           <ActivityIndicator color={colors.accent} style={styles.loading} />

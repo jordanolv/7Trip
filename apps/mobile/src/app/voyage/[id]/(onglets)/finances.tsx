@@ -13,6 +13,7 @@ import { BudgetView } from '@/finances/budget-view';
 import { myParticipantId } from '@/finances/expense-people';
 import { ExpenseList, FinanceSummary } from '@/finances/expense-list';
 import { useBalances, useBudget, useExpenses } from '@/finances/finances-api';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
@@ -50,6 +51,7 @@ export default function FinancesScreen() {
     void refetchBudget({ cancelRefetch: false });
   }, [refetchExpenses, refetchBalances, refetchBudget]);
   useFocusEffect(refresh);
+  const pull = usePullRefresh(() => Promise.all([refetchExpenses(), refetchBalances(), refetchBudget()]));
 
   const add = () => router.push(`/voyage/${tripId}/depense/nouvelle` as Href);
   const meId = trip.data ? myParticipantId(trip.data) : null;
@@ -60,7 +62,7 @@ export default function FinancesScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={expenses.isRefetching || balances.isRefetching || budget.isRefetching} onRefresh={refresh} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
