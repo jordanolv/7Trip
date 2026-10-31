@@ -16,6 +16,8 @@ export default defineConfig({
       RATES_SOURCE: 'fixed',
       STORAGE_DRIVER: 'local',
       STORAGE_DIR: '.storage-test',
+      PUSH_DRIVER: 'memory',
+      NOTIFICATIONS_WORKER: 'false',
     },
   },
 });

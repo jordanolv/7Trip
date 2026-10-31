@@ -43,6 +43,7 @@ model User {
   participants  Participant[]
   invitations   Invitation[]
   createdTrips  Trip[]
+  pushTokens    PushToken[]
 }
 
 /// Opaque refresh tokens, stored hashed. Each one is single use (rotation on refresh).
@@ -178,6 +179,8 @@ model Participant {
   guestTokenHash String?           @unique
   /// Ideas created after this, by others, are new to the participant (red badge on the Ideas tab).
   ideasSeenAt    DateTime?
+  /// What they want to be notified about in this trip, over the defaults (NOTIFICATION_TOPICS in @7trip/shared).
+  notifPrefs     Json?
 
   trip             Trip               @relation(fields: [tripId], references: [id], onDelete: Cascade)
   user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -192,6 +195,7 @@ model Participant {
   expenseShares    ExpenseShare[]
   budget           PersonalBudget?
   documents        Document[]
+  notifications    Notification[]
   settlementsPaid  Settlement[]       @relation("SettlementFrom")
   settlementsGot   Settlement[]       @relation("SettlementTo")
   settlementsMade  Settlement[]       @relation("SettlementCreator")
@@ -521,4 +525,50 @@ model Settlement {
   @@index([fromId])
   @@index([toId])
   @@index([createdById])
+}
+
+/// A phone receiving the account's notifications. Moves to the last account signed in on it.
+model PushToken {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  /// "ExponentPushToken[…]"
+  token     String   @unique
+  /// IANA zone of the phone, for the morning reminder.
+  timeZone  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Outbox: written in the same transaction as the change it tells about, sent by the worker.
+model Notification {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  participantId String    @db.Uuid
+  /// "poll.created", "poll.reminder", "event.changed", "daily", "settlement", "settlement.due", "expense.created"
+  kind          String
+  /// One notification per key: a later change replaces the one still waiting (planning edits in a row).
+  key           String?
+  /// What it is about (pollId, eventId…), to check it still matters when it is due.
+  refId         String?   @db.Uuid
+  title         String
+  body          String
+  /// Screen of the app it opens.
+  url           String
+  scheduledAt   DateTime  @default(now())
+  /// Taken by a worker; taken again if it stays unsent for a few minutes.
+  claimedAt     DateTime?
+  attempts      Int       @default(0)
+  sentAt        DateTime?
+  /// sent · skipped (no longer relevant, or switched off) · no-device · failed
+  outcome       String?
+  createdAt     DateTime  @default(now())
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt, scheduledAt])
+  @@index([key])
+  @@index([participantId])
 }

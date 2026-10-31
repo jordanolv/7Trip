@@ -43,6 +43,15 @@ const envSchema = z
     /** MinIO wants bucket names in the path rather than in the host. */
     S3_FORCE_PATH_STYLE: z.stringbool().default(true),
 
+    /**
+     * Push notifications. `expo`: through Expo's push service (EXPO_ACCESS_TOKEN when the project
+     * requires one). `memory`: kept in memory, for tests.
+     */
+    PUSH_DRIVER: z.enum(['expo', 'memory']).default('expo'),
+    EXPO_ACCESS_TOKEN: z.string().optional(),
+    /** Sends the outbox and plans the reminders every few seconds. Off in tests, which run it by hand. */
+    NOTIFICATIONS_WORKER: z.stringbool().default(true),
+
     /** Requests allowed per minute and per IP on sensitive auth routes. */
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),
   })

@@ -126,7 +126,8 @@ User ─┬─< AuthIdentity (email | apple | google)
 | `Settlement` | tripId, fromId, toId, amountMinor, createdById, createdAt |
 | `PersonalBudget` | participantId (un par participant, vu de lui seul), currency (celle du voyage à la saisie), totalMinor?, perCategory (json : plafond par catégorie) |
 | `Document` | tripId, ownerId, title, kind (file/link), storageKey?, url?, mime?, sizeBytes?, fileName?, category (transport/hébergement/activité/autre), date?, eventId?, visibility (private/shared, privé par défaut), bookingRef?, version |
-| `Notification` | participantId, type, payload, scheduledAt, sentAt? |
+| `PushToken` | userId, token (Expo, unique : passe au dernier compte connecté sur le téléphone), timeZone (pour le rappel de 8 h) |
+| `Notification` | participantId, kind, key? (une seule en attente par clé), refId?, title (le voyage), body, url (écran ouvert), scheduledAt, claimedAt?, attempts, sentAt?, outcome? |
 
 Une idée planifiée garde son identité : l'`Event` créé référence l'`Idea` (`ideaId`). Retirer
 l'événement du planning le supprime sans toucher l'idée. Le statut « planifiée » affiché dans la
@@ -227,10 +228,20 @@ ou des options du sondage.
 
 ## 9. Notifications
 
-Les événements métier (nouveau sondage, sondage bientôt clos, changement important du planning,
-rappel du jour, remboursement dû, invitation) écrivent dans l'outbox. Un worker applique les
-préférences du participant pour ce voyage, regroupe ce qui peut l'être et envoie via **Expo Push**.
-Aucune notification n'est envoyée par défaut pour chaque nouvelle dépense ou chaque vote.
+Les changements utiles (nouveau sondage, changement important du planning, remboursement, et sur
+demande chaque dépense) écrivent leurs notifications dans l'outbox, **dans la même transaction** :
+rien n'est perdu ni envoyé pour un changement annulé. Le rappel avant clôture d'un sondage y est
+écrit d'avance, à l'heure voulue. Les modifications d'un événement attendent une minute : la
+suivante remplace celle en attente, et un événement créé puis supprimé dans la minute n'est
+jamais annoncé.
+
+Le worker (dans l'API, toutes les 30 s) prend ce qui est dû (`FOR UPDATE SKIP LOCKED`), vérifie
+que c'est encore utile (participant toujours là, préférence toujours active, sondage pas encore
+voté ni clos) et envoie via **Expo Push** à chaque téléphone du compte ; un téléphone refusé
+(`DeviceNotRegistered`) est oublié. Toutes les 5 minutes, il prévoit aussi les rappels qui
+dépendent de l'heure, lue sur le fuseau du téléphone : le programme du jour à 8 h pendant le
+séjour, et ce qu'il reste à rembourser le lendemain de la fin. Une notification touchée ouvre son
+écran (`url`). Les détails par défaut sont dans [decisions.md](decisions.md#notifications-réglages-par-défaut).
 
 ## 10. API (aperçu)
 
@@ -248,7 +259,7 @@ REST, préfixe `/v1`, toutes les routes de voyage sous `/v1/trips/{tripId}`.
 | Sondages | `GET/POST …/polls`, `GET …/polls/{pid}`, `PUT …/polls/{pid}/vote`, `POST …/polls/{pid}/close`, `POST …/polls/{pid}/apply` |
 | Finances | `GET/POST …/expenses`, `GET/PUT/DELETE …/expenses/{xid}`, `GET …/balances`, `POST …/settlements`, `DELETE …/settlements/{sid}`, `GET/PUT …/budget` (le sien uniquement) |
 | Documents | `GET/POST …/documents` (multipart : `file` + `meta` JSON), `POST …/documents/links`, `GET/PATCH/DELETE …/documents/{did}`, `GET …/documents/{did}/url` (URL signée 4 min) ; `GET /files` sert les fichiers en stockage local (dev) |
-| Notifications | `PUT …/notification-prefs`, `POST /me/push-tokens` |
+| Notifications | `GET`/`PUT …/notification-prefs`, `PUT`/`DELETE /me/push-tokens` |
 
 Le tableau de bord se compose dans l'app à partir des données déjà chargées (planning, soldes,
 budget, sondages, documents) : il reste lisible hors ligne et ne demande pas de route à part. Il

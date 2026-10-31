@@ -5,6 +5,7 @@ import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
 import { clearOffline, removeOfflineTrip } from '@/documents/offline-documents';
 import { clearQueryCache, queryClient } from '@/lib/query-client';
 import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
+import { forgetPushToken, registeredPushToken } from '@/notifications/push';
 import { clearRefreshToken, clearUser, loadRefreshToken, loadUser, saveRefreshToken, saveUser } from '@/lib/session-store';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -180,11 +181,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     // Local sign-out is immediate; a refresh still in flight is discarded and revoked when it lands.
     const refreshToken = await loadRefreshToken();
+    // While the account can still be named: this phone stops receiving its notifications.
+    const pushToken = registeredPushToken();
+    if (pushToken) {
+      forgetPushToken();
+      await authedRequest('/me/push-tokens', { method: 'DELETE', body: { token: pushToken } }).catch(() => undefined);
+    }
     await resetSession();
     if (refreshToken) {
       await apiRequest('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => undefined);
     }
-  }, [resetSession]);
+  }, [resetSession, authedRequest]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
