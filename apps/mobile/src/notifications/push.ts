@@ -12,20 +12,21 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
 });
 
-/** The token this phone was registered with, to stop its notifications on sign-out. */
-let registered: string | null = null;
-export const rememberPushToken = (token: string) => {
-  registered = token;
-};
+/**
+ * The token this phone was last registered with, kept on the phone: a sign-out after an offline
+ * restart (no registration that time) must still remove it.
+ */
+const REGISTERED_KEY = '7trip-push-token';
+export const rememberPushToken = (token: string) => AsyncStorage.setItem(REGISTERED_KEY, token).catch(() => undefined);
 
 /** A removal that could not reach the API (signed out offline), sent again once back online. */
 const PENDING_REMOVAL_KEY = '7trip-push-token-removal';
 
 /** On sign-out: this phone stops receiving the account's notifications, now or once online. */
 export async function unregisterPushToken(): Promise<void> {
-  const token = registered;
+  const token = await AsyncStorage.getItem(REGISTERED_KEY).catch(() => null);
   if (!token) return;
-  registered = null;
+  await AsyncStorage.removeItem(REGISTERED_KEY).catch(() => undefined);
   try {
     await apiRequest<void>('/me/push-tokens', { method: 'DELETE', body: { token } });
   } catch {

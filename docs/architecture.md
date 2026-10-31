@@ -238,7 +238,8 @@ jamais annoncé.
 Le worker (dans l'API, toutes les 30 s) prend ce qui est dû (`FOR UPDATE SKIP LOCKED`), vérifie
 que c'est encore utile (participant toujours là, préférence toujours active, sondage pas encore
 voté ni clos) et envoie via **Expo Push** à chaque téléphone du compte ; un téléphone refusé
-(`DeviceNotRegistered`) est oublié. Toutes les 5 minutes, il prévoit aussi les rappels qui
+(`DeviceNotRegistered`) est oublié, à l'envoi ou dans le reçu qu'Expo donne un quart d'heure plus
+tard (table `PushTicket`). Toutes les 5 minutes, il prévoit aussi les rappels qui
 dépendent de l'heure, lue sur le fuseau du téléphone : le programme du jour à 8 h pendant le
 séjour, et ce qu'il reste à rembourser le lendemain de la fin. Une notification touchée ouvre son
 écran (`url`). Les détails par défaut sont dans [decisions.md](decisions.md#notifications-réglages-par-défaut).

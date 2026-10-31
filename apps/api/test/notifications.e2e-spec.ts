@@ -259,4 +259,29 @@ describe('Notifications (e2e)', () => {
     await worker.sendDue(new Date());
     expect(await prisma.pushToken.count({ where: { token } })).toBe(0);
   });
+
+  it('forgets a phone that Apple or Google refused after Expo accepted the message', async () => {
+    const user = await createVerifiedUser(app, 'Refusé');
+    const token = `ExponentPushToken[${randomUUID()}]`;
+    await api().put('/v1/me/push-tokens').set(user.auth).send({ token, timeZone: 'Europe/Paris' }).expect(204);
+    const trip = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Porto' }).expect(201)).body as TripDetail;
+    const { code } = (await api().get(`/v1/trips/${trip.id}/invitation`).set(jordan.auth).expect(200)).body as TripInvitation;
+    await api().post(`/v1/invitations/${code}/join`).set(user.auth).expect(201);
+    push.refusedLater.add(token);
+    await api()
+      .post(`/v1/trips/${trip.id}/polls`)
+      .set(jordan.auth)
+      .send({ question: 'Train ou avion ?', options: [{ label: 'Train' }, { label: 'Avion' }] })
+      .expect(201);
+    const now = new Date();
+    await worker.sendDue(now);
+    expect(await prisma.pushTicket.count({ where: { token } })).toBe(1);
+
+    // The receipts are read a quarter of an hour later.
+    await worker.checkReceipts(new Date(now.getTime() + 60_000));
+    expect(await prisma.pushToken.count({ where: { token } })).toBe(1);
+    await worker.checkReceipts(new Date(now.getTime() + 20 * 60_000));
+    expect(await prisma.pushToken.count({ where: { token } })).toBe(0);
+    expect(await prisma.pushTicket.count({ where: { token } })).toBe(0);
+  });
 });

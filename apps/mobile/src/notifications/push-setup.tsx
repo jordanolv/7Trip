@@ -1,20 +1,23 @@
 import * as Notifications from 'expo-notifications';
 import { router, type Href } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { useIsOnline } from '@/lib/online';
 import { getPushToken, rememberPushToken, sendPendingRemoval } from './push';
 
 /**
- * Registers this phone for the signed-in account (again once back online: a registration made
- * offline was refused), after sending what an offline sign-out left to remove. Opens the screen a
- * tapped notification is about.
+ * Registers this phone for the signed-in account, after sending what an offline sign-out left to
+ * remove. Again once back online (a registration made offline was refused) and each time the app
+ * comes back to the foreground (notifications may have been allowed in the settings meanwhile).
+ * Opens the screen a tapped notification is about.
  */
 export function PushSetup() {
   const { status, user, authedRequest } = useAuth();
   const online = useIsOnline();
   const userId = status === 'signedIn' ? user?.id : undefined;
+  const foregrounds = useForegrounds();
 
   useEffect(() => {
     if (!online) return;
@@ -28,7 +31,7 @@ export function PushSetup() {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       try {
         await authedRequest<void>('/me/push-tokens', { method: 'PUT', body: { token, timeZone } });
-        rememberPushToken(token);
+        await rememberPushToken(token);
       } catch (error) {
         if (__DEV__) console.warn('[7trip] push registration failed', error);
       }
@@ -36,7 +39,7 @@ export function PushSetup() {
     return () => {
       cancelled = true;
     };
-  }, [userId, online, authedRequest]);
+  }, [userId, online, foregrounds, authedRequest]);
 
   const response = Notifications.useLastNotificationResponse();
   const handled = useRef<string | null>(null);
@@ -52,4 +55,16 @@ export function PushSetup() {
   }, [response]);
 
   return null;
+}
+
+/** Counts the returns of the app to the foreground. */
+function useForegrounds(): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setCount((n) => n + 1);
+    });
+    return () => subscription.remove();
+  }, []);
+  return count;
 }

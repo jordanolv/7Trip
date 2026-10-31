@@ -12,6 +12,9 @@ const PLAN_EVERY_MS = 5 * 60_000;
 /** A notification claimed by a worker that stopped halfway is taken again after this. */
 const CLAIM_TIMEOUT_MS = 5 * 60_000;
 const MAX_ATTEMPTS = 5;
+/** Expo has the receipts a few minutes after sending; it keeps them a day. */
+const RECEIPT_AFTER_MS = 15 * 60_000;
+const RECEIPT_GIVE_UP_MS = 20 * 3600_000;
 /** Sent notifications are kept a while, to look into a complaint, then dropped. */
 const KEEP_SENT_DAYS = 30;
 /** Not sent after noon: a morning reminder late in the day is noise. */
@@ -61,6 +64,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     try {
       if (now.getTime() - this.lastPlan >= PLAN_EVERY_MS) {
         await this.planReminders(now);
+        await this.checkReceipts(now);
         this.lastPlan = now.getTime();
       }
       await this.sendDue(now);
@@ -115,11 +119,14 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
         results = null;
       }
       if (results) {
-        const gone = messages.filter((_, i) => results[i] === 'unregistered').map((m) => m.message.to);
+        const gone = messages.filter((_, i) => results[i]!.outcome === 'unregistered').map((m) => m.message.to);
         if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
+        const tickets = messages.flatMap((m, i) => (results[i]!.ticketId ? [{ id: results[i]!.ticketId!, token: m.message.to }] : []));
+        if (tickets.length) await this.prisma.pushTicket.createMany({ data: tickets, skipDuplicates: true });
         for (const [i, { id }] of messages.entries()) {
-          if (results[i] === 'ok') outcomes.set(id, 'sent');
-          else if (!outcomes.has(id)) outcomes.set(id, results[i] === 'unregistered' ? 'no-device' : 'failed');
+          const { outcome } = results[i]!;
+          if (outcome === 'ok') outcomes.set(id, 'sent');
+          else if (!outcomes.has(id)) outcomes.set(id, outcome === 'unregistered' ? 'no-device' : 'failed');
         }
       }
     }
@@ -128,6 +135,26 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
       const ids = [...outcomes].filter(([, o]) => o === outcome).map(([id]) => id);
       await this.prisma.notification.updateMany({ where: { id: { in: ids } }, data: { sentAt: now, outcome } });
     }
+  }
+
+  /**
+   * What Expo accepted, Apple or Google may still refuse: a phone answered as no longer registered
+   * is forgotten. Other refusals are only logged (by PushService); the notification is not sent
+   * again.
+   */
+  async checkReceipts(now: Date): Promise<void> {
+    const due = await this.prisma.pushTicket.findMany({
+      where: { createdAt: { lte: new Date(now.getTime() - RECEIPT_AFTER_MS) } },
+      orderBy: { createdAt: 'asc' },
+      take: 1000,
+    });
+    if (!due.length) return;
+    const receipts = await this.push.receipts(due.map((t) => t.id));
+    const gone = due.filter((t) => receipts.get(t.id) === 'unregistered').map((t) => t.token);
+    if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
+    // Done with: answered, or too old for Expo to still know it.
+    const done = due.filter((t) => receipts.has(t.id) || t.createdAt.getTime() < now.getTime() - RECEIPT_GIVE_UP_MS).map((t) => t.id);
+    await this.prisma.pushTicket.deleteMany({ where: { id: { in: done } } });
   }
 
   /** Planned a while ago: a poll may have closed, or been voted in, since. */

@@ -572,3 +572,14 @@ model Notification {
   @@index([key])
   @@index([participantId])
 }
+
+/// Accepted by Expo, not yet delivered: its receipt says, a little later, whether Apple or Google
+/// refused it (a phone no longer registered is then forgotten).
+model PushTicket {
+  /// Expo's ticket id
+  id        String   @id
+  token     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
