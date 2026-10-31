@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
 /**
@@ -7,8 +8,19 @@ import { useCallback, useState } from 'react';
 export function usePullRefresh(refresh: () => Promise<unknown>) {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
+    // Offline, queries pause until the network is back: the spinner would never stop.
+    if (!onlineManager.isOnline()) {
+      void refresh();
+      return;
+    }
     setRefreshing(true);
-    void refresh().finally(() => setRefreshing(false));
+    const unsubscribe = onlineManager.subscribe((online) => {
+      if (!online) setRefreshing(false);
+    });
+    void refresh().finally(() => {
+      unsubscribe();
+      setRefreshing(false);
+    });
   }, [refresh]);
   return { refreshing, onRefresh };
 }
