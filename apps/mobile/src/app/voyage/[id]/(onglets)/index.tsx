@@ -22,6 +22,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { useDocuments } from '@/documents/documents-api';
 import { useEvents } from '@/events/events-api';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { myParticipantId } from '@/finances/expense-people';
 import { useBalances, useBudget } from '@/finances/finances-api';
 import { OpenPollsCard } from '@/polls/open-polls-card';
@@ -42,7 +43,7 @@ export default function TripDashboardScreen() {
   const budget = useBudget(id);
   const documents = useDocuments(id);
   const all = [query, polls, events, balances, budget, documents];
-  const refresh = () => void Promise.all(all.map((q) => q.refetch()));
+  const pull = usePullRefresh(() => Promise.all(all.map((q) => q.refetch())));
   // Others change things meanwhile: fetched again each time the dashboard shows.
   const refetchBalances = balances.refetch;
   const refetchBudget = budget.refetch;
@@ -64,8 +65,8 @@ export default function TripDashboardScreen() {
           balances={balances.data}
           budget={budget.data}
           documents={documents.data ?? []}
-          refreshing={all.some((q) => q.isRefetching)}
-          onRefresh={refresh}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
         />
       )}
     </TripQueryState>
