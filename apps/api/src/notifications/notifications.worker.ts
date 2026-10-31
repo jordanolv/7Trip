@@ -202,6 +202,8 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
    * phone's clock (the last one used). Each reminder has a key, so it is planned once.
    */
   async planReminders(now: Date): Promise<void> {
+    // A trip without an end date lasts its first day.
+    const endedSince = new Date(now.getTime() - (DUE_WITHIN_DAYS + 2) * DAY_MS);
     const participants = await this.prisma.participant.findMany({
       where: {
         status: ParticipantStatus.ACTIVE,
@@ -209,8 +211,8 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
         trip: {
           startDate: { lte: new Date(now.getTime() + DAY_MS) },
           OR: [
-            { endDate: { gte: new Date(now.getTime() - (DUE_WITHIN_DAYS + 2) * DAY_MS) } },
-            { endDate: null, startDate: { gte: new Date(now.getTime() - 2 * DAY_MS) } },
+            { endDate: { gte: endedSince } },
+            { endDate: null, startDate: { gte: endedSince } },
           ],
         },
       },

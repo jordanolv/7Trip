@@ -397,4 +397,17 @@ describe('Notifications (e2e)', () => {
     await worker.sendDue(new Date(now.getTime() + 6 * 60_000));
     expect(push.sent.slice(before).filter((m) => m.to === reachable).map((m) => m.body)).toEqual(['Jordan demande : Pizza ou pâtes ?']);
   });
+
+  it('reminds what is owed in the week after a one-day trip too', async () => {
+    const { trip, ids } = await newTrip({ startDate: '2027-09-10' });
+    await api()
+      .post(`/v1/trips/${trip.id}/expenses`)
+      .set(jordan.auth)
+      .send({ label: 'Bateau', amountMinor: 4000, date: '2027-09-10', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.thomas] } })
+      .expect(201);
+    // Five days after: the worker was down until then.
+    await worker.planReminders(new Date('2027-09-15T10:00:00Z'));
+    const due = await prisma.notification.findMany({ where: { participantId: { in: Object.values(ids) }, kind: 'settlement.due' } });
+    expect(due.map((n) => n.participantId)).toEqual([ids.thomas]);
+  });
 });
