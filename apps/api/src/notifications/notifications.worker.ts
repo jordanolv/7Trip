@@ -169,7 +169,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
 
   /**
    * Planned or waiting a while: a poll may have closed or been voted in, an expense turned
-   * personal, an event been removed; a morning reminder kept back by an outage is old news.
+   * personal, an event or a reimbursement been removed; a morning reminder kept back by an outage is old news.
    */
   private async stillRelevant(row: { kind: string; key: string | null; refId: string | null; participantId: string }, now: Date, zone?: string): Promise<boolean> {
     if (row.kind === 'daily') {
@@ -180,6 +180,10 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     }
     if (row.kind === 'event.created' || row.kind === 'event.changed') {
       return !!row.refId && (await this.prisma.event.count({ where: { id: row.refId } })) > 0;
+    }
+    if (row.kind === 'settlement') {
+      // Cancelled as a mistake before it went out: nothing was paid back after all.
+      return !!row.refId && (await this.prisma.settlement.count({ where: { id: row.refId } })) > 0;
     }
     if (row.kind === 'expense.created') {
       // Still shared, and still one of theirs: otherwise they can no longer open it.

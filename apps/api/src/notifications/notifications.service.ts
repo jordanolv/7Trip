@@ -132,18 +132,18 @@ export class NotificationsService {
   async settlementRecorded(
     tx: Tx,
     me: Participant,
-    settlement: { tripId: string; amountMinor: number; from: Participant; to: Participant },
+    settlement: { id: string; tripId: string; amountMinor: number; from: Participant; to: Participant },
     currency: string,
   ): Promise<void> {
     const { from, to, tripId } = settlement;
     const amount = formatMoney(settlement.amountMinor, currency);
     const url = `/voyage/${tripId}/finances?section=balances`;
     const [receiver] = await this.recipients(tx, tripId, 'SETTLEMENTS', { exclude: me.id, only: [to.id] });
-    if (receiver) await this.enqueue(tx, tripId, [receiver], { kind: 'settlement', body: `${from.displayName} t’a remboursé ${amount}`, url });
+    if (receiver) await this.enqueue(tx, tripId, [receiver], { kind: 'settlement', refId: settlement.id, body: `${from.displayName} t’a remboursé ${amount}`, url });
     const [payer] = await this.recipients(tx, tripId, 'SETTLEMENTS', { exclude: me.id, only: [from.id] });
     if (payer) {
       const body = me.id === to.id ? `${to.displayName} a bien reçu tes ${amount}` : `${me.displayName} a noté ton remboursement de ${amount} à ${to.displayName}`;
-      await this.enqueue(tx, tripId, [payer], { kind: 'settlement', body, url });
+      await this.enqueue(tx, tripId, [payer], { kind: 'settlement', refId: settlement.id, body, url });
     }
   }
 

@@ -209,6 +209,22 @@ describe('Notifications (e2e)', () => {
     await api().post(`/v1/trips/${trip.id}/settlements`).set(jordan.auth).send({ fromId: ids.thomas, toId: ids.jordan, amountMinor: 3000 }).expect(201);
     rows = await pending(Object.values(ids));
     expect(rows.map((r) => [r.participantId, r.body])).toEqual([[ids.thomas, `Jordan a bien reçu tes ${formatMoney(3000)}`]]);
+
+    // Marked by mistake and cancelled before it went out: Jordan is not told.
+    await worker.sendDue(new Date());
+    await api()
+      .post(`/v1/trips/${trip.id}/expenses`)
+      .set(jordan.auth)
+      .send({ label: 'Taxi', amountMinor: 6000, date: '2027-07-13', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.thomas] } })
+      .expect(201);
+    await worker.sendDue(new Date());
+    const mistake = (
+      await api().post(`/v1/trips/${trip.id}/settlements`).set(thomas.auth).send({ fromId: ids.thomas, toId: ids.jordan, amountMinor: 3000 }).expect(201)
+    ).body as { id: string };
+    await api().delete(`/v1/trips/${trip.id}/settlements/${mistake.id}`).set(thomas.auth).expect(204);
+    const to = await sentDuring(() => worker.sendDue(new Date()));
+    expect(to(jordan)).toEqual([]);
+    expect((await prisma.notification.findFirstOrThrow({ where: { refId: mistake.id } })).outcome).toBe('skipped');
   });
 
   it('sends the day’s programme in the morning during the trip, once, and what is owed after it', async () => {
