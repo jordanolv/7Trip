@@ -4,11 +4,12 @@ import { useEffect, useRef } from 'react';
 
 import { useAuth } from '@/auth/auth-context';
 import { useIsOnline } from '@/lib/online';
-import { getPushToken, rememberPushToken } from './push';
+import { getPushToken, rememberPushToken, sendPendingRemoval } from './push';
 
 /**
  * Registers this phone for the signed-in account (again once back online: a registration made
- * offline was refused), and opens the screen a tapped notification is about.
+ * offline was refused), after sending what an offline sign-out left to remove. Opens the screen a
+ * tapped notification is about.
  */
 export function PushSetup() {
   const { status, user, authedRequest } = useAuth();
@@ -16,9 +17,12 @@ export function PushSetup() {
   const userId = status === 'signedIn' ? user?.id : undefined;
 
   useEffect(() => {
-    if (!userId || !online) return;
+    if (!online) return;
     let cancelled = false;
     void (async () => {
+      // First: removed after a new registration, it would take the phone from the new account.
+      await sendPendingRemoval();
+      if (!userId || cancelled) return;
       const token = await getPushToken();
       if (!token || cancelled) return;
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

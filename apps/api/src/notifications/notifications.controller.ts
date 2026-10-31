@@ -54,11 +54,20 @@ export class NotificationsController {
       update: { userId, timeZone: body.timeZone },
     });
   }
+}
 
-  /** On sign-out: the phone stops receiving them. */
-  @Delete('me/push-tokens')
+/**
+ * On sign-out the phone stops receiving the account's notifications. No account needed: it may
+ * have signed out offline, and says so once back online. Knowing the token is enough, only the
+ * phone has it.
+ */
+@Controller('me/push-tokens')
+export class PushTokensController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  async unregister(@CurrentUserId() userId: string, @Body(new ZodValidationPipe(removePushTokenRequestSchema)) body: z.output<typeof removePushTokenRequestSchema>): Promise<void> {
-    await this.prisma.pushToken.deleteMany({ where: { token: body.token, userId } });
+  async unregister(@Body(new ZodValidationPipe(removePushTokenRequestSchema)) body: z.output<typeof removePushTokenRequestSchema>): Promise<void> {
+    await this.prisma.pushToken.deleteMany({ where: { token: body.token } });
   }
 }

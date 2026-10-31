@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
 import { TripsModule } from '../trips/trips.module.js';
-import { NotificationsController } from './notifications.controller.js';
+import { NotificationsController, PushTokensController } from './notifications.controller.js';
 import { NotificationsService } from './notifications.service.js';
 import { NotificationsWorker } from './notifications.worker.js';
 import { PushService } from './push.service.js';
@@ -10,7 +10,7 @@ import { PushService } from './push.service.js';
 @Global()
 @Module({
   imports: [AuthModule, TripsModule],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, PushTokensController],
   providers: [NotificationsService, NotificationsWorker, PushService],
   exports: [NotificationsService],
 })

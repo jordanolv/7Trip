@@ -93,9 +93,16 @@ export class NotificationsService {
     const title = await this.tripTitle(tx, event.tripId);
     const scheduledAt = new Date(Date.now() + EVENT_SETTLE_MS);
 
+    // What is still waiting about this event, whoever it was for: the author of this change has
+    // seen the event, and someone no longer concerned must not hear of it, so theirs goes.
+    const waiting = await tx.notification.findMany({ where: { key: { startsWith: `event:${event.id}:` }, sentAt: null } });
+    const toIds = new Set(to.map((p) => p.id));
+    const stale = waiting.filter((n) => !toIds.has(n.participantId)).map((n) => n.id);
+    if (stale.length) await tx.notification.deleteMany({ where: { id: { in: stale } } });
+
     for (const participant of to) {
       const key = `event:${event.id}:${participant.id}`;
-      const pending = await tx.notification.findFirst({ where: { key, sentAt: null } });
+      const pending = waiting.find((n) => n.key === key);
       // Created then changed before anyone was told: still news of a new event.
       const isNew = !before || pending?.kind === 'event.created';
       if (pending) await tx.notification.delete({ where: { id: pending.id } });

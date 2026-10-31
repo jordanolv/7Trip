@@ -79,7 +79,7 @@ describe('Notifications (e2e)', () => {
     await api().get(url).set(stranger.auth).expect(404);
   });
 
-  it('gives a phone to the last account signed in on it, and lets only it remove it', async () => {
+  it('gives a phone to the last account signed in on it, and forgets it on sign-out, even signed out already', async () => {
     const token = `ExponentPushToken[${randomUUID()}]`;
     const owner = await createVerifiedUser(app, 'Avant');
     const next = await createVerifiedUser(app, 'Après');
@@ -88,10 +88,10 @@ describe('Notifications (e2e)', () => {
     const stored = await prisma.pushToken.findUniqueOrThrow({ where: { token } });
     expect(stored).toMatchObject({ userId: next.session.user.id, timeZone: 'America/New_York' });
 
-    await api().delete('/v1/me/push-tokens').set(owner.auth).send({ token }).expect(204);
-    expect(await prisma.pushToken.count({ where: { token } })).toBe(1);
-    await api().delete('/v1/me/push-tokens').set(next.auth).send({ token }).expect(204);
+    // Signed out offline: the phone tells it later, without a session.
+    await api().delete('/v1/me/push-tokens').send({ token }).expect(204);
     expect(await prisma.pushToken.count({ where: { token } })).toBe(0);
+    await api().delete('/v1/me/push-tokens').send({ token: 'abc' }).expect(400);
 
     await api().put('/v1/me/push-tokens').set(owner.auth).send({ token: 'abc', timeZone: 'Europe/Paris' }).expect(400);
     await api().put('/v1/me/push-tokens').send({ token, timeZone: 'Europe/Paris' }).expect(401);
@@ -164,6 +164,19 @@ describe('Notifications (e2e)', () => {
     await api().delete(`${events}/${event.id}`).set(lea.auth).expect(204);
     rows = await pending(Object.values(ids));
     expect(rows.map((r) => [r.participantId, r.kind, r.body])).toEqual([[ids.jordan, 'event.deleted', 'Alcázar est retiré du planning (Léa)']]);
+
+    // Created by Jordan, removed by Léa within the minute: the others never hear of it, Léa included;
+    // Jordan, who knows it, learns it is gone.
+    const quick = (await api().post(events).set(jordan.auth).send({ title: 'Tapas', startDate: '2027-07-15' }).expect(201)).body as TripEvent;
+    expect((await pending([ids.lea])).map((r) => r.kind)).toEqual(['event.created']);
+    await api().delete(`${events}/${quick.id}`).set(lea.auth).expect(204);
+    expect((await pending(Object.values(ids))).filter((r) => r.refId === quick.id).map((r) => [r.participantId, r.kind])).toEqual([[ids.jordan, 'event.deleted']]);
+    await prisma.notification.deleteMany({ where: { refId: quick.id } });
+    // Moved by Léa before she was told of it: hers goes, Jordan's announcement is the one to make.
+    const moved = (await api().post(events).set(jordan.auth).send({ title: 'Musée', startDate: '2027-07-15', participantIds: [ids.jordan, ids.lea] }).expect(201)).body as TripEvent;
+    await api().patch(`${events}/${moved.id}`).set(lea.auth).send({ startTime: '15:00' }).expect(200);
+    expect((await pending(Object.values(ids))).filter((r) => r.refId === moved.id).map((r) => [r.participantId, r.kind])).toEqual([[ids.jordan, 'event.changed']]);
+    await prisma.notification.deleteMany({ where: { refId: moved.id } });
 
     // Created and removed within the minute: nobody hears of it.
     const brief = (await api().post(events).set(jordan.auth).send({ title: 'Flamenco', startDate: '2027-07-15' }).expect(201)).body as TripEvent;
