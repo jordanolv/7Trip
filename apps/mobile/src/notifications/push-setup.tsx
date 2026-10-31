@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { useIsOnline } from '@/lib/online';
-import { getPushToken, rememberPushToken, sendPendingRemoval } from './push';
+import { getPushToken, rememberPushToken, sendPendingRemoval, unregisterPushToken } from './push';
 
 /**
  * Registers this phone for the signed-in account, after sending what an offline sign-out left to
@@ -18,6 +18,11 @@ export function PushSetup() {
   const online = useIsOnline();
   const userId = status === 'signedIn' ? user?.id : undefined;
   const foregrounds = useForegrounds();
+  /** Who is signed in now, read after a registration that took a while. */
+  const signedInAs = useRef(userId);
+  useEffect(() => {
+    signedInAs.current = userId;
+  }, [userId]);
 
   useEffect(() => {
     if (!online) return;
@@ -30,8 +35,14 @@ export function PushSetup() {
       if (!token || cancelled) return;
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       try {
-        await authedRequest<void>('/me/push-tokens', { method: 'PUT', body: { token, timeZone } });
+        // Kept before the request: a sign-out while it runs finds it, and removes it.
         await rememberPushToken(token);
+        await authedRequest<void>('/me/push-tokens', { method: 'PUT', body: { token, timeZone } });
+        // Signed out while it ran: the removal may have reached the API first, so it is made again.
+        if (signedInAs.current === undefined) {
+          await rememberPushToken(token);
+          await unregisterPushToken();
+        }
       } catch (error) {
         if (__DEV__) console.warn('[7trip] push registration failed', error);
       }

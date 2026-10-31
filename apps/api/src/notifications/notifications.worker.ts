@@ -62,17 +62,26 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     if (this.running) return;
     this.running = true;
     try {
+      // Each step on its own: one failing (Expo's receipts unreachable…) must not hold back the others.
       if (now.getTime() - this.lastPlan >= PLAN_EVERY_MS) {
-        await this.planReminders(now);
-        await this.checkReceipts(now);
         this.lastPlan = now.getTime();
+        await this.step('reminders', () => this.planReminders(now));
+        await this.step('receipts', () => this.checkReceipts(now));
       }
-      await this.sendDue(now);
-      await this.prisma.notification.deleteMany({ where: { sentAt: { lt: new Date(now.getTime() - KEEP_SENT_DAYS * DAY_MS) } } });
-    } catch (error) {
-      this.logger.error(`Notifications: ${(error as Error).message}`);
+      await this.step('sending', () => this.sendDue(now));
+      await this.step('cleanup', () =>
+        this.prisma.notification.deleteMany({ where: { sentAt: { lt: new Date(now.getTime() - KEEP_SENT_DAYS * DAY_MS) } } }),
+      );
     } finally {
       this.running = false;
+    }
+  }
+
+  private async step(name: string, run: () => Promise<unknown>): Promise<void> {
+    try {
+      await run();
+    } catch (error) {
+      this.logger.error(`Notifications, ${name}: ${(error as Error).message}`);
     }
   }
 

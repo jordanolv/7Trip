@@ -284,4 +284,19 @@ describe('Notifications (e2e)', () => {
     expect(await prisma.pushToken.count({ where: { token } })).toBe(0);
     expect(await prisma.pushTicket.count({ where: { token } })).toBe(0);
   });
+
+  it('keeps sending when Expo’s receipts cannot be read', async () => {
+    const { trip } = await newTrip();
+    await prisma.pushTicket.create({ data: { id: `old-${randomUUID()}`, token: 'ExponentPushToken[old]', createdAt: new Date(Date.now() - 3600_000) } });
+    const receipts = vi.spyOn(push, 'receipts').mockRejectedValue(new Error('HTTP 503'));
+    await api()
+      .post(`/v1/trips/${trip.id}/polls`)
+      .set(jordan.auth)
+      .send({ question: 'Plage ou montagne ?', options: [{ label: 'Plage' }, { label: 'Montagne' }] })
+      .expect(201);
+    const to = await sentDuring(() => worker.tick());
+    expect(receipts).toHaveBeenCalled();
+    receipts.mockRestore();
+    expect(to(lea).map((m) => m.body)).toEqual(['Jordan demande : Plage ou montagne ?']);
+  });
 });
