@@ -409,5 +409,16 @@ describe('Notifications (e2e)', () => {
     await worker.planReminders(new Date('2027-09-15T10:00:00Z'));
     const due = await prisma.notification.findMany({ where: { participantId: { in: Object.values(ids) }, kind: 'settlement.due' } });
     expect(due.map((n) => n.participantId)).toEqual([ids.thomas]);
+
+    // Held back until the night (1:00 in Paris): it waits for the day.
+    let to = await sentDuring(() => worker.sendDue(new Date('2027-09-15T23:00:00Z')));
+    expect(to(thomas)).toEqual([]);
+    const waiting = await prisma.notification.findUniqueOrThrow({ where: { id: due[0]!.id } });
+    expect(waiting.sentAt).toBeNull();
+    expect(waiting.scheduledAt).toEqual(new Date('2027-09-16T00:00:00Z'));
+    // Not sent before the week was over: dropped.
+    to = await sentDuring(() => worker.sendDue(new Date('2027-09-25T10:00:00Z')));
+    expect(to(thomas)).toEqual([]);
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: due[0]!.id } })).outcome).toBe('skipped');
   });
 });

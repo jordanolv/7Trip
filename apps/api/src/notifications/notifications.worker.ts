@@ -100,16 +100,22 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
 
     const rows = await this.prisma.notification.findMany({
       where: { id: { in: claimed.map((c) => c.id) } },
-      include: { participant: { include: { user: { include: { pushTokens: { orderBy: { updatedAt: 'desc' } } } } } } },
+      include: { participant: { include: { trip: true, user: { include: { pushTokens: { orderBy: { updatedAt: 'desc' } } } } } } },
     });
     const outcomes = new Map<string, string>();
+    const later: string[] = [];
     const messages: { id: string; message: PushMessage }[] = [];
     for (const row of rows) {
       const { participant } = row;
+      const zone = participant.user?.pushTokens[0]?.timeZone;
+      const window = row.kind === 'settlement.due' ? dueWindow(participant.trip, zone, now) : 'now';
       if (row.attempts > MAX_ATTEMPTS) outcomes.set(row.id, 'failed');
       else if (participant.status !== ParticipantStatus.ACTIVE || !participant.user) outcomes.set(row.id, 'skipped');
       else if (!resolveNotificationPrefs(participant.notifPrefs)[KIND_TOPIC[row.kind] ?? 'POLLS']) outcomes.set(row.id, 'skipped');
-      else if (!(await this.stillRelevant(row, now, participant.user.pushTokens[0]?.timeZone))) outcomes.set(row.id, 'skipped');
+      // Held back (outage) until the night: waits for the morning; until the week is over: dropped.
+      else if (window === 'later') later.push(row.id);
+      else if (window === 'over') outcomes.set(row.id, 'skipped');
+      else if (!(await this.stillRelevant(row, now, zone))) outcomes.set(row.id, 'skipped');
       else if (!participant.user.pushTokens.length) outcomes.set(row.id, 'no-device');
       else {
         // What is owed may have been paid back since it was planned: told as it is now, or not at all.
@@ -141,6 +147,12 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
       }
     }
 
+    if (later.length) {
+      await this.prisma.notification.updateMany({
+        where: { id: { in: later } },
+        data: { claimedAt: null, scheduledAt: new Date(now.getTime() + 3600_000), attempts: { decrement: 1 } },
+      });
+    }
     for (const outcome of new Set(outcomes.values())) {
       const ids = [...outcomes].filter(([, o]) => o === outcome).map(([id]) => id);
       await this.prisma.notification.updateMany({ where: { id: { in: ids } }, data: { sentAt: now, outcome } });
@@ -249,8 +261,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
         }
       }
 
-      const sinceEnd = daysBetween(end, day);
-      if (prefs.SETTLEMENTS && sinceEnd >= 1 && sinceEnd <= DUE_WITHIN_DAYS && hour >= DUE_FROM_HOUR && hour < DUE_UNTIL_HOUR) {
+      if (prefs.SETTLEMENTS && dueWindow(trip, zone, now) === 'now') {
         const key = `due:${participant.id}`;
         if (!(await this.prisma.notification.count({ where: { key } }))) {
           if (!balancesByTrip.has(trip.id)) balancesByTrip.set(trip.id, await this.balances(trip.id));
@@ -309,3 +320,15 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
 }
 
 const dueMessage = (owedMinor: number, currency: string) => `Le voyage est fini : il te reste ${formatMoney(owedMinor, currency)} à rembourser`;
+
+/**
+ * When what is still owed may be told: in the week after the trip, during the day on the phone's
+ * clock. `later`: in that week, at night; `over`: outside it.
+ */
+function dueWindow(trip: { startDate: Date | null; endDate: Date | null }, zone: string | undefined, now: Date): 'now' | 'later' | 'over' {
+  if (!zone || !trip.startDate) return 'over';
+  const { day, hour } = zonedDayAndHour(now, zone);
+  const sinceEnd = daysBetween(toIso(trip.endDate ?? trip.startDate), day);
+  if (sinceEnd < 1 || sinceEnd > DUE_WITHIN_DAYS) return 'over';
+  return hour >= DUE_FROM_HOUR && hour < DUE_UNTIL_HOUR ? 'now' : 'later';
+}
