@@ -13,6 +13,9 @@ import { getPushToken, rememberPushToken, sendPendingRemoval, unregisterPushToke
  * comes back to the foreground (notifications may have been allowed in the settings meanwhile).
  * Opens the screen a tapped notification is about.
  */
+/** The registrations of this phone, in order. */
+let registering: Promise<void> = Promise.resolve();
+
 export function PushSetup() {
   const { status, user, authedRequest } = useAuth();
   const online = useIsOnline();
@@ -27,26 +30,32 @@ export function PushSetup() {
   useEffect(() => {
     if (!online) return;
     let cancelled = false;
-    void (async () => {
-      // First: removed after a new registration, it would take the phone from the new account.
-      await sendPendingRemoval();
-      if (!userId || cancelled) return;
-      const token = await getPushToken();
-      if (!token || cancelled) return;
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      try {
-        // Kept before the request: a sign-out while it runs finds it, and removes it.
-        await rememberPushToken(token);
-        await authedRequest<void>('/me/push-tokens', { method: 'PUT', body: { token, timeZone } });
-        // Signed out while it ran: the removal may have reached the API first, so it is made again.
-        if (signedInAs.current === undefined) {
+    // One after the other: the registration of an account signed in since always reaches the API
+    // after the one of the account before it, so the phone ends up with the account signed in now.
+    registering = registering
+      .then(async () => {
+        // First: removed after a new registration, it would take the phone from the new account.
+        await sendPendingRemoval();
+        if (!userId || cancelled) return;
+        const token = await getPushToken();
+        if (!token || cancelled) return;
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        try {
+          // Kept before the request: a sign-out while it runs finds it, and removes it.
           await rememberPushToken(token);
-          await unregisterPushToken();
+          await authedRequest<void>('/me/push-tokens', { method: 'PUT', body: { token, timeZone } });
+          // Signed out while it ran: the removal may have reached the API first, so it is made again.
+          // (Signed in as someone else: their registration is next in line.)
+          if (signedInAs.current === undefined) {
+            await rememberPushToken(token);
+            await unregisterPushToken();
+          }
+        } catch (error) {
+          if (__DEV__) console.warn('[7trip] push registration failed', error);
         }
-      } catch (error) {
-        if (__DEV__) console.warn('[7trip] push registration failed', error);
-      }
-    })();
+      })
+      // A failure (permission request…) must not stop the ones after it.
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
