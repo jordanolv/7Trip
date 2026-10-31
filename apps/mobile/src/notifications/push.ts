@@ -22,28 +22,39 @@ export const rememberPushToken = (token: string) => AsyncStorage.setItem(REGISTE
 /** A removal that could not reach the API (signed out offline), sent again once back online. */
 const PENDING_REMOVAL_KEY = '7trip-push-token-removal';
 
-/** On sign-out: this phone stops receiving the account's notifications, now or once online. */
+/**
+ * On sign-out: this phone stops receiving the account's notifications. Written down first, sent
+ * in the background: the sign-out does not wait for the network, and an attempt that fails is
+ * made again once back online.
+ */
 export async function unregisterPushToken(): Promise<void> {
   const token = await AsyncStorage.getItem(REGISTERED_KEY).catch(() => null);
   if (!token) return;
+  await AsyncStorage.setItem(PENDING_REMOVAL_KEY, token).catch(() => undefined);
   await AsyncStorage.removeItem(REGISTERED_KEY).catch(() => undefined);
-  try {
-    await apiRequest<void>('/me/push-tokens', { method: 'DELETE', body: { token } });
-  } catch {
-    await AsyncStorage.setItem(PENDING_REMOVAL_KEY, token).catch(() => undefined);
-  }
+  void sendPendingRemoval();
 }
 
-/** Sends the removal left over from an offline sign-out. Before any new registration of the phone. */
-export async function sendPendingRemoval(): Promise<void> {
-  const token = await AsyncStorage.getItem(PENDING_REMOVAL_KEY).catch(() => null);
-  if (!token) return;
-  try {
-    await apiRequest<void>('/me/push-tokens', { method: 'DELETE', body: { token } });
-    await AsyncStorage.removeItem(PENDING_REMOVAL_KEY);
-  } catch {
-    // Still unreachable: tried again on the next return of the network.
-  }
+let removing: Promise<void> | null = null;
+
+/**
+ * Sends the removal written down at sign-out. One at a time: a new registration awaits it, so the
+ * removal cannot reach the API after it and take the phone from the new account.
+ */
+export function sendPendingRemoval(): Promise<void> {
+  removing ??= (async () => {
+    try {
+      const token = await AsyncStorage.getItem(PENDING_REMOVAL_KEY).catch(() => null);
+      if (!token) return;
+      await apiRequest<void>('/me/push-tokens', { method: 'DELETE', body: { token } });
+      await AsyncStorage.removeItem(PENDING_REMOVAL_KEY);
+    } catch {
+      // Still unreachable: tried again on the next return of the network.
+    } finally {
+      removing = null;
+    }
+  })();
+  return removing;
 }
 
 /**

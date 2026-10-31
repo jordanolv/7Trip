@@ -130,13 +130,14 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
       if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
       const tickets = messages.flatMap((m, i) => (results[i]!.ticketId ? [{ id: results[i]!.ticketId!, token: m.message.to }] : []));
       if (tickets.length) await this.prisma.pushTicket.createMany({ data: tickets, skipDuplicates: true });
-      for (const [i, { id }] of messages.entries()) {
-        const { outcome } = results[i]!;
-        if (outcome === 'ok') outcomes.set(id, 'sent');
-        // Expo unreachable for it: left claimed, taken again in a few minutes, unless it reached
-        // another of the account's phones (sent again, that one would get it twice).
-        else if (outcome === 'retry') continue;
-        else if (!outcomes.has(id)) outcomes.set(id, outcome === 'unregistered' ? 'no-device' : 'failed');
+      // Per notification, over the account's phones: sent if one took it; else, if Expo could not be
+      // reached for one, left claimed and taken again in a few minutes; else what they answered.
+      const byId = new Map<string, Set<string>>();
+      for (const [i, { id }] of messages.entries()) byId.set(id, (byId.get(id) ?? new Set()).add(results[i]!.outcome));
+      for (const [id, answers] of byId) {
+        if (answers.has('ok')) outcomes.set(id, 'sent');
+        else if (answers.has('retry')) continue;
+        else outcomes.set(id, answers.has('error') ? 'failed' : 'no-device');
       }
     }
 

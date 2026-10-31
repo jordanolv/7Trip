@@ -350,4 +350,31 @@ describe('Notifications (e2e)', () => {
     expect(to(lea)).toEqual([]);
     expect((await prisma.notification.findFirstOrThrow({ where: { participantId: ids.lea, kind: 'daily' } })).outcome).toBe('skipped');
   });
+
+  it('keeps a notification for later when no phone took it and one could not be reached', async () => {
+    const owner = await createVerifiedUser(app, 'Deux téléphones');
+    const [reachable, refused] = [`ExponentPushToken[${randomUUID()}]`, `ExponentPushToken[${randomUUID()}]`];
+    for (const token of [reachable, refused]) {
+      await api().put('/v1/me/push-tokens').set(owner.auth).send({ token, timeZone: 'Europe/Paris' }).expect(204);
+    }
+    const trip = (await api().post('/v1/trips').set(jordan.auth).send({ title: 'Rome' }).expect(201)).body as TripDetail;
+    const { code } = (await api().get(`/v1/trips/${trip.id}/invitation`).set(jordan.auth).expect(200)).body as TripInvitation;
+    await api().post(`/v1/invitations/${code}/join`).set(owner.auth).expect(201);
+    push.unreachable.add(reachable);
+    push.unregistered.add(refused);
+    await api()
+      .post(`/v1/trips/${trip.id}/polls`)
+      .set(jordan.auth)
+      .send({ question: 'Pizza ou pâtes ?', options: [{ label: 'Pizza' }, { label: 'Pâtes' }] })
+      .expect(201);
+    const now = new Date();
+    await worker.sendDue(now);
+    const row = await prisma.notification.findFirstOrThrow({ where: { participant: { userId: owner.session.user.id }, kind: 'poll.created' } });
+    expect(row.sentAt).toBeNull();
+
+    push.unreachable.clear();
+    const before = push.sent.length;
+    await worker.sendDue(new Date(now.getTime() + 6 * 60_000));
+    expect(push.sent.slice(before).filter((m) => m.to === reachable).map((m) => m.body)).toEqual(['Jordan demande : Pizza ou pâtes ?']);
+  });
 });
