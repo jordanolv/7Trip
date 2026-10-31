@@ -74,6 +74,10 @@ describe('Notifications (e2e)', () => {
     const other = (await newTrip()).trip;
     expect((await api().get(`/v1/trips/${other.id}/notification-prefs`).set(lea.auth).expect(200)).body).toEqual(DEFAULT_NOTIFICATION_PREFS);
 
+    // Two phones at once, on different topics: both changes stay.
+    await Promise.all([api().put(url).set(lea.auth).send({ PLANNING: false }).expect(200), api().put(url).set(lea.auth).send({ SETTLEMENTS: false }).expect(200)]);
+    expect((await api().get(url).set(lea.auth).expect(200)).body).toMatchObject({ POLLS: false, PLANNING: false, SETTLEMENTS: false, DAILY: false });
+
     await api().put(url).set(lea.auth).send({ POLLS: 'non' }).expect(400);
     const stranger = await createVerifiedUser(app, 'Inconnu');
     await api().get(url).set(stranger.auth).expect(404);

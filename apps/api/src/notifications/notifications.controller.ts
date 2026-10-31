@@ -39,9 +39,12 @@ export class NotificationsController {
     @Body(new ZodValidationPipe(notificationPrefsRequestSchema)) body: z.output<typeof notificationPrefsRequestSchema>,
   ): Promise<NotificationPrefs> {
     const me = await this.trips.member(userActor(userId), tripId);
-    const prefs = { ...resolveNotificationPrefs(me.notifPrefs), ...body };
-    await this.prisma.participant.update({ where: { id: me.id }, data: { notifPrefs: prefs } });
-    return prefs;
+    // Merged in the database: two phones changing different topics at once both keep their change.
+    const [updated] = await this.prisma.$queryRaw<{ notifPrefs: unknown }[]>`
+      UPDATE "Participant" SET "notifPrefs" = COALESCE("notifPrefs", '{}'::jsonb) || ${JSON.stringify(body)}::jsonb
+      WHERE id = ${me.id}::uuid
+      RETURNING "notifPrefs"`;
+    return resolveNotificationPrefs(updated?.notifPrefs);
   }
 
   /** This phone now receives the account's notifications (taken from the account signed in before, if any). */
