@@ -100,7 +100,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
 
     const rows = await this.prisma.notification.findMany({
       where: { id: { in: claimed.map((c) => c.id) } },
-      include: { participant: { include: { user: { include: { pushTokens: true } } } } },
+      include: { participant: { include: { user: { include: { pushTokens: { orderBy: { updatedAt: 'desc' } } } } } } },
     });
     const outcomes = new Map<string, string>();
     const messages: { id: string; message: PushMessage }[] = [];
@@ -109,7 +109,7 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
       if (row.attempts > MAX_ATTEMPTS) outcomes.set(row.id, 'failed');
       else if (participant.status !== ParticipantStatus.ACTIVE || !participant.user) outcomes.set(row.id, 'skipped');
       else if (!resolveNotificationPrefs(participant.notifPrefs)[KIND_TOPIC[row.kind] ?? 'POLLS']) outcomes.set(row.id, 'skipped');
-      else if (!(await this.stillRelevant(row, now))) outcomes.set(row.id, 'skipped');
+      else if (!(await this.stillRelevant(row, now, participant.user.pushTokens[0]?.timeZone))) outcomes.set(row.id, 'skipped');
       else if (!participant.user.pushTokens.length) outcomes.set(row.id, 'no-device');
       else {
         for (const { token } of participant.user.pushTokens) {
@@ -119,24 +119,18 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     }
 
     if (messages.length) {
-      let results;
-      try {
-        results = await this.push.send(messages.map((m) => m.message));
-      } catch (error) {
-        // Left claimed: taken again in a few minutes.
-        this.logger.warn(`Expo push unreachable: ${(error as Error).message}`);
-        results = null;
-      }
-      if (results) {
-        const gone = messages.filter((_, i) => results[i]!.outcome === 'unregistered').map((m) => m.message.to);
-        if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
-        const tickets = messages.flatMap((m, i) => (results[i]!.ticketId ? [{ id: results[i]!.ticketId!, token: m.message.to }] : []));
-        if (tickets.length) await this.prisma.pushTicket.createMany({ data: tickets, skipDuplicates: true });
-        for (const [i, { id }] of messages.entries()) {
-          const { outcome } = results[i]!;
-          if (outcome === 'ok') outcomes.set(id, 'sent');
-          else if (!outcomes.has(id)) outcomes.set(id, outcome === 'unregistered' ? 'no-device' : 'failed');
-        }
+      const results = await this.push.send(messages.map((m) => m.message));
+      const gone = messages.filter((_, i) => results[i]!.outcome === 'unregistered').map((m) => m.message.to);
+      if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
+      const tickets = messages.flatMap((m, i) => (results[i]!.ticketId ? [{ id: results[i]!.ticketId!, token: m.message.to }] : []));
+      if (tickets.length) await this.prisma.pushTicket.createMany({ data: tickets, skipDuplicates: true });
+      for (const [i, { id }] of messages.entries()) {
+        const { outcome } = results[i]!;
+        if (outcome === 'ok') outcomes.set(id, 'sent');
+        // Expo unreachable for it: left claimed, taken again in a few minutes, unless it reached
+        // another of the account's phones (sent again, that one would get it twice).
+        else if (outcome === 'retry') continue;
+        else if (!outcomes.has(id)) outcomes.set(id, outcome === 'unregistered' ? 'no-device' : 'failed');
       }
     }
 
@@ -166,8 +160,24 @@ export class NotificationsWorker implements OnApplicationBootstrap, OnModuleDest
     await this.prisma.pushTicket.deleteMany({ where: { id: { in: done } } });
   }
 
-  /** Planned a while ago: a poll may have closed, or been voted in, since. */
-  private async stillRelevant(row: { kind: string; refId: string | null; participantId: string }, now: Date): Promise<boolean> {
+  /**
+   * Planned or waiting a while: a poll may have closed or been voted in, an expense turned
+   * personal, an event been removed; a morning reminder kept back by an outage is old news.
+   */
+  private async stillRelevant(row: { kind: string; key: string | null; refId: string | null; participantId: string }, now: Date, zone?: string): Promise<boolean> {
+    if (row.kind === 'daily') {
+      const day = row.key?.split(':')[2];
+      if (!zone || !day) return false;
+      const local = zonedDayAndHour(now, zone);
+      return local.day === day && local.hour < DAILY_UNTIL_HOUR;
+    }
+    if (row.kind === 'event.created' || row.kind === 'event.changed') {
+      return !!row.refId && (await this.prisma.event.count({ where: { id: row.refId } })) > 0;
+    }
+    if (row.kind === 'expense.created') {
+      // Still shared, and still one of theirs: otherwise they can no longer open it.
+      return !!row.refId && (await this.prisma.expense.count({ where: { id: row.refId, personal: false, shares: { some: { participantId: row.participantId } } } })) > 0;
+    }
     if (!row.kind.startsWith('poll.')) return true;
     const poll = row.refId ? await this.prisma.poll.findUnique({ where: { id: row.refId } }) : null;
     if (!poll || poll.closedAt || (poll.closesAt && poll.closesAt <= now)) return false;

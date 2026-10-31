@@ -299,4 +299,45 @@ describe('Notifications (e2e)', () => {
     receipts.mockRestore();
     expect(to(lea).map((m) => m.body)).toEqual(['Jordan demande : Plage ou montagne ?']);
   });
+
+  it('sends again later what Expo could not take, and only that', async () => {
+    const { trip, ids } = await newTrip();
+    push.unreachable.add(phones.get(lea)!);
+    await api()
+      .post(`/v1/trips/${trip.id}/polls`)
+      .set(jordan.auth)
+      .send({ question: 'Hôtel ou appart ?', options: [{ label: 'Hôtel' }, { label: 'Appart' }] })
+      .expect(201);
+    const now = new Date();
+    let to = await sentDuring(() => worker.sendDue(now));
+    expect(to(thomas)).toHaveLength(1);
+    expect(to(lea)).toEqual([]);
+    expect((await pending([ids.lea])).map((r) => r.kind)).toEqual(['poll.created']);
+
+    push.unreachable.clear();
+    // Claimed a few minutes: taken again after that, and only Léa's.
+    to = await sentDuring(() => worker.sendDue(new Date(now.getTime() + 6 * 60_000)));
+    expect(to(lea).map((m) => m.body)).toEqual(['Jordan demande : Hôtel ou appart ?']);
+    expect(to(thomas)).toEqual([]);
+  });
+
+  it('drops what no longer holds when it is due: an expense turned personal, yesterday’s programme', async () => {
+    const { trip, ids } = await newTrip({ startDate: '2027-08-01', endDate: '2027-08-05' });
+    await api().put(`/v1/trips/${trip.id}/notification-prefs`).set(lea.auth).send({ EXPENSES: true }).expect(200);
+    const body = { label: 'Cadeau', amountMinor: 3000, date: '2027-08-02', payerId: ids.jordan, split: { mode: 'EQUAL', participantIds: [ids.jordan, ids.lea] } };
+    const expense = (await api().post(`/v1/trips/${trip.id}/expenses`).set(jordan.auth).send(body).expect(201)).body as Expense;
+    await api().put(`/v1/trips/${trip.id}/expenses/${expense.id}`).set(jordan.auth).send({ ...body, personal: true }).expect(200);
+    let to = await sentDuring(() => worker.sendDue(new Date()));
+    expect(to(lea)).toEqual([]);
+    expect((await prisma.notification.findFirstOrThrow({ where: { refId: expense.id, participantId: ids.lea } })).outcome).toBe('skipped');
+
+    await api().post(`/v1/trips/${trip.id}/events`).set(jordan.auth).send({ title: 'Plage', startDate: '2027-08-03', startTime: '11:00' }).expect(201);
+    await prisma.notification.deleteMany({ where: { participantId: { in: Object.values(ids) }, kind: 'event.created' } });
+    // Planned at 9:30 in Paris on the 3rd; the worker only comes back the next morning.
+    await worker.planReminders(new Date('2027-08-03T07:30:00Z'));
+    expect(await prisma.notification.count({ where: { participantId: ids.lea, kind: 'daily', sentAt: null } })).toBe(1);
+    to = await sentDuring(() => worker.sendDue(new Date('2027-08-04T07:00:00Z')));
+    expect(to(lea)).toEqual([]);
+    expect((await prisma.notification.findFirstOrThrow({ where: { participantId: ids.lea, kind: 'daily' } })).outcome).toBe('skipped');
+  });
 });

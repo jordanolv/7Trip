@@ -12,9 +12,12 @@ export interface PushMessage {
 /** `unregistered`: the phone no longer accepts them (app removed, permission withdrawn). */
 export type PushOutcome = 'ok' | 'unregistered' | 'error';
 
+/** `retry`: Expo could not be reached for it, to send again later. */
+export type SendOutcome = PushOutcome | 'retry';
+
 /** Per message, in order. `ticketId`: accepted by Expo, its receipt tells later whether it was delivered. */
 export interface PushResult {
-  outcome: PushOutcome;
+  outcome: SendOutcome;
   ticketId?: string;
 }
 
@@ -38,16 +41,19 @@ export class PushService {
   readonly unregistered = new Set<string>();
   /** PUSH_DRIVER=memory: tokens accepted when sent, then refused by Apple or Google (in the receipt). */
   readonly refusedLater = new Set<string>();
+  /** PUSH_DRIVER=memory: tokens whose batch Expo could not take. */
+  readonly unreachable = new Set<string>();
   private readonly memoryTickets = new Map<string, string>();
 
   constructor(@Inject(ENV) private readonly env: Env) {}
 
-  /** Throws when Expo cannot be reached: the worker tries again later. */
+  /** By batches of 100: a batch Expo could not take is `retry`, the others keep their outcome. */
   async send(messages: PushMessage[]): Promise<PushResult[]> {
     if (this.env.PUSH_DRIVER === 'memory') {
-      this.sent.push(...messages);
+      this.sent.push(...messages.filter((m) => !this.unreachable.has(m.to)));
       return messages.map((m) => {
         if (this.unregistered.has(m.to)) return { outcome: 'unregistered' };
+        if (this.unreachable.has(m.to)) return { outcome: 'retry' };
         const ticketId = `ticket-${this.sent.length}-${Math.random()}`;
         this.memoryTickets.set(ticketId, m.to);
         return { outcome: 'ok', ticketId };
@@ -55,7 +61,13 @@ export class PushService {
     }
     const results: PushResult[] = [];
     for (let i = 0; i < messages.length; i += BATCH) {
-      results.push(...(await this.sendBatch(messages.slice(i, i + BATCH))));
+      const batch = messages.slice(i, i + BATCH);
+      try {
+        results.push(...(await this.sendBatch(batch)));
+      } catch (error) {
+        this.logger.warn(`Expo push unreachable: ${(error as Error).message}`);
+        results.push(...batch.map((): PushResult => ({ outcome: 'retry' })));
+      }
     }
     return results;
   }

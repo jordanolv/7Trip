@@ -64,6 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetSession = useCallback(async () => {
     epoch.current += 1;
     accessToken.current = null;
+    // Every sign-out, asked for or not (session expired or revoked): this phone stops receiving the
+    // account's notifications, now or once back online.
+    await unregisterPushToken();
     // Never show one account's data to the next one, nor its saved documents.
     await clearQueryCache();
     clearOffline();
@@ -181,8 +184,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     // Local sign-out is immediate; a refresh still in flight is discarded and revoked when it lands.
     const refreshToken = await loadRefreshToken();
-    // This phone stops receiving the account's notifications (once back online, if it is not).
-    await unregisterPushToken();
     await resetSession();
     if (refreshToken) {
       await apiRequest('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => undefined);
