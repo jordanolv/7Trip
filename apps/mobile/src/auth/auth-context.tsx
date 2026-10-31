@@ -5,6 +5,7 @@ import { ApiError, apiRequest, type RequestOptions } from '@/lib/api';
 import { clearOffline, removeOfflineTrip } from '@/documents/offline-documents';
 import { clearQueryCache, queryClient } from '@/lib/query-client';
 import { loadGuestSessions, saveGuestSessions, type GuestSessions } from '@/lib/guest-store';
+import { unregisterPushToken } from '@/notifications/push';
 import { clearRefreshToken, clearUser, loadRefreshToken, loadUser, saveRefreshToken, saveUser } from '@/lib/session-store';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -63,6 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetSession = useCallback(async () => {
     epoch.current += 1;
     accessToken.current = null;
+    // Every sign-out, asked for or not (session expired or revoked): this phone stops receiving the
+    // account's notifications, now or once back online.
+    await unregisterPushToken();
     // Never show one account's data to the next one, nor its saved documents.
     await clearQueryCache();
     clearOffline();

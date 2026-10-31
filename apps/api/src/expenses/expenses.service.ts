@@ -31,6 +31,7 @@ import { apiError } from '../common/api-error.js';
 import { toContentAuthor } from '../common/content-author.js';
 import { Prisma, type Participant } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { TripsService } from '../trips/trips.service.js';
@@ -81,6 +82,7 @@ export class ExpensesService {
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
     private readonly rates: RatesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Today's rate to fill in an expense in `currency`; null when it must be typed. */
@@ -122,6 +124,7 @@ export class ExpensesService {
         },
         include: EXPENSE_INCLUDE,
       });
+      await this.notifications.expenseCreated(tx, me, expense, trip.baseCurrency);
       return toExpense(expense, me);
     });
   }
@@ -286,6 +289,8 @@ export class ExpensesService {
         plan.splice(done, 1);
         await tx.trip.update({ where: { id: tripId }, data: { transferPlan: plan.length ? plan : Prisma.DbNull } });
       }
+      const { baseCurrency } = await tx.trip.findUniqueOrThrow({ where: { id: tripId }, select: { baseCurrency: true } });
+      await this.notifications.settlementRecorded(tx, me, settlement, baseCurrency);
       return toSettlement(settlement, me);
     });
   }

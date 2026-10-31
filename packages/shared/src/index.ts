@@ -12,3 +12,4 @@ export * from './currencies.js';
 export * from './documents.js';
 export * from './conflicts.js';
 export * from './dashboard.js';
+export * from './notifications.js';

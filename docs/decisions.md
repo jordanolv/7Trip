@@ -85,12 +85,17 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 
 | Événement | Par défaut |
 |---|---|
-| Invitation à un voyage | ✓ |
-| Nouveau sondage, rappel 24 h avant clôture | ✓ |
-| Changement de planning (créé / modifié / supprimé sur un événement où je suis) | ✓ |
-| Rappel du jour pendant le séjour (8 h, heure locale) | ✓ |
-| Remboursement dû ou reçu | ✓ |
-| Chaque nouvelle dépense, chaque vote | ✗ |
+| Nouveau sondage ; rappel 24 h avant clôture à ceux qui n'ont pas voté | ✓ |
+| Changement de planning (créé / modifié / supprimé sur un événement où je suis) : jours, heures, lieu, titre ou participants ; plusieurs modifications dans la minute ne font qu'une notification | ✓ |
+| Rappel du jour pendant le séjour (8 h sur l'heure du téléphone, jusqu'à midi), seulement s'il y a quelque chose au programme | ✓ |
+| Remboursement reçu ou confirmé ; ce qu'il reste à rembourser, une fois, le lendemain de la fin du voyage | ✓ |
+| Chaque nouvelle dépense (à ceux qui y ont une part) | ✗ |
+| Chaque vote | jamais |
+
+Jamais à l'auteur du changement ; uniquement aux participants avec un compte (un invité n'a pas
+de téléphone enregistré). Pas de notification d'invitation : on rejoint par un lien, il n'y a
+personne à prévenir avant qu'il ait rejoint. Les préférences se règlent par voyage, dans ses
+Paramètres.
 
 ## Web invité — périmètre minimal V1
 

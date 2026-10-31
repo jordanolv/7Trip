@@ -56,6 +56,7 @@ GitHub.
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | URL **interne** du stockage (RustFS : `http://<service-rustfs>:9000`), région (`auto` par défaut), bucket (créé par l'API au premier démarrage) |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Clés d'accès limitées à ce bucket |
 | `S3_FORCE_PATH_STYLE` | `true` (par défaut) pour RustFS |
+| `EXPO_ACCESS_TOKEN` | Facultatif : seulement si l'envoi des notifications est protégé dans le projet Expo |
 
 **Web invité**
 
