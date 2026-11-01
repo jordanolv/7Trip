@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "fr.seventrip.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

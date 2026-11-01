@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "869934524569",
+    "project_id": "trip-13b84",
+    "storage_bucket": "trip-13b84.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:869934524569:android:397e31a32faabf2f973008",
+        "android_client_info": {
+          "package_name": "fr.seventrip.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCa_p5XMof8HLNmPiObk0m1BKqAoz7pqUU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
