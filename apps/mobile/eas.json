@@ -6,7 +6,9 @@
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.staging.7trip.fr",
         "EXPO_PUBLIC_INVITE_BASE_URL": "https://staging.7trip.fr"
@@ -29,7 +31,13 @@
   },
   "submit": {
     "staging": {
-      "android": { "track": "internal", "releaseStatus": "draft" }
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "ascAppId": "6829563950"
+      }
     }
   }
 }
