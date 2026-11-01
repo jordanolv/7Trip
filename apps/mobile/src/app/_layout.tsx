@@ -18,6 +18,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/auth/auth-context';
 import { sheetOptions } from '@/components/sheet';
+import { PushSetup } from '@/notifications/push-setup';
 import { persistOptions, queryClient } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
@@ -42,17 +43,20 @@ function RootNavigator() {
   if (!ready) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="profil/nom" options={sheetOptions} />
-      <Stack.Screen name="voyage/nouveau" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="voyage/[id]" />
-      <Stack.Screen name="j/[code]" options={sheetOptions} />
-      <Stack.Screen name="s/[pollId]" options={sheetOptions} />
-      <Stack.Screen name="rejoindre" options={sheetOptions} />
-      <Stack.Screen name="menu/[id]" options={sheetOptions} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="profil/nom" options={sheetOptions} />
+        <Stack.Screen name="voyage/nouveau" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="voyage/[id]" />
+        <Stack.Screen name="j/[code]" options={sheetOptions} />
+        <Stack.Screen name="s/[pollId]" options={sheetOptions} />
+        <Stack.Screen name="rejoindre" options={sheetOptions} />
+        <Stack.Screen name="menu/[id]" options={sheetOptions} />
+      </Stack>
+      <PushSetup />
+    </>
   );
 }
 

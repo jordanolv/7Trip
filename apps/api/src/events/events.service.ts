@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantStatus } from '../generated/prisma/enums.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { toContentAuthor } from '../common/content-author.js';
@@ -45,6 +46,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** In timeline order. */
@@ -85,6 +87,7 @@ export class EventsService {
         },
         include: EVENT_INCLUDE,
       });
+      await this.notifications.eventChanged(tx, me, null, event);
       return toTripEvent(event, me);
     });
   }
@@ -129,6 +132,7 @@ export class EventsService {
         },
         include: EVENT_INCLUDE,
       });
+      await this.notifications.eventChanged(tx, me, event, updated);
       return toTripEvent(updated, me);
     });
   }
@@ -139,6 +143,7 @@ export class EventsService {
       const event = await this.find(tx, tripId, eventId);
       assertCanEdit(me, event);
       await tx.event.delete({ where: { id: event.id } });
+      await this.notifications.eventChanged(tx, me, event, null);
     });
   }
 

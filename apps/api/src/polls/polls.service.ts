@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantRole, ParticipantStatus } from '../generated/prisma/enums.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { toContentAuthor } from '../common/content-author.js';
@@ -46,6 +47,7 @@ export class PollsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Newest first; the apps put the open ones first. */
@@ -105,6 +107,7 @@ export class PollsService {
         },
         include: POLL_INCLUDE,
       });
+      await this.notifications.pollCreated(tx, me, poll);
       return toPoll(poll, me, await this.activeParticipants(tx, tripId));
     });
   }
