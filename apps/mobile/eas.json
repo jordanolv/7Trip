@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.staging.7trip.fr",
+        "EXPO_PUBLIC_INVITE_BASE_URL": "https://staging.7trip.fr"
+      }
+    },
+    "staging": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.staging.7trip.fr",
+        "EXPO_PUBLIC_INVITE_BASE_URL": "https://staging.7trip.fr"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.7trip.fr",
+        "EXPO_PUBLIC_INVITE_BASE_URL": "https://7trip.fr"
+      }
+    }
+  },
+  "submit": {
+    "staging": {
+      "android": { "track": "internal", "releaseStatus": "draft" }
+    }
+  }
+}
