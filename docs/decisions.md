@@ -126,3 +126,20 @@ documents sur le web en V1.
 - La photo de profil arrive avec l'upload de fichiers (étape 7). Elle remplace alors les initiales.
 - Qui a voté pour une option s'affiche en avatars ; la liste « En attente » garde les prénoms,
   pour savoir qui relancer.
+
+## Données personnelles (RGPD)
+
+- **Export** (Profil → Exporter mes données) : un fichier JSON avec le compte et, voyage par
+  voyage, ce que la personne y a écrit ou qui la concerne (idées, événements, sondages, votes,
+  dépenses ajoutées ou payées, parts, remboursements, budget, liste des documents). Rien de ce
+  que les autres ont écrit seuls. Les fichiers eux-mêmes restent téléchargeables dans l'app.
+- **Suppression** (Profil → Supprimer mon compte), après le mot de passe :
+  - le compte, ses sessions, ses téléphones, ses documents privés, ses dépenses personnelles et
+    son budget sont effacés ;
+  - dans les voyages de groupe, la participation reste sous le nom « Ancien participant »
+    (partie, sans couleur) : dépenses partagées, idées, événements et votes restent, les soldes
+    du groupe ne bougent pas ;
+  - un voyage où il ne reste personne d'autre avec un compte (seul, ou seulement des invités)
+    est supprimé ;
+  - s'il était le dernier organisateur, le participant avec compte arrivé le plus tôt le devient ;
+  - les liens d'invitation qu'il a créés continuent de marcher.

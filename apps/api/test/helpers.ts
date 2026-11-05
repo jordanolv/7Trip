@@ -10,14 +10,16 @@ export const newPassword = () => `pw-${randomUUID()}`;
 
 export interface TestUser {
   session: AuthResponse;
+  password: string;
   auth: { Authorization: string };
 }
 
 /** Registers a user and confirms their email with the code echoed in test mode. */
 export async function createVerifiedUser(app: INestApplication<App>, displayName = 'Jordan'): Promise<TestUser> {
+  const password = newPassword();
   const res = await request(app.getHttpServer())
     .post('/v1/auth/register')
-    .send({ email: newEmail(), password: newPassword(), displayName })
+    .send({ email: newEmail(), password, displayName })
     .expect(201);
   const session = res.body as AuthResponse;
   const auth = { Authorization: `Bearer ${session.accessToken}` };
@@ -26,5 +28,5 @@ export async function createVerifiedUser(app: INestApplication<App>, displayName
     .set(auth)
     .send({ code: session.devEmailCode })
     .expect(200);
-  return { session, auth };
+  return { session, password, auth };
 }
