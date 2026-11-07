@@ -1,5 +1,6 @@
 export * from './auth.js';
 export * from './finance.js';
+export * from './portfolio.js';
 export * from './trips.js';
 export * from './participants.js';
 export * from './ideas.js';
