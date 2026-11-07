@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
-import { updateMeRequestSchema, type Me } from '@7trip/shared';
+import { Body, Controller, Get, HttpStatus, Patch, UseGuards } from '@nestjs/common';
+import { ApiErrorCode, updateMeRequestSchema, type Me } from '@7trip/shared';
 import type { z } from 'zod';
 import { AccessTokenGuard, CurrentUserId } from '../auth/access-token.guard.js';
+import { apiError } from '../common/api-error.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toMe } from './to-me.js';
@@ -13,7 +14,10 @@ export class MeController {
 
   @Get()
   async get(@CurrentUserId() userId: string): Promise<Me> {
-    return toMe(await this.prisma.user.findUniqueOrThrow({ where: { id: userId } }));
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    // An access token outlives a deleted account by a few minutes: the app then signs out.
+    if (!user) throw apiError(HttpStatus.UNAUTHORIZED, ApiErrorCode.Unauthorized, 'Ce compte n’existe plus');
+    return toMe(user);
   }
 
   @Patch()

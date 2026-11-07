@@ -1,7 +1,9 @@
 import { colors, radii, spacing } from '@7trip/ui-tokens';
-import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import { router, type Href } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/auth-context';
@@ -9,10 +11,12 @@ import { Avatar } from '@/components/avatar';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { ApiError } from '@/lib/api';
 
 export default function ProfilScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, authedRequest } = useAuth();
   const insets = useSafeAreaInsets();
+  const [exporting, setExporting] = useState(false);
 
   if (!user) {
     return (
@@ -34,6 +38,23 @@ export default function ProfilScreen() {
       { text: 'Annuler', style: 'cancel' },
       { text: 'Se déconnecter', style: 'destructive', onPress: () => void signOut() },
     ]);
+
+  /** The JSON of GET /me/export, as a file handed to the share sheet (Fichiers, mail…). */
+  const exportData = async () => {
+    setExporting(true);
+    try {
+      const data = await authedRequest<unknown>('/me/export');
+      const file = new File(Paths.cache, `7trip-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`);
+      if (file.exists) file.delete();
+      file.create();
+      file.write(JSON.stringify(data, null, 2));
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: 'Mes données 7Trip' });
+    } catch (error) {
+      Alert.alert('Export impossible', error instanceof ApiError ? error.message : 'Une erreur est survenue, réessaie.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xl }]}>
@@ -65,6 +86,15 @@ export default function ProfilScreen() {
         <Row label="Connexion" trailing={<AppText variant="caption" tone="secondary">Email et mot de passe</AppText>} />
       </Section>
 
+      <Section title="Données & confidentialité">
+        <Row
+          label="Exporter mes données"
+          onPress={exporting ? undefined : () => void exportData()}
+          trailing={exporting ? <ActivityIndicator color={colors.inkSecondary} /> : undefined}
+        />
+        <Row label="Supprimer mon compte" danger onPress={() => router.push('/profil/supprimer' as Href)} />
+      </Section>
+
       <Pressable accessibilityRole="button" onPress={confirmSignOut} style={styles.signOut}>
         <Icon name="logout" color={colors.inkTertiary} size={20} />
         <AppText variant="bodyStrong" style={{ color: colors.inkTertiary }}>
@@ -86,10 +116,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, trailing, onPress }: { label: string; trailing?: ReactNode; onPress?: () => void }) {
+function Row({ label, trailing, onPress, danger }: { label: string; trailing?: ReactNode; onPress?: () => void; danger?: boolean }) {
   return (
     <Pressable disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} onPress={onPress} style={styles.row}>
-      <AppText variant="bodyStrong" style={styles.flex}>
+      <AppText variant="bodyStrong" style={[styles.flex, danger && { color: colors.danger }]}>
         {label}
       </AppText>
       {trailing}
