@@ -131,18 +131,25 @@ export class AccountService {
 
     const keys = await this.prisma.$transaction(async (tx) => {
       const keys: string[] = [];
-      const active = await tx.participant.findMany({ where: { userId, status: ParticipantStatus.ACTIVE }, orderBy: { tripId: 'asc' } });
-      for (const me of active) {
-        // Same lock as every change of the trip (TripsService.withTripLock), taken in a fixed order.
-        await tx.$queryRaw`SELECT id FROM "Trip" WHERE id = ${me.tripId}::uuid FOR UPDATE`;
+      const active = await tx.participant.findMany({
+        where: { userId, status: ParticipantStatus.ACTIVE },
+        select: { id: true, tripId: true },
+        orderBy: { tripId: 'asc' },
+      });
+      for (const { id, tripId } of active) {
+        // Same lock as every change of the trip (TripsService.withTripLock), taken in a fixed order;
+        // the role is read again under it: a concurrent deletion may have promoted this account.
+        await tx.$queryRaw`SELECT id FROM "Trip" WHERE id = ${tripId}::uuid FOR UPDATE`;
+        const me = await tx.participant.findFirst({ where: { id, status: ParticipantStatus.ACTIVE } });
+        if (!me) continue;
         const others = await tx.participant.findMany({
-          where: { tripId: me.tripId, status: ParticipantStatus.ACTIVE, userId: { not: null }, NOT: { id: me.id } },
+          where: { tripId, status: ParticipantStatus.ACTIVE, userId: { not: null }, NOT: { id } },
           orderBy: { joinedAt: 'asc' },
         });
         if (others.length === 0) {
-          const files = await tx.document.findMany({ where: { tripId: me.tripId, storageKey: { not: null } }, select: { storageKey: true } });
+          const files = await tx.document.findMany({ where: { tripId, storageKey: { not: null } }, select: { storageKey: true } });
           keys.push(...files.map((f) => f.storageKey!));
-          await tx.trip.delete({ where: { id: me.tripId } });
+          await tx.trip.delete({ where: { id: tripId } });
         } else if (me.role === ParticipantRole.ORGANIZER && !others.some((o) => o.role === ParticipantRole.ORGANIZER)) {
           await tx.participant.update({ where: { id: others[0]!.id }, data: { role: ParticipantRole.ORGANIZER } });
         }
