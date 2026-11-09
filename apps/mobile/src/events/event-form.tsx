@@ -16,6 +16,7 @@ import { DateField } from '@/components/ui/date-field';
 import { Icon } from '@/components/ui/icon';
 import { TextField } from '@/components/ui/text-field';
 import { TimeField } from '@/components/ui/time-field';
+import { PlaceField } from '@/places/place-field';
 
 import { EventIcon } from './event-visuals';
 
@@ -31,6 +32,10 @@ export interface EventFormValues {
   startTime: string | null;
   endTime: string | null;
   place: string;
+  /** The Google place picked, if any (PlaceField). */
+  placeId: string | null;
+  /** Its address, shown under the field; not sent. */
+  placeAddress: string | null;
   url: string;
   bookingRef: string;
   description: string;
@@ -48,6 +53,8 @@ export const emptyEventForm = (startDate: string): EventFormValues => ({
   startTime: null,
   endTime: null,
   place: '',
+  placeId: null,
+  placeAddress: null,
   url: '',
   bookingRef: '',
   description: '',
@@ -64,6 +71,8 @@ export const eventFormValues = (event: TripEvent): EventFormValues => ({
   startTime: event.startTime,
   endTime: event.endTime,
   place: event.place ?? '',
+  placeId: event.placeId,
+  placeAddress: event.placeLocation?.address ?? null,
   url: event.url ?? '',
   bookingRef: event.bookingRef ?? '',
   description: event.description ?? '',
@@ -80,6 +89,7 @@ export function eventRequest(values: EventFormValues): Omit<CreateEventRequest, 
     startTime: values.timed ? values.startTime : null,
     endTime: values.timed ? values.endTime : null,
     place: values.place,
+    placeId: values.placeId,
     url: values.url,
     bookingRef: values.bookingRef,
     description: values.description,
@@ -253,7 +263,11 @@ export function EventForm({
         </View>
       ) : null}
 
-      <TextField label="Lieu" value={values.place} onChangeText={(place) => set({ place })} placeholder="Calle Eslava 3, Séville" maxLength={120} error={errors.place} />
+      <PlaceField
+        value={{ place: values.place, placeId: values.placeId, address: values.placeAddress }}
+        onChange={(place) => set({ place: place.place, placeId: place.placeId, placeAddress: place.address })}
+        error={errors.place}
+      />
       <TextField
         label="Lien"
         value={values.url}

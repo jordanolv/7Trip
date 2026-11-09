@@ -43,6 +43,12 @@ describe('placeMapsUrl', () => {
     );
     expect(placeMapsUrl({ place: null, url: 'https://www.alcazarsevilla.org' })).toBeNull();
   });
+
+  it('opens the exact place once one was picked, even over a Maps link', () => {
+    expect(placeMapsUrl({ place: 'Plaza de España', placeId: 'ChIJD7G2bqduEg0ROdrTdOj1Jok', url: 'https://maps.app.goo.gl/abc123' })).toBe(
+      'https://www.google.com/maps/search/?api=1&query=Plaza%20de%20Espa%C3%B1a&query_place_id=ChIJD7G2bqduEg0ROdrTdOj1Jok',
+    );
+  });
 });
 
 describe('canEditContent', () => {

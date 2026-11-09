@@ -10,6 +10,7 @@ const event = {
   startTime: '10:00' as string | null,
   endTime: '12:00' as string | null,
   place: 'Patio de Banderas',
+  placeId: null as string | null,
   url: null as string | null,
   bookingRef: null as string | null,
   description: null as string | null,

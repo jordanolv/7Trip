@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { optionalText, optionalUrl } from './fields.js';
+import { placeIdSchema, type PlaceLocation } from './places.js';
 import type { AvatarColor } from './avatars.js';
 import type { ParticipantRole } from './trips.js';
 
@@ -32,6 +33,8 @@ const titleSchema = z.string().trim().min(1, 'Donne un titre à ton idée').max(
 const ideaFields = {
   category: z.enum(IDEA_CATEGORIES).nullish(),
   place: optionalText(120),
+  /** The Google place picked for it; none for a place typed freely. Sent along with `place`, its name. */
+  placeId: placeIdSchema.nullish(),
   url: optionalUrl,
   description: optionalText(1000),
   /** Free text, as people write it: "Gratuit", "~25 € / pers.". */
@@ -72,6 +75,9 @@ export interface Idea {
   title: string;
   category: IdeaCategory | null;
   place: string | null;
+  placeId: string | null;
+  /** Where the picked place is; null for a place typed freely, or while it cannot be looked up. */
+  placeLocation: PlaceLocation | null;
   url: string | null;
   description: string | null;
   cost: string | null;
@@ -105,8 +111,13 @@ export function isMapsUrl(url: string): boolean {
   return /^https?:\/\/(maps\.app\.goo\.gl\/|goo\.gl\/maps\/|maps\.google\.[a-z.]+\/|(www\.)?google\.[a-z.]+\/maps)/i.test(url);
 }
 
-/** Where "Voir sur Google Maps" leads for an idea or an event: its own Maps link, otherwise a search for its place. */
-export function placeMapsUrl(item: { place: string | null; url: string | null }): string | null {
+/**
+ * Where "Voir sur Google Maps" leads for an idea or an event: the place picked for it, else its own
+ * Maps link, else a search for the place typed.
+ */
+export function placeMapsUrl(item: { place: string | null; placeId?: string | null; url: string | null }): string | null {
+  const search = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  if (item.place && item.placeId) return `${search(item.place)}&query_place_id=${encodeURIComponent(item.placeId)}`;
   if (item.url && isMapsUrl(item.url)) return item.url;
-  return item.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.place)}` : null;
+  return item.place ? search(item.place) : null;
 }

@@ -20,6 +20,8 @@ export default defineConfig({
       STORAGE_DIR: '.storage-test',
       PUSH_DRIVER: 'memory',
       NOTIFICATIONS_WORKER: 'false',
+      PLACES_SOURCE: 'fixed',
+      PLACES_WORKER: 'false',
     },
   },
 });

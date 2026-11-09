@@ -123,7 +123,9 @@ function ModifierEvenement({ tripId, event }: { tripId: string; event: TripEvent
    * opens in the form, on the other person's version, to be fixed by hand.
    */
   const editMerged = (current: Conflict) => {
-    setValues(eventFormValues({ ...current.latest, ...resolved(current) } as TripEvent));
+    const merged = { ...current.latest, ...resolved(current) } as TripEvent;
+    // The address shown is the other person's: not for a place kept from this side.
+    setValues(eventFormValues(merged.placeId === current.latest.placeId ? merged : { ...merged, placeLocation: null }));
     setBase({ fields: current.theirs, version: current.latest.version });
     setConflict(null);
   };

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { TextField } from '@/components/ui/text-field';
+import { PlaceField } from '@/places/place-field';
 
 import { CategoryIcon } from './idea-visuals';
 
@@ -11,17 +12,23 @@ export interface IdeaFormValues {
   title: string;
   category: IdeaCategory | null;
   place: string;
+  /** The Google place picked, if any (PlaceField). */
+  placeId: string | null;
+  /** Its address, shown under the field; not sent. */
+  placeAddress: string | null;
   url: string;
   cost: string;
   description: string;
 }
 
-export const emptyIdeaForm: IdeaFormValues = { title: '', category: null, place: '', url: '', cost: '', description: '' };
+export const emptyIdeaForm: IdeaFormValues = { title: '', category: null, place: '', placeId: null, placeAddress: null, url: '', cost: '', description: '' };
 
 export const ideaFormValues = (idea: Idea): IdeaFormValues => ({
   title: idea.title,
   category: idea.category,
   place: idea.place ?? '',
+  placeId: idea.placeId,
+  placeAddress: idea.placeLocation?.address ?? null,
   url: idea.url ?? '',
   cost: idea.cost ?? '',
   description: idea.description ?? '',
@@ -75,12 +82,9 @@ export function IdeaForm({
         </View>
       </View>
 
-      <TextField
-        label="Lieu"
-        value={values.place}
-        onChangeText={(text) => set('place', text)}
-        placeholder="Plaza de España, Séville"
-        maxLength={120}
+      <PlaceField
+        value={{ place: values.place, placeId: values.placeId, address: values.placeAddress }}
+        onChange={(place) => onChange({ ...values, place: place.place, placeId: place.placeId, placeAddress: place.address })}
         error={errors.place}
       />
       <TextField
