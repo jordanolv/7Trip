@@ -40,6 +40,17 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Dates d'un événement | Quand le voyage a des dates, un événement doit tenir dedans (refusé sinon). Sans dates, n'importe quel jour. Si les dates du voyage changent ensuite, les événements restés en dehors sont gardés et signalés ; on peut encore les modifier sans les déplacer. |
 | Jours affichés | Tous les jours du voyage, plus ceux qui portent encore un événement hors des dates. |
 
+## Lieux
+
+| Sujet | Décision |
+|---|---|
+| Saisie | Le champ « Lieu » d'une idée ou d'un événement propose les lieux Google pendant la frappe (Places API New), en privilégiant les environs des autres lieux du voyage. Choisir une suggestion n'est jamais obligatoire : sans choix, le texte est gardé tel quel. |
+| Ce qu'on stocke | Le nom (le nôtre) et l'identifiant Google du lieu, gardés sans limite. L'adresse et la position ne sont qu'un cache : les conditions de Google le limitent à 30 jours, donc on le rafraîchit avant 25 jours, et on le supprime une semaine après la fin du voyage (l'identifiant reste). |
+| Modifier | Retaper le nom retire le lieu choisi. Planifier une idée reprend son lieu choisi. Si Google ne répond pas à l'enregistrement, on garde l'identifiant sans position, et le rafraîchissement la complète ensuite. |
+| Google Maps | « Itinéraire » ouvre le lieu exact (query_place_id) quand il a été choisi, sinon le lien Maps de l'élément, sinon une recherche du texte. |
+| Coût | Une recherche = une session Google : les suggestions ne sont facturées qu'avec la consultation qui la termine. 60 recherches par minute et par personne au plus ; réservé aux membres du voyage (invités compris). |
+| Clés | Clé serveur restreinte aux IP du serveur (IPv4 et IPv6), Places + Routes ; clés iOS et Android séparées pour la carte. Toutes dans Infisical. |
+
 ## Sondages
 
 | Question | Proposition |

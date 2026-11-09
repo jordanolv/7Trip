@@ -85,7 +85,7 @@ export class IdeasService {
   }
 
   async update(actor: Actor, tripId: string, ideaId: string, input: UpdateIdeaInput): Promise<Idea> {
-    const place = await this.places.columnsFor(input);
+    const place = await this.places.columnsFor(input, await this.currentPlace(tripId, ideaId));
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const idea = await this.find(tx, tripId, ideaId);
       assertCanEdit(me, idea);
@@ -118,6 +118,12 @@ export class IdeasService {
       assertCanEdit(me, idea);
       await tx.idea.delete({ where: { id: idea.id } });
     });
+  }
+
+  /** The place stored now, so the same one sent again is not looked up anew. */
+  private async currentPlace(tripId: string, id: string): Promise<{ placeId: string | null } | undefined> {
+    if (!z.uuid().safeParse(id).success) return undefined;
+    return (await this.prisma.idea.findFirst({ where: { id, tripId }, select: { placeId: true } })) ?? undefined;
   }
 
   private async find(db: Prisma.TransactionClient, tripId: string, ideaId: string): Promise<IdeaWithAuthor> {

@@ -104,13 +104,15 @@ export class PlacesService {
    * request. A place typed freely drops the picked one. When Google cannot be reached, the place id
    * is kept without its position, which the refresher fills in later.
    */
-  async columnsFor(input: { place?: string | null; placeId?: string | null }): Promise<Partial<PlaceColumns>> {
+  async columnsFor(input: { place?: string | null; placeId?: string | null }, current?: { placeId: string | null }): Promise<Partial<PlaceColumns>> {
     if (input.place === undefined) {
       if (input.placeId) throw apiError(HttpStatus.BAD_REQUEST, ApiErrorCode.ValidationFailed, 'Indique aussi le nom du lieu');
       return {};
     }
     const placeId = input.place ? (input.placeId ?? null) : null;
     if (!placeId) return { place: input.place, ...noLocation(null) };
+    // The same place sent again with the rest of the form: its cache is kept as it is.
+    if (placeId === current?.placeId) return { place: input.place };
     try {
       const found = await this.fetchDetails(placeId);
       return { place: input.place, ...locationColumns(found) };

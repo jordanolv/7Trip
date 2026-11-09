@@ -91,6 +91,12 @@ describe('Places (e2e)', () => {
     // Other fields leave the place alone; a new name typed freely drops the picked place.
     const titled = (await api().patch(`/v1/trips/${trip.id}/events/${event.id}`).set(lea.auth).send({ title: 'Balade au parc' }).expect(200)).body as TripEvent;
     expect(titled).toMatchObject({ placeId: 'fixed-plaza-espana', placeLocation: { lat: 37.3772 } });
+    // The whole form sent again with the same place: not looked up anew.
+    await app.get(PrismaService).event.update({ where: { id: event.id }, data: { placeLat: 37.4 } });
+    const resent = (
+      await api().patch(`/v1/trips/${trip.id}/events/${event.id}`).set(lea.auth).send({ place: 'Plaza de España', placeId: 'fixed-plaza-espana' }).expect(200)
+    ).body as TripEvent;
+    expect(resent.placeLocation).toMatchObject({ lat: 37.4 });
     const typed = (await api().patch(`/v1/trips/${trip.id}/events/${event.id}`).set(lea.auth).send({ place: 'Chez Paco' }).expect(200)).body as TripEvent;
     expect(typed).toMatchObject({ place: 'Chez Paco', placeId: null, placeLocation: null });
 

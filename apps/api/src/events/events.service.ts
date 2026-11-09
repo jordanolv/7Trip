@@ -98,7 +98,7 @@ export class EventsService {
   }
 
   async update(actor: Actor, tripId: string, eventId: string, input: UpdateEventInput): Promise<TripEvent> {
-    const place = await this.places.columnsFor(input);
+    const place = await this.places.columnsFor(input, await this.currentPlace(tripId, eventId));
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const event = await this.find(tx, tripId, eventId);
       assertCanEdit(me, event);
@@ -152,6 +152,12 @@ export class EventsService {
       await tx.event.delete({ where: { id: event.id } });
       await this.notifications.eventChanged(tx, me, event, null);
     });
+  }
+
+  /** The place stored now, so the same one sent again is not looked up anew. */
+  private async currentPlace(tripId: string, id: string): Promise<{ placeId: string | null } | undefined> {
+    if (!z.uuid().safeParse(id).success) return undefined;
+    return (await this.prisma.event.findFirst({ where: { id, tripId }, select: { placeId: true } })) ?? undefined;
   }
 
   private async find(db: Prisma.TransactionClient, tripId: string, eventId: string): Promise<EventWithRelations> {
