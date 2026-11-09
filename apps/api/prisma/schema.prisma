@@ -228,6 +228,14 @@ model Idea {
   title       String
   category    IdeaCategory?
   place       String?
+  /// The Google place picked for it (docs/decisions.md, "Lieux"); null for a place typed freely.
+  placeId          String?
+  /// Google's address and position of placeId: a cache Google's terms keep under 30 days,
+  /// refreshed by PlacesRefresher, dropped once the trip is over.
+  placeAddress     String?
+  placeLat         Float?
+  placeLng         Float?
+  placeRefreshedAt DateTime?
   url         String?
   description String?
   /// Free text: "Gratuit", "~25 € / pers.".
@@ -273,6 +281,14 @@ model Event {
   startTime   String?
   endTime     String?
   place       String?
+  /// The Google place picked for it (docs/decisions.md, "Lieux"); null for a place typed freely.
+  placeId          String?
+  /// Google's address and position of placeId: a cache Google's terms keep under 30 days,
+  /// refreshed by PlacesRefresher, dropped once the trip is over.
+  placeAddress     String?
+  placeLat         Float?
+  placeLng         Float?
+  placeRefreshedAt DateTime?
   url         String?
   description String?
   bookingRef  String?

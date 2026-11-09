@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
+import { PlacesService, toPlaceLocation } from '../places/places.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { toContentAuthor } from '../common/content-author.js';
@@ -38,6 +39,7 @@ export class IdeasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
+    private readonly places: PlacesService,
   ) {}
 
   /** Newest first. */
@@ -71,9 +73,11 @@ export class IdeasService {
   }
 
   async create(actor: Actor, tripId: string, input: CreateIdeaInput): Promise<Idea> {
+    // Looked up before taking the trip lock: Google can take a moment.
+    const place = await this.places.columnsFor(input);
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const idea = await tx.idea.create({
-        data: { tripId, authorId: me.id, title: input.title, ...fields(input) },
+        data: { tripId, authorId: me.id, title: input.title, ...fields(input), ...place },
         include: IDEA_INCLUDE,
       });
       return toIdea(idea, me);
@@ -81,6 +85,7 @@ export class IdeasService {
   }
 
   async update(actor: Actor, tripId: string, ideaId: string, input: UpdateIdeaInput): Promise<Idea> {
+    const place = await this.places.columnsFor(input);
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const idea = await this.find(tx, tripId, ideaId);
       assertCanEdit(me, idea);
@@ -97,6 +102,7 @@ export class IdeasService {
         data: {
           ...(input.title !== undefined && { title: input.title }),
           ...fields(input),
+          ...place,
           ...(input.status !== undefined && { status: input.status }),
           version: { increment: 1 },
         },
@@ -122,11 +128,10 @@ export class IdeasService {
   }
 }
 
-/** Optional columns present in the request (undefined = unchanged). */
+/** Optional columns present in the request (undefined = unchanged); the place apart, looked up first. */
 function fields(input: CreateIdeaInput | UpdateIdeaInput) {
   return {
     ...(input.category !== undefined && { category: input.category }),
-    ...(input.place !== undefined && { place: input.place }),
     ...(input.url !== undefined && { url: input.url }),
     ...(input.description !== undefined && { description: input.description }),
     ...(input.cost !== undefined && { cost: input.cost }),
@@ -145,6 +150,8 @@ function toIdea(idea: IdeaWithAuthor, me: Participant): Idea {
     title: idea.title,
     category: idea.category as IdeaCategory | null,
     place: idea.place,
+    placeId: idea.placeId,
+    placeLocation: toPlaceLocation(idea),
     url: idea.url,
     description: idea.description,
     cost: idea.cost,

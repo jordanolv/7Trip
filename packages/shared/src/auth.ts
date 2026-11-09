@@ -127,6 +127,8 @@ export const ApiErrorCode = {
   IdeaAlreadyPlanned: 'IDEA_ALREADY_PLANNED',
   /** The poll is closed (by an organizer or at its deadline): votes are final. */
   PollClosed: 'POLL_CLOSED',
+  /** Place search cannot reach Google right now (or has no key): the place is typed freely instead. */
+  PlacesUnavailable: 'PLACES_UNAVAILABLE',
 } as const;
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
 

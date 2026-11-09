@@ -8,12 +8,13 @@ import { MailModule } from './mail/mail.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { ExpensesModule } from './expenses/expenses.module.js';
+import { PlacesModule } from './places/places.module.js';
 import { PollsModule } from './polls/polls.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { TripsModule } from './trips/trips.module.js';
 
 @Module({
-  imports: [EnvModule, PrismaModule, MailModule, AuthModule, TripsModule, IdeasModule, EventsModule, PollsModule, ExpensesModule, DocumentsModule, NotificationsModule],
+  imports: [EnvModule, PrismaModule, MailModule, AuthModule, TripsModule, IdeasModule, EventsModule, PollsModule, ExpensesModule, DocumentsModule, NotificationsModule, PlacesModule],
   controllers: [HealthController],
 })
 export class AppModule {}
