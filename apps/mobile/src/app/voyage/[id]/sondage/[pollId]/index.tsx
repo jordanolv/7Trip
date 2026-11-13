@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { ApiError, errorMessage } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { Chip, VoteBar, VoterAvatars, deadlineLabel } from '@/polls/poll-visuals';
 import { useApplyPoll, useClosePoll, useDeletePoll, usePoll, useVote } from '@/polls/polls-api';
 import { useTrip } from '@/trips/trips-api';
@@ -42,8 +43,9 @@ export default function SondageScreen() {
     }
   }, [partager, poll.data, tripId, pollId]);
 
+  const pull = usePullRefresh(poll.refetch);
   const notFound = poll.error instanceof ApiError && poll.error.status === 404;
-  if (poll.data && !notFound) return <SondageDetail tripId={tripId} poll={poll.data} refreshing={poll.isRefetching} refetch={() => void poll.refetch()} />;
+  if (poll.data && !notFound) return <SondageDetail tripId={tripId} poll={poll.data} refreshing={pull.refreshing} refetch={pull.onRefresh} />;
 
   return (
     <>

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PollKindTile, PollStatusChip, deadlineLabel } from '@/polls/poll-visuals';
 import { usePolls } from '@/polls/polls-api';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { useTripId } from '@/trips/use-trip-id';
 
 /** Open polls first, those still to vote on at the top; then the closed ones. */
@@ -19,6 +20,7 @@ export default function SondagesScreen() {
   const tripId = useTripId();
   const polls = usePolls(tripId);
   const { refetch } = polls;
+  const pull = usePullRefresh(refetch);
   // Others vote meanwhile: fetched again on each visit.
   useFocusEffect(
     useCallback(() => {
@@ -34,7 +36,7 @@ export default function SondagesScreen() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={polls.isRefetching} onRefresh={() => void refetch()} tintColor={colors.accent} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
       >
         {polls.isPending ? (
           <ActivityIndicator color={colors.accent} style={styles.loading} />

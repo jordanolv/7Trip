@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useEvents } from '@/events/events-api';
 import { EventIcon, eventDays, eventPeople, eventStyle } from '@/events/event-visuals';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { useTrip } from '@/trips/trips-api';
 import { useTripId } from '@/trips/use-trip-id';
 
@@ -56,6 +57,7 @@ export default function PlanningScreen() {
 
   // The tab stays mounted: each visit shows what the others added meanwhile.
   const { refetch } = events;
+  const pull = usePullRefresh(refetch);
   useFocusEffect(
     useCallback(() => {
       void refetch({ cancelRefetch: false });
@@ -82,7 +84,7 @@ export default function PlanningScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
-      refreshControl={<RefreshControl refreshing={events.isRefetching} onRefresh={() => void events.refetch()} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
