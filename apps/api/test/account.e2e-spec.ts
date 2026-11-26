@@ -37,11 +37,20 @@ describe('Account data (e2e)', () => {
     return { trip, code, id };
   }
 
-  it('exports what the account wrote, trip by trip', async () => {
+  it('exports what the account wrote and its explicit event participation, trip by trip', async () => {
     const jordan = await createVerifiedUser(app, 'Jordan');
     const lea = await createVerifiedUser(app, 'Léa');
     const { trip, id } = await groupTrip(jordan, [lea]);
     await api().post(`/v1/trips/${trip.id}/ideas`).set(lea.auth).send({ title: 'Pastéis de Belém' }).expect(201);
+    const events = `/v1/trips/${trip.id}/events`;
+    await api().post(events).set(lea.auth)
+      .send({ title: 'Musée', startDate: '2027-07-13', participantIds: [id('Léa')] }).expect(201);
+    await api().post(events).set(jordan.auth)
+      .send({ title: 'Balade', startDate: '2027-07-12', participantIds: [id('Léa')] }).expect(201);
+    await api().post(events).set(lea.auth)
+      .send({ title: 'Dîner', startDate: '2027-07-14', participantIds: [id('Jordan')] }).expect(201);
+    await api().post(events).set(jordan.auth)
+      .send({ title: 'Marché', startDate: '2027-07-12', participantIds: [id('Jordan')] }).expect(201);
     await api()
       .post(`/v1/trips/${trip.id}/expenses`)
       .set(lea.auth)
@@ -56,6 +65,11 @@ describe('Account data (e2e)', () => {
       trip: { title: 'Lisbonne' },
       participation: { role: 'PARTICIPANT', status: 'ACTIVE' },
       ideas: [{ title: 'Pastéis de Belém' }],
+      events: [
+        { title: 'Balade', explicitlyParticipating: true },
+        { title: 'Musée', explicitlyParticipating: true },
+        { title: 'Dîner', explicitlyParticipating: false },
+      ],
       expensesPaid: [{ label: 'Tram 28', amountMinor: 600 }],
       shares: [{ expense: 'Tram 28', amountMinor: 300 }],
     });

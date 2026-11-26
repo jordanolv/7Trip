@@ -37,7 +37,8 @@ export class AccountService {
       include: {
         trip: { include: { destinations: { orderBy: { position: 'asc' } } } },
         ideas: { orderBy: { createdAt: 'asc' } },
-        events: { orderBy: { startDate: 'asc' } },
+        events: true,
+        eventMemberships: { include: { event: true } },
         polls: { include: { options: { orderBy: { position: 'asc' } } }, orderBy: { createdAt: 'asc' } },
         votes: { include: { option: { include: { poll: { select: { question: true } } } } } },
         expenses: { orderBy: { date: 'asc' } },
@@ -58,6 +59,26 @@ export class AccountService {
       category: e.category,
       personal: e.personal,
     });
+    const events = (p: (typeof participants)[number]) => {
+      const memberships = new Map(p.eventMemberships.map(({ eventId, event }) => [eventId, event]));
+      const byId = new Map(memberships);
+      for (const event of p.events) byId.set(event.id, event);
+      return [...byId.values()]
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+        .map((e) => ({
+          title: e.title,
+          category: e.category,
+          startDate: day(e.startDate),
+          endDate: day(e.endDate),
+          startTime: e.startTime,
+          endTime: e.endTime,
+          place: e.place,
+          url: e.url,
+          description: e.description,
+          bookingRef: e.bookingRef,
+          explicitlyParticipating: memberships.has(e.id),
+        }));
+    };
     return {
       exportedAt: new Date().toISOString(),
       account: { ...toMe(user), updatedAt: user.updatedAt.toISOString() },
@@ -79,18 +100,7 @@ export class AccountService {
           notificationPreferences: p.notifPrefs,
         },
         ideas: p.ideas.map((i) => ({ title: i.title, category: i.category, place: i.place, url: i.url, description: i.description, cost: i.cost, createdAt: i.createdAt.toISOString() })),
-        events: p.events.map((e) => ({
-          title: e.title,
-          category: e.category,
-          startDate: day(e.startDate),
-          endDate: day(e.endDate),
-          startTime: e.startTime,
-          endTime: e.endTime,
-          place: e.place,
-          url: e.url,
-          description: e.description,
-          bookingRef: e.bookingRef,
-        })),
+        events: events(p),
         polls: p.polls.map((poll) => ({ question: poll.question, options: poll.options.map((o) => o.label), createdAt: poll.createdAt.toISOString() })),
         votes: p.votes.map((v) => ({ poll: v.option.poll.question, option: v.option.label, at: v.createdAt.toISOString() })),
         expensesAdded: p.expenses.map(expense),
