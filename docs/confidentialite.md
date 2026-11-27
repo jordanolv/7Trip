@@ -30,7 +30,8 @@ Ce que tu ajoutes à un voyage est visible des autres participants de ce voyage,
 
 - Serveur et base de données : hébergés en France (OVHcloud).
 - Notifications : transmises par Expo (Expo Push), puis par Apple (APNs) ou Google (Firebase
-  Cloud Messaging). Elles ne contiennent que le texte de la notification.
+  Cloud Messaging). Pour chaque notification, Expo reçoit son titre, son texte, le jeton de
+  livraison du téléphone et le lien de l'écran de l'application à ouvrir.
 - E-mails : envoyés par un prestataire d'envoi d'e-mails.
 
 ## Conservation
