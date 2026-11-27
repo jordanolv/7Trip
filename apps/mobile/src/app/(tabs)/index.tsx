@@ -13,6 +13,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { takePendingInvitation } from '@/lib/invitation-link';
+import { usePullRefresh } from '@/lib/use-pull-refresh';
 import { TripCard } from '@/trips/trip-card';
 import { useGuestTrips, useMyTrips } from '@/trips/trips-api';
 
@@ -29,6 +30,7 @@ export default function VoyagesScreen() {
   const insets = useSafeAreaInsets();
   const signedIn = status === 'signedIn' && user;
   const trips = useMyTrips();
+  const pull = usePullRefresh(trips.refetch);
 
   const startTrip = () => {
     if (user?.emailVerified) {
@@ -48,7 +50,7 @@ export default function VoyagesScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
         refreshControl={
           signedIn ? (
-            <RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.accent} />
+            <RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />
           ) : undefined
         }
       >

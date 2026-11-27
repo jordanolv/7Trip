@@ -1,0 +1,26 @@
+import { onlineManager } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+
+/**
+ * Pull-to-refresh state that only follows the user's pull. Bound to a query's isRefetching instead,
+ * every background refetch (each visit, each focus) would show the spinner and push the page down.
+ */
+export function usePullRefresh(refresh: () => Promise<unknown>) {
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    // Offline, queries pause until the network is back: the spinner would never stop.
+    if (!onlineManager.isOnline()) {
+      void refresh();
+      return;
+    }
+    setRefreshing(true);
+    const unsubscribe = onlineManager.subscribe((online) => {
+      if (!online) setRefreshing(false);
+    });
+    void refresh().finally(() => {
+      unsubscribe();
+      setRefreshing(false);
+    });
+  }, [refresh]);
+  return { refreshing, onRefresh };
+}
