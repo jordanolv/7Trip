@@ -1,7 +1,7 @@
 import { localIsoDate, portfolioOf, portfolioTripLabel, type TripSummary } from '@7trip/shared';
 import { colors, radii, spacing } from '@7trip/ui-tokens';
-import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
@@ -22,7 +22,16 @@ export default function PortfolioScreen() {
   const { status } = useAuth();
   const insets = useSafeAreaInsets();
   const trips = useMyTrips();
-  const portfolio = useMemo(() => portfolioOf(trips.data ?? [], localIsoDate()), [trips.data]);
+  // The day trips are judged against, as on the Voyages screen. The tab stays mounted, and a
+  // refresh can hand back the very same trips, so it is read again whenever the tab comes back
+  // into view or is refreshed: a trip that ended past midnight then joins the portfolio.
+  const [today, setToday] = useState(localIsoDate);
+  useFocusEffect(useCallback(() => setToday(localIsoDate()), []));
+  const refresh = () => {
+    setToday(localIsoDate());
+    void trips.refetch();
+  };
+  const portfolio = useMemo(() => portfolioOf(trips.data ?? [], today), [trips.data, today]);
   const signedIn = status === 'signedIn';
 
   let body;
@@ -37,7 +46,7 @@ export default function PortfolioScreen() {
   } else if (trips.isError && !trips.data) {
     body = (
       <Card title="Impossible de charger ton portfolio" text={trips.error.message}>
-        <Button title="Réessayer" variant="secondary" onPress={() => void trips.refetch()} />
+        <Button title="Réessayer" variant="secondary" onPress={refresh} />
       </Card>
     );
   } else if (portfolio.trips.length === 0) {
@@ -71,7 +80,7 @@ export default function PortfolioScreen() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xxl }]}
         refreshControl={
-          signedIn ? <RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.accent} /> : undefined
+          signedIn ? <RefreshControl refreshing={trips.isRefetching} onRefresh={refresh} tintColor={colors.accent} /> : undefined
         }
       >
         <View style={styles.header}>
