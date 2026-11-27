@@ -8,9 +8,15 @@
     "scheme": "seventrip",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "fr.seventrip.app",
+      "supportsTablet": false,
+      "icon": "./assets/expo.icon",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "fr.seventrip.app",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
