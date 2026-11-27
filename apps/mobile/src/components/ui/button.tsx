@@ -2,7 +2,7 @@ import { colors, fontFamily, minTouchTarget, radii } from '@7trip/ui-tokens';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-type Variant = 'primary' | 'secondary' | 'soft' | 'dark' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'soft' | 'dark' | 'ghost' | 'danger';
 
 export interface ButtonProps {
   title: string;
@@ -64,6 +64,7 @@ const variantStyles = StyleSheet.create({
   soft: { backgroundColor: colors.background },
   dark: { backgroundColor: '#111111' },
   ghost: { backgroundColor: 'transparent' },
+  danger: { backgroundColor: colors.danger },
 });
 
 const labelColors: Record<Variant, string> = {
@@ -72,4 +73,5 @@ const labelColors: Record<Variant, string> = {
   soft: colors.ink,
   dark: colors.surface,
   ghost: colors.inkTertiary,
+  danger: colors.surface,
 };

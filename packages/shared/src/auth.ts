@@ -75,6 +75,13 @@ export const updateMeRequestSchema = z
   .refine((body) => body.displayName !== undefined || body.avatarColor !== undefined, 'Rien à modifier');
 export type UpdateMeRequest = z.input<typeof updateMeRequestSchema>;
 
+/** Deleting the account asks for its password again, when it has one (docs/decisions.md). */
+export const deleteAccountRequestSchema = z.object({ password: z.string().max(128).optional() });
+export type DeleteAccountRequest = z.input<typeof deleteAccountRequestSchema>;
+
+/** Name a deleted account leaves in the trips it was part of. */
+export const FORMER_PARTICIPANT_NAME = 'Ancien participant';
+
 export interface Me {
   id: string;
   email: string;
@@ -82,6 +89,8 @@ export interface Me {
   /** Chosen in the profile, or the default colour of the account. */
   avatarColor: AvatarColor;
   emailVerified: boolean;
+  /** False for an account that only signs in with Apple / Google. */
+  hasPassword: boolean;
   createdAt: string;
 }
 
