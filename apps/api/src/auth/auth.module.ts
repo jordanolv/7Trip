@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ENV, type Env } from '../config/env.js';
+import { StorageModule } from '../documents/storage.module.js';
+import { AccountController } from '../users/account.controller.js';
+import { AccountService } from '../users/account.service.js';
 import { MeController } from '../users/me.controller.js';
 import { AccessTokenGuard, OptionalAccessTokenGuard } from './access-token.guard.js';
 import { AuthController } from './auth.controller.js';
@@ -11,6 +14,7 @@ import { TokensService } from './tokens.service.js';
 
 @Module({
   imports: [
+    StorageModule,
     ThrottlerModule.forRootAsync({
       inject: [ENV],
       useFactory: (env: Env) => ({
@@ -20,8 +24,8 @@ import { TokensService } from './tokens.service.js';
       }),
     }),
   ],
-  controllers: [AuthController, MeController],
-  providers: [AuthService, TokensService, EmailCodesService, PasswordService, AccessTokenGuard, OptionalAccessTokenGuard],
+  controllers: [AuthController, MeController, AccountController],
+  providers: [AccountService, AuthService, TokensService, EmailCodesService, PasswordService, AccessTokenGuard, OptionalAccessTokenGuard],
   exports: [TokensService, AccessTokenGuard, OptionalAccessTokenGuard],
 })
 export class AuthModule {}

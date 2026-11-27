@@ -8,6 +8,7 @@ export function toMe(user: User): Me {
     displayName: user.displayName,
     avatarColor: user.avatarColor ?? defaultAvatarColor(user.id),
     emailVerified: user.emailVerifiedAt !== null,
+    hasPassword: user.passwordHash !== null,
     createdAt: user.createdAt.toISOString(),
   };
 }
