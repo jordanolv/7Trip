@@ -79,6 +79,7 @@ Statut : **validé le 20 octobre 2026**. Chaque ligne peut encore évoluer sans 
 | Question | Proposition |
 |---|---|
 | Visite effective | Un voyage est « visité » quand sa date de fin est passée et que le participant ne l'a pas quitté avant le départ. Destinations et étapes : celles des événements datés passés, pas les idées ni les options de sondage. |
+| Portfolio minimal (V1) | Les voyages datés dont la date de fin est passée, parmi ceux où l'on est encore participant. Destinations : celles du voyage, chacune comptée une fois. Durée : du premier au dernier jour inclus. Pas de pays (les destinations sont du texte libre) ni de vraie carte : la carte est décorative. |
 | Photos de groupe | Hors V1. En V1.5 : une photo n'apparaît dans un portfolio que si celui qui l'a ajoutée l'a autorisé. |
 
 ## Notifications (réglages par défaut)
