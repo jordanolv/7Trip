@@ -7,7 +7,7 @@ Olivier, à titre personnel. Contact : jordanolv.pro@gmail.com.
 
 ## Données collectées
 
-- **Compte** : nom affiché, adresse e-mail, mot de passe (stocké chiffré, jamais en clair).
+- **Compte** : nom affiché, adresse e-mail, mot de passe (jamais stocké en clair : seule son empreinte Argon2id est conservée).
 - **Voyages** : ce que les participants y saisissent, c'est-à-dire voyages, planning, sondages
   et votes, dépenses et remboursements, documents et photos ajoutés.
 - **Notifications** : l'identifiant de notification du téléphone et son fuseau horaire, pour
