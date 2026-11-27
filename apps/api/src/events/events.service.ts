@@ -15,6 +15,7 @@ import { apiError } from '../common/api-error.js';
 import type { Participant, Prisma } from '../generated/prisma/client.js';
 import { ParticipantStatus } from '../generated/prisma/enums.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { PlacesService, toPlaceLocation } from '../places/places.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Actor } from '../trips/actor.js';
 import { toContentAuthor } from '../common/content-author.js';
@@ -47,6 +48,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly trips: TripsService,
     private readonly notifications: NotificationsService,
+    private readonly places: PlacesService,
   ) {}
 
   /** In timeline order. */
@@ -66,6 +68,8 @@ export class EventsService {
   }
 
   async create(actor: Actor, tripId: string, input: CreateEventInput): Promise<TripEvent> {
+    // Looked up before taking the trip lock: Google can take a moment.
+    const place = await this.places.columnsFor(input);
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       await assertParticipants(tx, tripId, input.participantIds);
       await assertWithinTrip(tx, tripId, input);
@@ -83,6 +87,7 @@ export class EventsService {
           category: input.category,
           ...schedule(input),
           ...details(input),
+          ...place,
           participants: { create: input.participantIds.map((participantId) => ({ participantId })) },
         },
         include: EVENT_INCLUDE,
@@ -93,6 +98,7 @@ export class EventsService {
   }
 
   async update(actor: Actor, tripId: string, eventId: string, input: UpdateEventInput): Promise<TripEvent> {
+    const place = await this.places.columnsFor(input, await this.currentPlace(tripId, eventId));
     return this.trips.withTripLock(actor, tripId, async (tx, { me }) => {
       const event = await this.find(tx, tripId, eventId);
       assertCanEdit(me, event);
@@ -127,6 +133,7 @@ export class EventsService {
           ...(input.category !== undefined && { category: input.category }),
           ...schedule(merged),
           ...details(input),
+          ...place,
           ...(input.participantIds && { participants: { create: input.participantIds.map((participantId) => ({ participantId })) } }),
           version: { increment: 1 },
         },
@@ -145,6 +152,12 @@ export class EventsService {
       await tx.event.delete({ where: { id: event.id } });
       await this.notifications.eventChanged(tx, me, event, null);
     });
+  }
+
+  /** The place stored now, so the same one sent again is not looked up anew. */
+  private async currentPlace(tripId: string, id: string): Promise<{ placeId: string | null } | undefined> {
+    if (!z.uuid().safeParse(id).success) return undefined;
+    return (await this.prisma.event.findFirst({ where: { id, tripId }, select: { placeId: true } })) ?? undefined;
   }
 
   private async find(db: Prisma.TransactionClient, tripId: string, eventId: string): Promise<EventWithRelations> {
@@ -168,10 +181,9 @@ function schedule(input: { startDate: string; endDate?: string | null; startTime
   };
 }
 
-/** Optional columns present in the request (undefined = unchanged). */
+/** Optional columns present in the request (undefined = unchanged); the place apart, looked up first. */
 function details(input: CreateEventInput | UpdateEventInput) {
   return {
-    ...(input.place !== undefined && { place: input.place }),
     ...(input.url !== undefined && { url: input.url }),
     ...(input.description !== undefined && { description: input.description }),
     ...(input.bookingRef !== undefined && { bookingRef: input.bookingRef }),
@@ -234,6 +246,8 @@ function toTripEvent(event: EventWithRelations, me: Participant): TripEvent {
     startTime: event.startTime,
     endTime: event.endTime,
     place: event.place,
+    placeId: event.placeId,
+    placeLocation: toPlaceLocation(event),
     url: event.url,
     description: event.description,
     bookingRef: event.bookingRef,

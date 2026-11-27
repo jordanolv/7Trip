@@ -52,6 +52,16 @@ const envSchema = z
     /** Sends the outbox and plans the reminders every few seconds. Off in tests, which run it by hand. */
     NOTIFICATIONS_WORKER: z.stringbool().default(true),
 
+    /**
+     * Place search and lookup (docs/decisions.md, "Lieux"). `google`: Places API (New), with
+     * GOOGLE_MAPS_API_KEY (the server key, restricted to this server's IPs). `fixed`: a few made-up
+     * places, for tests that must not depend on the network.
+     */
+    PLACES_SOURCE: z.enum(['google', 'fixed']).default('google'),
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
+    /** Refreshes the cached addresses and positions of picked places. Off in tests, which run it by hand. */
+    PLACES_WORKER: z.stringbool().default(true),
+
     /** Requests allowed per minute and per IP on sensitive auth routes. */
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(10),
   })

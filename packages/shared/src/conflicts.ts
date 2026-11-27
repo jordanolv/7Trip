@@ -48,7 +48,7 @@ export const EVENT_CONFLICT_GROUPS = {
   Catégorie: ['category'],
   Dates: ['startDate', 'endDate'],
   Horaire: ['startTime', 'endTime'],
-  Lieu: ['place'],
+  Lieu: ['place', 'placeId'],
   Lien: ['url'],
   Réservation: ['bookingRef'],
   Description: ['description'],

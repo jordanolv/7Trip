@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { optionalText, optionalUrl } from './fields.js';
 import { formatDayMonth } from './format.js';
+import { placeIdSchema, type PlaceLocation } from './places.js';
 import type { ContentAuthor, IdeaCategory } from './ideas.js';
 import { isoDateSchema, type ParticipantRole } from './trips.js';
 
@@ -88,6 +89,8 @@ const eventFields = {
   startTime: timeSchema.nullish(),
   endTime: timeSchema.nullish(),
   place: optionalText(120),
+  /** The Google place picked for it; none for a place typed freely. Sent along with `place`, its name. */
+  placeId: placeIdSchema.nullish(),
   url: optionalUrl,
   description: optionalText(1000),
   /** Booking reference, e.g. "ALC-48213". */
@@ -122,6 +125,7 @@ export const updateEventRequestSchema = z.object({
   startTime: eventFields.startTime,
   endTime: eventFields.endTime,
   place: eventFields.place,
+  placeId: eventFields.placeId,
   url: eventFields.url,
   description: eventFields.description,
   bookingRef: eventFields.bookingRef,
@@ -141,6 +145,9 @@ export interface TripEvent {
   startTime: string | null;
   endTime: string | null;
   place: string | null;
+  placeId: string | null;
+  /** Where the picked place is; null for a place typed freely, or while it cannot be looked up. */
+  placeLocation: PlaceLocation | null;
   url: string | null;
   description: string | null;
   bookingRef: string | null;

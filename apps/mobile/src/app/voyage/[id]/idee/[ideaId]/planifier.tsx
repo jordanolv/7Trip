@@ -67,6 +67,7 @@ function Planifier({ tripId, idea }: { tripId: string; idea: Idea }) {
       title: idea.title,
       category: eventCategoryForIdea(idea.category),
       place: idea.place,
+      placeId: idea.placeId,
       url: idea.url,
       description: idea.description,
       ideaId: idea.id,
